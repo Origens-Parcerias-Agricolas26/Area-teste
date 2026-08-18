@@ -885,30 +885,22 @@
 emailjs.init("SUA_PUBLIC_KEY_AQUI");
 
 function dispararNotificacoes(acao, fazenda, safra, detalhes) {
-    // 1. DISPARO DE WHATSAPP
-    const numeroWhatsApp = "5565999999999"; // Coloque o DDD e o número (só números)
-    let msgWhatsApp = `🌱 *Origens WebGIS* - Nova Atualização!\n\n🚜 *Fazenda:* ${fazenda}\n📅 *Safra:* ${safra}\n📌 *Ação:* ${acao}\n📝 *Detalhes:* ${detalhes}\n\nAcesse a plataforma para visualizar.`;
-    
-    // Abre a aba do WhatsApp automaticamente
-    window.open(`https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(msgWhatsApp)}`, '_blank');
+    // ATENÇÃO: Troque as chaves abaixo pelas que você gerar no site www.emailjs.com
+emailjs.init("SUA_PUBLIC_KEY_AQUI"); 
 
-    // 2. DISPARO DE E-MAIL (EMAILJS)
-    // Descomente o código abaixo e coloque seus IDs quando sua conta EmailJS estiver pronta
-    /*
+function dispararNotificacoes(acao, fazenda, safra, detalhes) {
+    // DISPARO EXCLUSIVO DE E-MAIL (EMAILJS)
     emailjs.send("SEU_SERVICE_ID", "SEU_TEMPLATE_ID", {
         acao: acao,
         fazenda: fazenda,
         safra: safra,
         detalhes: detalhes
     }).then(() => {
-        console.log("E-mail enviado com sucesso!");
+        console.log("Notificação por e-mail enviada com sucesso!");
     }).catch((err) => {
         console.error("Erro ao enviar o e-mail:", err);
     });
-    */
 }
-// --- FIM: SISTEMA DE NOTIFICAÇÕES ---
-
         let mapLeft = null, mapRight = null, vrateMap = null, seedsMap = null;
         let geojsonLayerLeft = null, geojsonLayerRight = null, vrateGeojsonLayer = null, seedsGeojsonLayer = null;
         let tileLayerLeft = null, tileLayerRight = null;
