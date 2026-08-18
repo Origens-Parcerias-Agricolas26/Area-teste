@@ -368,6 +368,9 @@
                             <h3 class="text-sm font-extrabold text-amber-700 uppercase border-b pb-2"><i class="fa-solid fa-tractor mr-2"></i>Prescrição de Taxa Variável</h3>
 
                             <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
+                                <select id="vrate-sel-producer" onchange="changeActiveProducer('vrate-sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
+
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
                                 <select id="vrate-sel-farm" onchange="changeActiveFarm('vrate-sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
                             </div>
@@ -486,6 +489,9 @@
                             <h3 class="text-sm font-extrabold text-emerald-700 uppercase border-b pb-2"><i class="fa-solid fa-wheat-awn mr-2"></i>Prescrição de Sementes & Plantio</h3>
 
                             <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
+                                <select id="seeds-sel-producer" onchange="changeActiveProducer('seeds-sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
+
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
                                 <select id="seeds-sel-farm" onchange="changeActiveFarm('seeds-sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
                             </div>
@@ -1526,7 +1532,59 @@
             items.forEach(chk => chk.checked = masterChk.checked);
         }
 
+        function populateProducerSelector() {
+            const prodSelect = document.getElementById('sel-producer');
+            const vrateProdSelect = document.getElementById('vrate-sel-producer');
+            const seedsProdSelect = document.getElementById('seeds-sel-producer');
+
+            if (!prodSelect) return;
+
+            const currentVal = prodSelect.value || 'all';
+
+            prodSelect.innerHTML = '<option value="all">Todos os Produtores</option>';
+            if (vrateProdSelect) vrateProdSelect.innerHTML = '<option value="all">Todos os Produtores</option>';
+            if (seedsProdSelect) seedsProdSelect.innerHTML = '<option value="all">Todos os Produtores</option>';
+
+            let producersSet = new Set();
+            let keysToDisplay = Object.keys(farmsDatabase);
+
+            if (currentUserRole !== 'admin' && !currentUserAllowedFarms.includes('all')) {
+                keysToDisplay = keysToDisplay.filter(k => currentUserAllowedFarms.includes(k));
+            }
+
+            keysToDisplay.forEach(key => {
+                const farm = farmsDatabase[key];
+                if (farm && farm.producer) producersSet.add(farm.producer);
+            });
+
+            const sortedProducers = Array.from(producersSet).sort();
+            sortedProducers.forEach(p => {
+                prodSelect.innerHTML += `<option value="${p}">${p}</option>`;
+                if (vrateProdSelect) vrateProdSelect.innerHTML += `<option value="${p}">${p}</option>`;
+                if (seedsProdSelect) seedsProdSelect.innerHTML += `<option value="${p}">${p}</option>`;
+            });
+
+            prodSelect.value = currentVal;
+            if (vrateProdSelect) vrateProdSelect.value = currentVal;
+            if (seedsProdSelect) seedsProdSelect.value = currentVal;
+        }
+
+        function changeActiveProducer(sourceSelectId) {
+            const selectedVal = document.getElementById(sourceSelectId).value;
+            ['sel-producer', 'vrate-sel-producer', 'seeds-sel-producer'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== selectedVal) el.value = selectedVal;
+            });
+            
+            populateFarmSelector();
+            
+            // Força a atualização do mapa para a primeira fazenda do produtor selecionado
+            changeActiveFarm('sel-farm');
+        }
+
         function populateFarmSelector() {
+            populateProducerSelector(); // Garante que a lista de produtores está atualizada primeiro
+
             const farmSelect = document.getElementById('sel-farm');
             const vrateSelect = document.getElementById('vrate-sel-farm');
             const seedsSelect = document.getElementById('seeds-sel-farm');
@@ -1540,12 +1598,17 @@
                 keysToDisplay = keysToDisplay.filter(k => currentUserAllowedFarms.includes(k));
             }
 
+            const selectedProducer = document.getElementById('sel-producer') ? document.getElementById('sel-producer').value : 'all';
+
             keysToDisplay.forEach(key => {
                 if (farmsDatabase[key]) {
                     const farm = farmsDatabase[key];
-                    if (farmSelect) farmSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
-                    if (vrateSelect) vrateSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
-                    if (seedsSelect) seedsSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
+                    // Só adiciona a fazenda se for "Todos" ou se o produtor for o selecionado
+                    if (selectedProducer === 'all' || farm.producer === selectedProducer) {
+                        if (farmSelect) farmSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
+                        if (vrateSelect) vrateSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
+                        if (seedsSelect) seedsSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
+                    }
                 }
             });
 
@@ -1562,7 +1625,7 @@
             populateSafraSelector();
             populateTalhaoSelector();
         }
-
+           
         function changeActiveFarm(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
             ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm'].forEach(id => {
