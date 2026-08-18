@@ -3304,6 +3304,12 @@
             ctx.fillText("www.origens.agr.br", 50, canvas.height - 35);
             ctx.textAlign = "right";
             ctx.fillText("Escala Automática | Sistema WGS 84", canvas.width - 50, canvas.height - 35);
+            // Seta Norte (Desenhada por último para ficar por cima do mapa)
+            const northArrow = document.getElementById('pdf-north-arrow');
+            if (northArrow && northArrow.src && northArrow.src.length > 100) {
+                // Posição ajustada: Canto superior direito de dentro do mapa
+                ctx.drawImage(northArrow, 1020, 130, 60, 60); 
+            }
 
             return canvas.toDataURL('image/jpeg', 0.98);
         }
@@ -3534,6 +3540,12 @@
             ctx.fillText("www.origens.agr.br", 50, canvas.height - 35);
             ctx.textAlign = "right";
             ctx.fillText("Escala Automática | Sistema WGS 84", canvas.width - 50, canvas.height - 35);
+            // Seta Norte (Desenhada por último para ficar por cima do mapa)
+            const northArrow = document.getElementById('pdf-north-arrow');
+            if (northArrow && northArrow.src && northArrow.src.length > 100) {
+                // Posição ajustada: Canto superior direito de dentro do mapa
+                ctx.drawImage(northArrow, 1020, 130, 60, 60); 
+            }
 
             return canvas.toDataURL('image/jpeg', 0.98);
         }
@@ -3958,6 +3970,12 @@
             ctx.fillText("www.origens.agr.br", 50, canvas.height - 35);
             ctx.textAlign = "right";
             ctx.fillText("Escala Automática | Sistema WGS 84", canvas.width - 50, canvas.height - 35);
+            // Seta Norte (Desenhada por último para ficar por cima do mapa)
+            const northArrow = document.getElementById('pdf-north-arrow');
+            if (northArrow && northArrow.src && northArrow.src.length > 100) {
+                // Posição ajustada: Canto superior direito de dentro do mapa
+                ctx.drawImage(northArrow, 1020, 130, 60, 60); 
+            }
 
             return canvas.toDataURL('image/jpeg', 0.98);
         }
