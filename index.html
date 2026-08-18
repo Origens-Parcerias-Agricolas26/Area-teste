@@ -3069,10 +3069,7 @@
             ctx.textAlign = "left";
             ctx.fillText(`PROPRIEDADE: ${farmNameStr} - ${farmLocStr} | CULTURA: ${crop.toUpperCase()}`, 260, 115);
             // Inserir Seta Norte
-            const northArrowImg3 = document.getElementById('pdf-north-arrow');
-            if (northArrowImg3 && northArrowImg3.src && northArrowImg3.src.length > 100) {
-                ctx.drawImage(northArrowImg3, 960, 170, 60, 60); 
-            }
+            
 
             ctx.textAlign = "left";
 
@@ -3304,11 +3301,10 @@
             ctx.fillText("www.origens.agr.br", 50, canvas.height - 35);
             ctx.textAlign = "right";
             ctx.fillText("Escala Automática | Sistema WGS 84", canvas.width - 50, canvas.height - 35);
-            // Seta Norte (Desenhada por último para ficar por cima do mapa)
-            const northArrow = document.getElementById('pdf-north-arrow');
-            if (northArrow && northArrow.src && northArrow.src.length > 100) {
-                // Posição ajustada: Canto superior direito de dentro do mapa
-                ctx.drawImage(northArrow, 1020, 130, 60, 60); 
+           // Seta Norte (Desenhada no canto inferior direito, acima da escala)
+            const northArrowFinal = document.getElementById('pdf-north-arrow');
+            if (northArrowFinal && northArrowFinal.src && northArrowFinal.src.length > 100) {
+                ctx.drawImage(northArrowFinal, 1470, 1060, 70, 70); 
             }
 
             return canvas.toDataURL('image/jpeg', 0.98);
@@ -3414,10 +3410,7 @@
             ctx.textAlign = "left";
             ctx.fillText(`CAMADA: ${depthConfig.titleText} | ${farmInfo.name.toUpperCase()} - ${farmLocStr}`, 260, 115);
             // Inserir Seta Norte
-            const northArrowImg = document.getElementById('pdf-north-arrow');
-            if (northArrowImg && northArrowImg.src && northArrowImg.src.length > 100) {
-                ctx.drawImage(northArrowImg, 960, 170, 60, 60); // Desenha no canto superior direito do mapa
-            }
+            
             ctx.textAlign = "left";
 
             if (currentGeoJSON && currentGeoJSON.features && currentGeoJSON.features.length) {
@@ -3540,11 +3533,10 @@
             ctx.fillText("www.origens.agr.br", 50, canvas.height - 35);
             ctx.textAlign = "right";
             ctx.fillText("Escala Automática | Sistema WGS 84", canvas.width - 50, canvas.height - 35);
-            // Seta Norte (Desenhada por último para ficar por cima do mapa)
-            const northArrow = document.getElementById('pdf-north-arrow');
-            if (northArrow && northArrow.src && northArrow.src.length > 100) {
-                // Posição ajustada: Canto superior direito de dentro do mapa
-                ctx.drawImage(northArrow, 1020, 130, 60, 60); 
+            // Seta Norte (Desenhada no canto inferior direito, acima da escala)
+            const northArrowFinal = document.getElementById('pdf-north-arrow');
+            if (northArrowFinal && northArrowFinal.src && northArrowFinal.src.length > 100) {
+                ctx.drawImage(northArrowFinal, 1470, 1060, 70, 70); 
             }
 
             return canvas.toDataURL('image/jpeg', 0.98);
@@ -3689,10 +3681,7 @@
             ctx.textAlign = "left";
             ctx.fillText(`PROPRIEDADE: ${farmNameStr} - ${farmLocStr} | INSUMO: ${product.toUpperCase()} (${unitStr})`, 260, 115);
             // Inserir Seta Norte
-            const northArrowImg2 = document.getElementById('pdf-north-arrow');
-            if (northArrowImg2 && northArrowImg2.src && northArrowImg2.src.length > 100) {
-                ctx.drawImage(northArrowImg2, 960, 170, 60, 60); 
-            }
+            
 
             ctx.textAlign = "left";
 
@@ -3970,11 +3959,10 @@
             ctx.fillText("www.origens.agr.br", 50, canvas.height - 35);
             ctx.textAlign = "right";
             ctx.fillText("Escala Automática | Sistema WGS 84", canvas.width - 50, canvas.height - 35);
-            // Seta Norte (Desenhada por último para ficar por cima do mapa)
-            const northArrow = document.getElementById('pdf-north-arrow');
-            if (northArrow && northArrow.src && northArrow.src.length > 100) {
-                // Posição ajustada: Canto superior direito de dentro do mapa
-                ctx.drawImage(northArrow, 1020, 130, 60, 60); 
+            // Seta Norte (Desenhada no canto inferior direito, acima da escala)
+            const northArrowFinal = document.getElementById('pdf-north-arrow');
+            if (northArrowFinal && northArrowFinal.src && northArrowFinal.src.length > 100) {
+                ctx.drawImage(northArrowFinal, 1470, 1060, 70, 70); 
             }
 
             return canvas.toDataURL('image/jpeg', 0.98);
