@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
 <head>
     <!--
     ===================================================================
@@ -879,6 +880,34 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+        // --- INÍCIO: SISTEMA DE NOTIFICAÇÕES (WHATSAPP E E-MAIL) ---
+// Quando você criar a conta no emailjs.com, coloque sua "Public Key" aqui embaixo:
+emailjs.init("SUA_PUBLIC_KEY_AQUI");
+
+function dispararNotificacoes(acao, fazenda, safra, detalhes) {
+    // 1. DISPARO DE WHATSAPP
+    const numeroWhatsApp = "5565999999999"; // Coloque o DDD e o número (só números)
+    let msgWhatsApp = `🌱 *Origens WebGIS* - Nova Atualização!\n\n🚜 *Fazenda:* ${fazenda}\n📅 *Safra:* ${safra}\n📌 *Ação:* ${acao}\n📝 *Detalhes:* ${detalhes}\n\nAcesse a plataforma para visualizar.`;
+    
+    // Abre a aba do WhatsApp automaticamente
+    window.open(`https://wa.me/${numeroWhatsApp}?text=${encodeURIComponent(msgWhatsApp)}`, '_blank');
+
+    // 2. DISPARO DE E-MAIL (EMAILJS)
+    // Descomente o código abaixo e coloque seus IDs quando sua conta EmailJS estiver pronta
+    /*
+    emailjs.send("SEU_SERVICE_ID", "SEU_TEMPLATE_ID", {
+        acao: acao,
+        fazenda: fazenda,
+        safra: safra,
+        detalhes: detalhes
+    }).then(() => {
+        console.log("E-mail enviado com sucesso!");
+    }).catch((err) => {
+        console.error("Erro ao enviar o e-mail:", err);
+    });
+    */
+}
+// --- FIM: SISTEMA DE NOTIFICAÇÕES ---
 
         let mapLeft = null, mapRight = null, vrateMap = null, seedsMap = null;
         let geojsonLayerLeft = null, geojsonLayerRight = null, vrateGeojsonLayer = null, seedsGeojsonLayer = null;
@@ -1901,6 +1930,7 @@
                     await loadCloudData();
                     alert(`Planilha complementar "${file.name}" anexada com sucesso para a Safra ${activeSafra}!`);
                     inputEl.value = '';
+                    dispararNotificacoes("Nova Planilha Complementar", farmInfo ? farmInfo.name : 'Fazenda', activeSafra, `Arquivo adicionado: ${file.name}`);
                 } catch (err) {
                     console.error("Erro ao enviar planilha complementar:", err);
                     alert("Falha ao salvar planilha na nuvem: " + err.message);
@@ -2590,6 +2620,7 @@
                 await db.collection("prescriptions").add(record);
                 await loadCloudData();
                 alert(`Mapa de Adubação de ${product} salvo com sucesso na Safra ${activeSafra}!`);
+                dispararNotificacoes("Novo Mapa de Adubação Salvo", farmInfo ? farmInfo.name : 'Fazenda', activeSafra, `Insumo gerado: ${product}`);
             } catch (err) {
                 console.error("Erro ao salvar mapa na plataforma:", err);
                 alert("Erro ao salvar na nuvem: " + err.message);
@@ -2927,6 +2958,7 @@
                 await db.collection("prescriptions").add(record);
                 await loadCloudData();
                 alert(`Mapa de ${record.title} salvo com sucesso na Safra ${activeSafra}!`);
+                dispararNotificacoes(`Nova Prescrição (${record.title})`, farmInfo ? farmInfo.name : 'Fazenda', activeSafra, `Cultura: ${crop}`);
             } catch (err) {
                 console.error("Erro ao salvar mapa na plataforma:", err);
                 alert("Erro ao salvar na nuvem: " + err.message);
@@ -4233,6 +4265,7 @@
             populateTalhaoSelector();
             updateGISMap();
             alert(`Projeto e perimetros da Safra ${safraTarget} importados com sucesso!`);
+            dispararNotificacoes("Importação de Projeto GIS", farmsDatabase[farmKey].name, safraTarget, "Novo arquivo Shapefile e análises químicas foram carregados.");
             
         } catch (err) {
             console.error("Erro no processamento:", err);
