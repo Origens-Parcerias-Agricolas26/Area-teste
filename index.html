@@ -4712,6 +4712,9 @@
         let estoqueFazenda = [];
         let recRowId = 0;
 
+        let estoqueFazenda = [];
+        let recRowId = 0;
+
         function importarEstoqueExcel(inputEl) {
             if (!inputEl.files || !inputEl.files[0]) return;
             const file = inputEl.files[0];
@@ -4724,22 +4727,24 @@
                     const rows = XLSX.utils.sheet_to_json(sheet);
                     
                     estoqueFazenda = rows.map(r => {
-                        const ingrediente = r['INGREDIENTE ATIVO (GRUPO QUÍMICO)'] || r['INGREDIENTE ATIVO'] || r['PRODUTO'] || '';
-                        const concentracao = r['CONCENTRAÇÃO'] || '';
-                        const empresa = r['EMPRESA'] || '';
-                        const unid = r['UNID.'] || r['UNID'] || 'L/kg';
-                        const lote = r['LOTE'] || 'N/A';
-                        const validade = r['VALIDADE'] || 'N/A';
-                        // Procura a coluna de quantidade com vários nomes possíveis
-                        const volume = parseFloat(r['ESTOQUE'] || r['VOLUME'] || r['QUANTIDADE'] || r['SALDO'] || 0);
+                        // Puxa exatamente as colunas que vi no seu vídeo
+                        const ingrediente = r['INGREDIENTE ATIVO (GRUPO QUÍMICO)'] || r['PRODUTO'] || 'Sem Nome';
+                        const lote = r['LOTE'] || '-';
+                        const validade = r['VALIDADE'] || '-';
+                        const unid = r['UNID.'] || r['UNID'] || 'L';
+                        const volume = parseFloat(r['QUANTIDADE'] || r['ESTOQUE'] || r['VOLUME'] || 0);
                         
-                        return { ingrediente, concentracao, empresa, unid, lote, validade, volume };
-                    }).filter(p => p.ingrediente !== '');
+                        // Formata o texto bonito para a lista suspensa
+                        const nomeExibicao = `${ingrediente} | Lote: ${lote} | Val: ${validade} | Est: ${volume.toFixed(2)} ${unid}`;
+                        
+                        return { ingrediente, lote, validade, unid, volume, nomeExibicao };
+                    }).filter(p => p.ingrediente !== 'Sem Nome');
 
-                    atualizarDatalistEstoque(); // Chama a função que atualiza a lista visual
+                    atualizarDatalistEstoque();
                     alert(`Estoque importado! ${estoqueFazenda.length} produtos carregados com Lote e Validade.`);
                     inputEl.value = '';
                 } catch (err) {
+                    console.error(err);
                     alert("Erro ao ler planilha de estoque. Verifique as colunas.");
                 }
             };
@@ -4748,12 +4753,15 @@
 
         function atualizarDatalistEstoque() {
             const datalist = document.getElementById('lista-estoque');
-            // Formata o nome para mostrar Lote, Validade e Estoque disponível na hora da busca
-            estoqueFazenda.forEach(p => {
-                p.nomeExibicao = `${p.ingrediente} | Lote: ${p.lote} | Val: ${p.validade} | Est: ${p.volume.toFixed(1)} ${p.unid}`;
-            });
-            datalist.innerHTML = estoqueFazenda.map(p => `<option value="${p.nomeExibicao}" data-unid="${p.unid}">`).join('');
-            document.getElementById('txt-btn-estoque').innerText = `${estoqueFazenda.length} Produtos na Memória`;
+            if (datalist) {
+                // Reescreve os itens na memória com o saldo abatido
+                estoqueFazenda.forEach(p => {
+                    p.nomeExibicao = `${p.ingrediente} | Lote: ${p.lote} | Val: ${p.validade} | Est: ${p.volume.toFixed(2)} ${p.unid}`;
+                });
+                datalist.innerHTML = estoqueFazenda.map(p => `<option value="${p.nomeExibicao}" data-unid="${p.unid}">`).join('');
+            }
+            const btnTxt = document.getElementById('txt-btn-estoque');
+            if(btnTxt) btnTxt.innerText = `${estoqueFazenda.length} Produtos na Memória`;
         }
         function adicionarLinhaProduto() {
             document.getElementById('rec-header').classList.remove('hidden');
@@ -4881,10 +4889,10 @@
                 const unid = document.getElementById(`rec_unid_${id}`).value || '-';
                 const totalTanque = document.getElementById(`rec_total_${id}`).value || '-';
                 
-                // O Total da Área é o que realmente sai do estoque físico
+                // O total da área é o que será abatido do estoque
                 const totalArea = dose * area;
 
-                // 🔍 Busca o produto no estoque para abater e pegar Lote/Validade
+                // Busca o produto selecionado para extrair o Lote e abater o saldo
                 let nomeFinal = prodBusca;
                 let lote = '---';
                 let validade = '---';
@@ -4895,7 +4903,7 @@
                     lote = prodEstoque.lote;
                     validade = prodEstoque.validade;
                     
-                    // 🔻 ABATE O ESTOQUE MÁGICO AQUI 🔻
+                    // ABATE A QUANTIDADE DO ESTOQUE
                     prodEstoque.volume -= totalArea; 
                 }
 
@@ -4903,7 +4911,7 @@
                 linhasHtml += `
                     <tr style="background-color: ${bg}; border-bottom: 1px solid #e2e8f0; font-size: 10px;">
                         <td style="padding: 6px; font-weight: bold; color: #1e293b;">${nomeFinal}</td>
-                        <td style="padding: 6px; text-align: center; color: #64748b;">${lote} / ${validade}</td>
+                        <td style="padding: 6px; text-align: center; color: #64748b;">${lote}<br>${validade}</td>
                         <td style="padding: 6px; text-align: center;">${dose.toFixed(2)}</td>
                         <td style="padding: 6px; text-align: center;">${totalTanque} ${unid}</td>
                         <td style="padding: 6px; text-align: right; font-weight: bold; color: #15803d;">${totalArea.toFixed(1)} ${unid}</td>
@@ -4911,11 +4919,11 @@
                 `;
             });
 
-            // Atualiza a lista visual para o consultor ver que o estoque baixou
+            // Atualiza a visualização do estoque (para o consultor ver que os litros/kg caíram)
             atualizarDatalistEstoque();
 
             const dataHoje = new Date().toLocaleDateString('pt-BR');
-            const consNome = currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
+            const consNome = typeof currentUser !== 'undefined' && currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
 
             let template = `
                 <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white;">
@@ -4970,7 +4978,6 @@
                 </div>
             `;
 
-            // Nome do arquivo seguro (sem Regex)
             const nomeFazendaLimpo = fazenda.split(' ').join('_');
             const dataLimpa = dataHoje.split('/').join('-');
             
