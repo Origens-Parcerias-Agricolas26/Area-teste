@@ -634,74 +634,7 @@
                             </h2>
                             <p class="text-xs text-slate-500 mt-0.5">Status de coleta em tempo real sincronizado com a planilha do Google Sheets.</p>
                         </div>
-                        <div id="content-recommendation" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
-                    
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
-                        <div>
-                            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                                <i class="fa-solid fa-clipboard-list text-purple-600"></i>
-                                <span>Recomendação Agronômica Digital</span>
-                            </h2>
-                            <p class="text-xs text-slate-500 mt-0.5">Vincule o estoque e gere receituários rápidos em PDF ou WhatsApp.</p>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <input type="file" id="input-estoque-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="importarEstoqueExcel(this)">
-                            <button onclick="document.getElementById('input-estoque-excel').click()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
-                                <i class="fa-solid fa-file-excel"></i><span id="txt-btn-estoque">Importar Estoque Fazenda (.XLSX)</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                                <span class="text-xs font-black text-slate-700 uppercase block border-b pb-1">Dados da Aplicação</span>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Fazenda / Cliente</label><input type="text" id="rec_fazenda" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label><input type="text" id="rec_cultura" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Área Alvo (ha)</label><input type="number" id="rec_area" value="100" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Volume de Calda (L/ha)</label><input type="number" id="rec_calda" value="50" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                </div>
-                            </div>
-                            <div class="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                <span class="text-xs font-black text-blue-800 uppercase block border-b border-blue-200 pb-1">Condições Climáticas</span>
-                                <div class="grid grid-cols-3 gap-3">
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Temperatura (°C)</label><input type="text" id="rec_temp" placeholder="Ex: 28" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Umidade (%)</label><input type="text" id="rec_ur" placeholder="Ex: 60" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Vento (km/h)</label><input type="text" id="rec_vento" placeholder="Ex: 5" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3">
-                            <div class="flex justify-between items-center border-b pb-2">
-                                <span class="text-sm font-black text-slate-800 uppercase">Produtos Recomendados</span>
-                                <button onclick="adicionarLinhaProduto()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow"><i class="fa-solid fa-plus mr-1"></i>Adicionar Produto</button>
-                            </div>
-                            <datalist id="lista-estoque"></datalist>
-                            <div class="hidden grid-cols-12 gap-2 text-[10px] font-black text-slate-500 uppercase px-2" id="rec-header">
-                                <div class="col-span-5">Produto (Do Estoque)</div>
-                                <div class="col-span-2">Dose / ha</div>
-                                <div class="col-span-2">Unid.</div>
-                                <div class="col-span-2">Total Área</div>
-                                <div class="col-span-1 text-center"><i class="fa-solid fa-trash"></i></div>
-                            </div>
-                            <div id="container-produtos" class="space-y-2"></div>
-                        </div>
-
-                        <div>
-                            <label class="block text-xs font-bold text-slate-700 mb-1">Observações Técnicas</label>
-                            <textarea id="rec_obs" rows="2" class="w-full text-xs font-semibold p-2 border border-slate-300 rounded-lg" placeholder="Instruções de ordem de mistura, pH da água, etc..."></textarea>
-                        </div>
-
-                        <div class="flex gap-4 pt-4 border-t border-slate-200">
-                            <button onclick="gerarPDFRecomendacao()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i><span>Gerar Laudo PDF</span></button>
-                            <button onclick="enviarWhatsAppRecomendacao()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-brands fa-whatsapp text-lg"></i><span>Enviar no WhatsApp</span></button>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="pdf-recomendacao-template" style="display:none;"></div>
+                        
                         <div class="flex items-center gap-3">
                             <button onclick="fetchSamplingData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow flex items-center gap-2 transition-all">
                                 <i class="fa-solid fa-rotate"></i><span>Atualizar Dados Agora</span>
@@ -800,6 +733,74 @@
                 </div>
 
                 <!-- GESTÃO DE ACESSOS -->
+                <div id="content-recommendation" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                    
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-list text-purple-600"></i>
+                                <span>Recomendação Agronômica Digital</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Vincule o estoque e gere receituários rápidos em PDF ou WhatsApp.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="file" id="input-estoque-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="importarEstoqueExcel(this)">
+                            <button onclick="document.getElementById('input-estoque-excel').click()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-file-excel"></i><span id="txt-btn-estoque">Importar Estoque Fazenda (.XLSX)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <span class="text-xs font-black text-slate-700 uppercase block border-b pb-1">Dados da Aplicação</span>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Fazenda / Cliente</label><input type="text" id="rec_fazenda" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label><input type="text" id="rec_cultura" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Área Alvo (ha)</label><input type="number" id="rec_area" value="100" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Volume de Calda (L/ha)</label><input type="number" id="rec_calda" value="50" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <span class="text-xs font-black text-blue-800 uppercase block border-b border-blue-200 pb-1">Condições Climáticas</span>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Temperatura (°C)</label><input type="text" id="rec_temp" placeholder="Ex: 28" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Umidade (%)</label><input type="text" id="rec_ur" placeholder="Ex: 60" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Vento (km/h)</label><input type="text" id="rec_vento" placeholder="Ex: 5" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-sm font-black text-slate-800 uppercase">Produtos Recomendados</span>
+                                <button onclick="adicionarLinhaProduto()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow"><i class="fa-solid fa-plus mr-1"></i>Adicionar Produto</button>
+                            </div>
+                            <datalist id="lista-estoque"></datalist>
+                            <div class="hidden grid-cols-12 gap-2 text-[10px] font-black text-slate-500 uppercase px-2" id="rec-header">
+                                <div class="col-span-5">Produto (Do Estoque)</div>
+                                <div class="col-span-2">Dose / ha</div>
+                                <div class="col-span-2">Unid.</div>
+                                <div class="col-span-2">Total Área</div>
+                                <div class="col-span-1 text-center"><i class="fa-solid fa-trash"></i></div>
+                            </div>
+                            <div id="container-produtos" class="space-y-2"></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Observações Técnicas</label>
+                            <textarea id="rec_obs" rows="2" class="w-full text-xs font-semibold p-2 border border-slate-300 rounded-lg" placeholder="Instruções de ordem de mistura, pH da água, etc..."></textarea>
+                        </div>
+
+                        <div class="flex gap-4 pt-4 border-t border-slate-200">
+                            <button onclick="gerarPDFRecomendacao()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i><span>Gerar Laudo PDF</span></button>
+                            <button onclick="enviarWhatsAppRecomendacao()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-brands fa-whatsapp text-lg"></i><span>Enviar no WhatsApp</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pdf-recomendacao-template" style="display:none;"></div>
                 <div id="content-users" class="hidden space-y-6 overflow-y-auto h-full pr-2">
                     <div class="flex justify-between items-center border-b pb-4">
                         <div>
