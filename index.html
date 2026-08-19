@@ -4124,51 +4124,6 @@
             }
         }
 
-            const brand = document.getElementById('vrate-monitor-brand').value;
-            const product = document.getElementById('vrate-product').value;
-            const farmKey = document.getElementById('vrate-sel-farm').value;
-            const farmObj = farmsDatabase[farmKey];
-            const targetGeoJSON = vrateCustomGeoJSON || (farmObj ? getLatestSafraGeoJSON(farmObj.geojson) : null);
-
-            if (!targetGeoJSON) {
-                alert("Nenhum mapa espacial (Shapefile/GeoJSON) encontrado para esta prescrição.");
-                return;
-            }
-
-            const zip = new JSZip();
-            let pathPrefix = "";
-
-            switch (brand) {
-                case 'johndeere': pathPrefix = `Rx/`; break;
-                case 'trimble_aggps': pathPrefix = `AgGPS/Prescriptions/`; break;
-                case 'trimble_agdata': pathPrefix = `AgData/Prescriptions/`; break;
-                case 'stara': pathPrefix = `Dados/Mapas/`; break;
-                case 'raven': pathPrefix = `rxMaps/`; break;
-                case 'caseih': pathPrefix = `Shapefile/`; break;
-                case 'jacto': pathPrefix = `OtMIS/Maps/`; break;
-                case 'agres': pathPrefix = `Agres/Prescricao/`; break;
-                default: pathPrefix = `TASKDATA/`; break;
-            }
-
-            const fileNameBase = `${product}_Prescricao`;
-            const files = generateSHPFiles(targetGeoJSON, fileNameBase);
-
-            zip.file(`${pathPrefix}${fileNameBase}.shp`, files.shp);
-            zip.file(`${pathPrefix}${fileNameBase}.shx`, files.shx);
-            zip.file(`${pathPrefix}${fileNameBase}.dbf`, files.dbf);
-            zip.file(`${pathPrefix}${fileNameBase}.prj`, files.prj);
-            zip.file(`${pathPrefix}${fileNameBase}.cpg`, files.cpg);
-
-            zip.file(`${pathPrefix}LEIA-ME_PENDRIVE.txt`, `Instruções de Carga do Monitor (${brand.toUpperCase()}):\n1. Extraia a pasta '${pathPrefix}' diretamente na raiz do seu Pendrive.\n2. Insira o pendrive no monitor do trator/pulverizador.\n3. Importe o mapa de prescrição: ${product}`);
-
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(zipBlob);
-            const farmNameStr = farmObj ? farmObj.name.replace(/\s+/g, '_') : 'Fazenda';
-            link.download = `Prescricao_${product}_${brand.toUpperCase()}_${farmNameStr}.zip`;
-            link.click();
-        }
-
         function exportVRateExcelSummary() {
             if (!vrateProcessedData || !vrateProcessedData.length) { 
                 alert('Nenhum dado de taxa variável gerado. Gerar a prescrição primeiro.'); 
