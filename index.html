@@ -4960,9 +4960,14 @@
                 </div>
             `;
 
+            // Limpa o nome e a data sem usar Regex (Evita o erro do 'g')
+            const nomeFazendaLimpo = fazenda.split(' ').join('_');
+            const dataLimpa = dataHoje.split('/').join('-');
+            const nomeArquivoPDF = `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`;
+
             const opt = {
                 margin: 0,
-                filename: `Recomendacao_${fazenda.replace(/\\s+/g, '_')}_${dataHoje.replace(/\\//g, '-')}.pdf`,
+                filename: nomeArquivoPDF,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
