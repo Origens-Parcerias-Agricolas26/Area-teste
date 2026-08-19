@@ -31,6 +31,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- jsPDF para Geração Direta de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Firebase SDK Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -138,7 +139,9 @@
                         <button onclick="switchTab('sampling')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hidden" id="tab-sampling">
                             <i class="fa-solid fa-vial-circle-check text-blue-400"></i><span>Amostragem de Solo</span>
                         </button>
-
+                        <button onclick="switchTab('recommendation')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800" id="tab-recommendation">
+                            <i class="fa-solid fa-clipboard-list text-purple-400"></i><span>Recomendação Agronômica</span>
+                        </button>
                         <div id="admin-only-menu" class="pt-4 border-t border-slate-800 mt-4 hidden">
                             <span class="text-xs text-slate-500 font-bold px-4 uppercase block mb-2">Administração</span>
                             <button onclick="switchTab('users')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800" id="tab-users">
@@ -631,6 +634,74 @@
                             </h2>
                             <p class="text-xs text-slate-500 mt-0.5">Status de coleta em tempo real sincronizado com a planilha do Google Sheets.</p>
                         </div>
+                        <div id="content-recommendation" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                    
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-clipboard-list text-purple-600"></i>
+                                <span>Recomendação Agronômica Digital</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Vincule o estoque e gere receituários rápidos em PDF ou WhatsApp.</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            <input type="file" id="input-estoque-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="importarEstoqueExcel(this)">
+                            <button onclick="document.getElementById('input-estoque-excel').click()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-file-excel"></i><span id="txt-btn-estoque">Importar Estoque Fazenda (.XLSX)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <span class="text-xs font-black text-slate-700 uppercase block border-b pb-1">Dados da Aplicação</span>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Fazenda / Cliente</label><input type="text" id="rec_fazenda" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label><input type="text" id="rec_cultura" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Área Alvo (ha)</label><input type="number" id="rec_area" value="100" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Volume de Calda (L/ha)</label><input type="number" id="rec_calda" value="50" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+                            <div class="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
+                                <span class="text-xs font-black text-blue-800 uppercase block border-b border-blue-200 pb-1">Condições Climáticas</span>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Temperatura (°C)</label><input type="text" id="rec_temp" placeholder="Ex: 28" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Umidade (%)</label><input type="text" id="rec_ur" placeholder="Ex: 60" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Vento (km/h)</label><input type="text" id="rec_vento" placeholder="Ex: 5" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="space-y-3">
+                            <div class="flex justify-between items-center border-b pb-2">
+                                <span class="text-sm font-black text-slate-800 uppercase">Produtos Recomendados</span>
+                                <button onclick="adicionarLinhaProduto()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs shadow"><i class="fa-solid fa-plus mr-1"></i>Adicionar Produto</button>
+                            </div>
+                            <datalist id="lista-estoque"></datalist>
+                            <div class="hidden grid-cols-12 gap-2 text-[10px] font-black text-slate-500 uppercase px-2" id="rec-header">
+                                <div class="col-span-5">Produto (Do Estoque)</div>
+                                <div class="col-span-2">Dose / ha</div>
+                                <div class="col-span-2">Unid.</div>
+                                <div class="col-span-2">Total Área</div>
+                                <div class="col-span-1 text-center"><i class="fa-solid fa-trash"></i></div>
+                            </div>
+                            <div id="container-produtos" class="space-y-2"></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Observações Técnicas</label>
+                            <textarea id="rec_obs" rows="2" class="w-full text-xs font-semibold p-2 border border-slate-300 rounded-lg" placeholder="Instruções de ordem de mistura, pH da água, etc..."></textarea>
+                        </div>
+
+                        <div class="flex gap-4 pt-4 border-t border-slate-200">
+                            <button onclick="gerarPDFRecomendacao()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i><span>Gerar Laudo PDF</span></button>
+                            <button onclick="enviarWhatsAppRecomendacao()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-brands fa-whatsapp text-lg"></i><span>Enviar no WhatsApp</span></button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="pdf-recomendacao-template" style="display:none;"></div>
                         <div class="flex items-center gap-3">
                             <button onclick="fetchSamplingData()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow flex items-center gap-2 transition-all">
                                 <i class="fa-solid fa-rotate"></i><span>Atualizar Dados Agora</span>
@@ -1682,7 +1753,7 @@
                 return;
             }
 
-            ['maps', 'vrate', 'seeds', 'sampling', 'users'].forEach(t => {
+            ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation'].forEach(t => {
                 const el = document.getElementById(`content-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
                 if (el) el.classList.add('hidden');
@@ -4577,6 +4648,219 @@
 
             populateSafraSelector();
             populateTalhaoSelector();
+        }
+        // =========================================================================
+        // MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE
+        // =========================================================================
+        let estoqueFazenda = [];
+        let recRowId = 0;
+
+        function importarEstoqueExcel(inputEl) {
+            if (!inputEl.files || !inputEl.files[0]) return;
+            const file = inputEl.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet);
+                    
+                    estoqueFazenda = rows.map(r => {
+                        const ingrediente = r['INGREDIENTE ATIVO (GRUPO QUÍMICO)'] || r['INGREDIENTE ATIVO'] || r['PRODUTO'] || '';
+                        const concentracao = r['CONCENTRAÇÃO'] || '';
+                        const empresa = r['EMPRESA'] || '';
+                        const unid = r['UNID.'] || r['UNID'] || 'L/kg';
+                        return {
+                            ingrediente, concentracao, empresa, unid,
+                            nomeExibicao: `${ingrediente} ${concentracao} (${empresa})`
+                        };
+                    }).filter(p => p.ingrediente !== '');
+
+                    const datalist = document.getElementById('lista-estoque');
+                    datalist.innerHTML = estoqueFazenda.map(p => `<option value="${p.nomeExibicao}" data-unid="${p.unid}">`).join('');
+
+                    document.getElementById('txt-btn-estoque').innerText = `${estoqueFazenda.length} Produtos Carregados`;
+                    alert(`Estoque importado com sucesso! ${estoqueFazenda.length} produtos disponíveis.`);
+                    inputEl.value = '';
+                } catch (err) {
+                    alert("Erro ao ler planilha de estoque. Verifique as colunas.");
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+
+        function adicionarLinhaProduto() {
+            document.getElementById('rec-header').classList.remove('hidden');
+            document.getElementById('rec-header').classList.add('grid');
+            recRowId++;
+            const container = document.getElementById('container-produtos');
+            const id = recRowId;
+            
+            const div = document.createElement('div');
+            div.className = "grid grid-cols-12 gap-2 items-center";
+            div.id = `rec-linha-${id}`;
+            div.innerHTML = `
+                <div class="col-span-5"><input type="text" list="lista-estoque" id="rec_prod_${id}" onchange="preencherUnidade(${id})" placeholder="Buscar no estoque..." class="w-full text-xs font-bold p-2 border rounded-lg bg-white"></div>
+                <div class="col-span-2"><input type="number" step="0.01" id="rec_dose_${id}" oninput="calcularTotalRec(${id})" placeholder="Dose" class="w-full text-xs font-bold p-2 border rounded-lg text-center"></div>
+                <div class="col-span-2"><input type="text" id="rec_unid_${id}" placeholder="Unid." class="w-full text-[10px] font-bold p-2 border rounded-lg text-center bg-slate-50"></div>
+                <div class="col-span-2"><input type="text" id="rec_total_${id}" readonly class="w-full text-xs font-bold p-2 border rounded-lg text-center bg-emerald-50 text-emerald-800"></div>
+                <div class="col-span-1 text-center"><button onclick="removerLinhaProduto(${id})" class="text-red-500 hover:text-red-700 font-bold p-1"><i class="fa-solid fa-circle-xmark"></i></button></div>
+            `;
+            container.appendChild(div);
+        }
+
+        function removerLinhaProduto(id) {
+            const linha = document.getElementById(`rec-linha-${id}`);
+            if (linha) linha.remove();
+            if (document.getElementById('container-produtos').children.length === 0) {
+                document.getElementById('rec-header').classList.add('hidden');
+                document.getElementById('rec-header').classList.remove('grid');
+            }
+        }
+
+        function preencherUnidade(id) {
+            const val = document.getElementById(`rec_prod_${id}`).value;
+            const option = document.querySelector(`#lista-estoque option[value="${val}"]`);
+            if (option) document.getElementById(`rec_unid_${id}`).value = option.getAttribute('data-unid');
+        }
+
+        function calcularTotalRec(id) {
+            const dose = parseFloat(document.getElementById(`rec_dose_${id}`).value) || 0;
+            const area = parseFloat(document.getElementById(`rec_area`).value) || 0;
+            document.getElementById(`rec_total_${id}`).value = (dose * area).toFixed(2);
+        }
+
+        function enviarWhatsAppRecomendacao() {
+            const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
+            const cultura = document.getElementById('rec_cultura').value || 'Não informada';
+            const area = document.getElementById('rec_area').value || 0;
+            
+            let texto = `🌱 *RECOMENDAÇÃO AGRONÔMICA - ORIGENS*\\n\\n`;
+            texto += `📍 *Propriedade:* ${fazenda}\\n`;
+            texto += `🌾 *Cultura:* ${cultura}\\n`;
+            texto += `📐 *Área Alvo:* ${area} ha\\n\\n`;
+            
+            texto += `*PRODUTOS RECOMENDADOS:*\\n`;
+            const linhas = document.querySelectorAll('[id^="rec-linha-"]');
+            if (linhas.length === 0) { alert("Adicione pelo menos um produto!"); return; }
+
+            linhas.forEach(linha => {
+                const id = linha.id.replace('rec-linha-', '');
+                const prod = document.getElementById(`rec_prod_${id}`).value;
+                const dose = document.getElementById(`rec_dose_${id}`).value;
+                const unid = document.getElementById(`rec_unid_${id}`).value;
+                const total = document.getElementById(`rec_total_${id}`).value;
+                if (prod && dose) {
+                    texto += `🔹 *${prod}*\\n   Dose: ${dose} ${unid}/ha | Total: ${total} ${unid}\\n`;
+                }
+            });
+
+            const obs = document.getElementById('rec_obs').value.trim();
+            if (obs) texto += `\\n📝 *OBSERVAÇÕES:*\\n${obs}\\n`;
+
+            texto += `\\n_Gerado pela Plataforma WebGIS Origens_`;
+            
+            const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(texto)}`;
+            window.open(url, '_blank');
+        }
+
+        function gerarPDFRecomendacao() {
+            const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
+            const cultura = document.getElementById('rec_cultura').value || 'Não informada';
+            const area = document.getElementById('rec_area').value || 0;
+            const calda = document.getElementById('rec_calda').value || 0;
+            
+            const temp = document.getElementById('rec_temp').value || '---';
+            const ur = document.getElementById('rec_ur').value || '---';
+            const vento = document.getElementById('rec_vento').value || '---';
+            const obs = document.getElementById('rec_obs').value.trim();
+
+            let linhasHtml = '';
+            document.querySelectorAll('[id^="rec-linha-"]').forEach((linha, idx) => {
+                const id = linha.id.replace('rec-linha-', '');
+                const prod = document.getElementById(`rec_prod_${id}`).value || '-';
+                const dose = document.getElementById(`rec_dose_${id}`).value || '-';
+                const unid = document.getElementById(`rec_unid_${id}`).value || '-';
+                const total = document.getElementById(`rec_total_${id}`).value || '-';
+                
+                let bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
+                linhasHtml += `
+                    <tr style="background-color: ${bg}; border-bottom: 1px solid #e2e8f0; font-size: 11px;">
+                        <td style="padding: 8px; font-weight: bold; color: #1e293b;">${prod}</td>
+                        <td style="padding: 8px; text-align: center;">${dose}</td>
+                        <td style="padding: 8px; text-align: center;">${unid}</td>
+                        <td style="padding: 8px; text-align: right; font-weight: bold; color: #15803d;">${total} ${unid}</td>
+                    </tr>
+                `;
+            });
+
+            const dataHoje = new Date().toLocaleDateString('pt-BR');
+            const consNome = currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor';
+
+            let template = `
+                <div style="width: 210mm; min-height: 297mm; padding: 20mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white;">
+                    <div style="border-bottom: 2px solid #16a34a; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h1 style="color: #16a34a; margin: 0; font-size: 24px; font-weight: 900;">RECEITUÁRIO AGRONÔMICO</h1>
+                            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 12px; font-weight: bold;">ORIGENS PARCERIAS AGRÍCOLAS | DATA: ${dataHoje}</p>
+                        </div>
+                    </div>
+
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                            <tr>
+                                <td style="padding: 4px; width: 50%;"><b>Fazenda/Cliente:</b> ${fazenda}</td>
+                                <td style="padding: 4px; width: 50%;"><b>Área Alvo:</b> ${area} ha</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 4px;"><b>Cultura:</b> ${cultura}</td>
+                                <td style="padding: 4px;"><b>Volume Calda:</b> ${calda} L/ha</td>
+                            </tr>
+                        </table>
+                    </div>
+
+                    <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px;">PRODUTOS RECOMENDADOS (ESTOQUE)</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                        <thead>
+                            <tr style="background-color: #16a34a; color: white; text-transform: uppercase; font-size: 10px;">
+                                <th style="padding: 8px; text-align: left;">Produto Comercial / I.A.</th>
+                                <th style="padding: 8px; text-align: center;">Dose/ha</th>
+                                <th style="padding: 8px; text-align: center;">Unid.</th>
+                                <th style="padding: 8px; text-align: right;">Total p/ Área</th>
+                            </tr>
+                        </thead>
+                        <tbody>${linhasHtml}</tbody>
+                    </table>
+
+                    <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px;">CONDIÇÕES AMBIENTAIS MÍNIMAS</h3>
+                    <p style="font-size: 12px; color: #334155; margin: 0 0 20px 0;">
+                        <b>Temperatura:</b> Abaixo de ${temp} °C | <b>Umidade Relativa:</b> Acima de ${ur} % | <b>Vento:</b> Máx. ${vento} km/h
+                    </p>
+
+                    <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px;">OBSERVAÇÕES TÉCNICAS</h3>
+                    <p style="font-size: 12px; color: #334155; white-space: pre-wrap; margin-bottom: 40px;">${obs || 'Nenhuma observação informada.'}</p>
+
+                    <div style="margin-top: 60px; text-align: center;">
+                        <div style="width: 250px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
+                            <p style="margin: 0; font-size: 12px; font-weight: bold;">${consNome}</p>
+                            <p style="margin: 0; font-size: 10px; color: #64748b;">Consultoria Origens</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const opt = {
+                margin: 0,
+                filename: `Recomendacao_${fazenda.replace(/\\s+/g, '_')}_${dataHoje.replace(/\\//g, '-')}.pdf`,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+            };
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = template;
+            html2pdf().set(opt).from(tempDiv).save();
         }
     </script>
 </body>
