@@ -3411,26 +3411,7 @@
                 console.error(error);
             }
         }
-
-            const fileNameBase = `Plantio_${crop}_Prescricao`;
-            const files = generateSHPFiles(farmObj ? farmObj.geojson : seedsCustomGeoJSON, fileNameBase);
-
-            zip.file(`${pathPrefix}${fileNameBase}.shp`, files.shp);
-            zip.file(`${pathPrefix}${fileNameBase}.shx`, files.shx);
-            zip.file(`${pathPrefix}${fileNameBase}.dbf`, files.dbf);
-            zip.file(`${pathPrefix}${fileNameBase}.prj`, files.prj);
-            zip.file(`${pathPrefix}${fileNameBase}.cpg`, files.cpg);
-
-            zip.file(`${pathPrefix}INSTRUCOES_PLANTADEIRA.txt`, `Instruções de Carga no Monitor (${brand.toUpperCase()}):\n1. Extraia a pasta '${pathPrefix}' na raiz do seu Pendrive.\n2. Insira o pendrive na plantadeira.\n3. Importe o mapa de prescrição de sementes para: ${crop}`);
-
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(zipBlob);
-            const farmNameStr = farmObj ? farmObj.name.replace(/\s+/g, '_') : 'Fazenda';
-            link.download = `Prescricao_Sementes_${crop}_${brand.toUpperCase()}_${farmNameStr}.zip`;
-            link.click();
-        }
-
+        
         function drawCanvasForParam(param, depthConfig, farmInfo, rules) {
             const canvas = document.getElementById('pdf-render-canvas');
             const ctx = canvas.getContext('2d');
