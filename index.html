@@ -792,12 +792,31 @@
                                 </div>
                             </div>
                             <div class="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                                <span class="text-xs font-black text-blue-800 uppercase block border-b border-blue-200 pb-1">Condições Climáticas</span>
-                                <div class="grid grid-cols-3 gap-3">
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Temperatura (°C)</label><input type="text" id="rec_temp" placeholder="Ex: 28" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Umidade (%)</label><input type="text" id="rec_ur" placeholder="Ex: 60" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Vento (km/h)</label><input type="text" id="rec_vento" placeholder="Ex: 5" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                <span class="text-xs font-black text-blue-800 uppercase block border-b border-blue-200 pb-1">Datas e Clima</span>
+                                <div class="grid grid-cols-2 gap-3 mb-2">
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Data Visita</label><input type="date" id="rec_data_visita" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Data Aplicação</label><input type="date" id="rec_data_aplicacao" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
                                 </div>
+                                <div class="grid grid-cols-3 gap-3">
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Temp. (°C)</label><input type="text" id="rec_temp" placeholder="< 30 °C" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Umid. (%)</label><input type="text" id="rec_ur" placeholder="> 55%" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Vento (km/h)</label><input type="text" id="rec_vento" placeholder="3 - 10" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                            <div class="flex justify-between items-center border-b border-slate-200 pb-2 mb-3">
+                                <span class="text-xs font-black text-slate-700 uppercase"><i class="fa-solid fa-tractor text-green-600 mr-2"></i>Calibração do Pulverizador</span>
+                                <span id="rec_badge_ha_tanque" class="text-xs font-bold bg-amber-100 text-amber-800 px-3 py-1 rounded-lg border border-amber-300">0.0 Ha / Tanque</span>
+                            </div>
+                            <div class="grid grid-cols-3 gap-4">
+                                <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Modelo Pulverizador</label><input type="text" id="rec_eq_modelo" placeholder="Ex: Uniport 3000" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Capac. Tanque (L)</label><input type="number" id="rec_eq_tanque" value="3000" oninput="calcularCalibracaoRec()" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Vazão (L/ha)</label><input type="number" id="rec_eq_vazao" value="60" oninput="calcularCalibracaoRec()" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Modelo de Bico</label><input type="text" id="rec_eq_bico" placeholder="Ex: AIXR 11002" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Tipo de Gota</label><input type="text" id="rec_eq_gota" placeholder="Ex: Grossa" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Pressão (PSI)</label><input type="text" id="rec_eq_pressao" placeholder="Ex: 40 PSI" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
                             </div>
                         </div>
 
@@ -809,9 +828,9 @@
                             <datalist id="lista-estoque"></datalist>
                             <div class="hidden grid-cols-12 gap-2 text-[10px] font-black text-slate-500 uppercase px-2" id="rec-header">
                                 <div class="col-span-5">Produto (Do Estoque)</div>
-                                <div class="col-span-2">Dose / ha</div>
-                                <div class="col-span-2">Unid.</div>
-                                <div class="col-span-2">Total Área</div>
+                                <div class="col-span-2 text-center">Dose / ha</div>
+                                <div class="col-span-2 text-center">Unid.</div>
+                                <div class="col-span-2 text-center">Total / Tanque</div>
                                 <div class="col-span-1 text-center"><i class="fa-solid fa-trash"></i></div>
                             </div>
                             <div id="container-produtos" class="space-y-2"></div>
@@ -4784,11 +4803,43 @@
             if (option) document.getElementById(`rec_unid_${id}`).value = option.getAttribute('data-unid');
         }
 
-        function calcularTotalRec(id) {
-            const dose = parseFloat(document.getElementById(`rec_dose_${id}`).value) || 0;
-            const area = parseFloat(document.getElementById(`rec_area`).value) || 0;
-            document.getElementById(`rec_total_${id}`).value = (dose * area).toFixed(2);
+        function calcularCalibracaoRec() {
+            // Calcula quantos Hectares um tanque cheio consegue fazer
+            const tanque = parseFloat(document.getElementById('rec_eq_tanque').value) || 0;
+            const vazao = parseFloat(document.getElementById('rec_eq_vazao').value) || 0;
+            
+            let haPorTanque = vazao > 0 ? (tanque / vazao) : 0;
+            document.getElementById('rec_badge_ha_tanque').innerText = `${haPorTanque.toFixed(1)} Ha / Tanque`;
+
+            // Manda recalcular todos os produtos com base no novo tamanho do tanque
+            recalcularTodosProdutosRec();
         }
+
+        function calcularTotalRec(id) {
+            // Pega o cálculo de Hectares por Tanque
+            const tanque = parseFloat(document.getElementById('rec_eq_tanque').value) || 0;
+            const vazao = parseFloat(document.getElementById('rec_eq_vazao').value) || 0;
+            const haPorTanque = vazao > 0 ? (tanque / vazao) : 0;
+
+            // Pega a dose digitada e multiplica pela capacidade do tanque em hectares
+            const dose = parseFloat(document.getElementById(`rec_dose_${id}`).value) || 0;
+            const totalTanque = dose * haPorTanque;
+            
+            // Atualiza a caixinha verde na tela
+            const campoTotal = document.getElementById(`rec_total_${id}`);
+            if(campoTotal) {
+                campoTotal.value = totalTanque.toFixed(1);
+            }
+        }
+        
+        // Coloca a data de hoje automaticamente ao carregar a página
+        window.addEventListener('DOMContentLoaded', () => {
+            const hoje = new Date().toISOString().split('T')[0];
+            const inpVisita = document.getElementById('rec_data_visita');
+            const inpAplicacao = document.getElementById('rec_data_aplicacao');
+            if(inpVisita) inpVisita.value = hoje;
+            if(inpAplicacao) inpAplicacao.value = hoje;
+        });
 
         function enviarWhatsAppRecomendacao() {
             const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
