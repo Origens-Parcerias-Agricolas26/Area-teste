@@ -745,8 +745,13 @@
                         </div>
                         <div class="flex items-center gap-3">
                             <input type="file" id="input-estoque-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="importarEstoqueExcel(this)">
+                            
                             <button onclick="document.getElementById('input-estoque-excel').click()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
-                                <i class="fa-solid fa-file-excel"></i><span id="txt-btn-estoque">Importar Estoque Fazenda (.XLSX)</span>
+                                <i class="fa-solid fa-file-import"></i><span id="txt-btn-estoque">1. Importar Estoque</span>
+                            </button>
+
+                            <button onclick="baixarEstoqueAtualizado()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-file-export"></i><span>2. Baixar Estoque Atualizado</span>
                             </button>
                         </div>
                     </div>
@@ -4701,37 +4706,11 @@
         // =========================================================================
         // MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE
         // =========================================================================
+        // =========================================================================
+        // MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE
+        // =========================================================================
         let estoqueFazenda = [];
         let recRowId = 0;
-        function carregarFazendasRecomendacao() {
-            const select = document.getElementById('rec_fazenda');
-            if (!select) return;
-
-            // Guarda o valor que estava selecionado antes de atualizar
-            const valorAtual = select.value;
-
-            // Limpa as opções e cria a padrão
-            select.innerHTML = '<option value="">-- Selecione uma Fazenda --</option>';
-
-            // farmsDatabase é a variável global que o seu sistema já usa para guardar as fazendas do Firebase
-            if (typeof farmsDatabase !== 'undefined' && Object.keys(farmsDatabase).length > 0) {
-                for (let key in farmsDatabase) {
-                    const farm = farmsDatabase[key];
-                    const opt = document.createElement('option');
-                    // O valor será o nome da fazenda para sair bonito no PDF
-                    opt.value = farm.name; 
-                    opt.text = farm.name;
-                    select.appendChild(opt);
-                }
-            } else {
-                select.innerHTML = '<option value="">Nenhuma fazenda cadastrada</option>';
-            }
-
-            // Se já tinha algo selecionado, mantém
-            if (valorAtual) {
-                select.value = valorAtual;
-            }
-        }
 
         function importarEstoqueExcel(inputEl) {
             if (!inputEl.files || !inputEl.files[0]) return;
@@ -4749,17 +4728,16 @@
                         const concentracao = r['CONCENTRAÇÃO'] || '';
                         const empresa = r['EMPRESA'] || '';
                         const unid = r['UNID.'] || r['UNID'] || 'L/kg';
-                        return {
-                            ingrediente, concentracao, empresa, unid,
-                            nomeExibicao: `${ingrediente} ${concentracao} (${empresa})`
-                        };
+                        const lote = r['LOTE'] || 'N/A';
+                        const validade = r['VALIDADE'] || 'N/A';
+                        // Procura a coluna de quantidade com vários nomes possíveis
+                        const volume = parseFloat(r['ESTOQUE'] || r['VOLUME'] || r['QUANTIDADE'] || r['SALDO'] || 0);
+                        
+                        return { ingrediente, concentracao, empresa, unid, lote, validade, volume };
                     }).filter(p => p.ingrediente !== '');
 
-                    const datalist = document.getElementById('lista-estoque');
-                    datalist.innerHTML = estoqueFazenda.map(p => `<option value="${p.nomeExibicao}" data-unid="${p.unid}">`).join('');
-
-                    document.getElementById('txt-btn-estoque').innerText = `${estoqueFazenda.length} Produtos Carregados`;
-                    alert(`Estoque importado com sucesso! ${estoqueFazenda.length} produtos disponíveis.`);
+                    atualizarDatalistEstoque(); // Chama a função que atualiza a lista visual
+                    alert(`Estoque importado! ${estoqueFazenda.length} produtos carregados com Lote e Validade.`);
                     inputEl.value = '';
                 } catch (err) {
                     alert("Erro ao ler planilha de estoque. Verifique as colunas.");
@@ -4768,6 +4746,15 @@
             reader.readAsBinaryString(file);
         }
 
+        function atualizarDatalistEstoque() {
+            const datalist = document.getElementById('lista-estoque');
+            // Formata o nome para mostrar Lote, Validade e Estoque disponível na hora da busca
+            estoqueFazenda.forEach(p => {
+                p.nomeExibicao = `${p.ingrediente} | Lote: ${p.lote} | Val: ${p.validade} | Est: ${p.volume.toFixed(1)} ${p.unid}`;
+            });
+            datalist.innerHTML = estoqueFazenda.map(p => `<option value="${p.nomeExibicao}" data-unid="${p.unid}">`).join('');
+            document.getElementById('txt-btn-estoque').innerText = `${estoqueFazenda.length} Produtos na Memória`;
+        }
         function adicionarLinhaProduto() {
             document.getElementById('rec-header').classList.remove('hidden');
             document.getElementById('rec-header').classList.add('grid');
@@ -4878,47 +4865,69 @@
         function gerarPDFRecomendacao() {
             const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
             const cultura = document.getElementById('rec_cultura').value || 'Não informada';
-            const area = document.getElementById('rec_area').value || 0;
+            const area = parseFloat(document.getElementById('rec_area').value) || 0;
             const calda = document.getElementById('rec_calda').value || 0;
-            
             const temp = document.getElementById('rec_temp').value || '---';
             const ur = document.getElementById('rec_ur').value || '---';
             const vento = document.getElementById('rec_vento').value || '---';
             const obs = document.getElementById('rec_obs').value.trim();
 
             let linhasHtml = '';
+            
             document.querySelectorAll('[id^="rec-linha-"]').forEach((linha, idx) => {
                 const id = linha.id.replace('rec-linha-', '');
-                const prod = document.getElementById(`rec_prod_${id}`).value || '-';
-                const dose = document.getElementById(`rec_dose_${id}`).value || '-';
+                const prodBusca = document.getElementById(`rec_prod_${id}`).value || '-';
+                const dose = parseFloat(document.getElementById(`rec_dose_${id}`).value) || 0;
                 const unid = document.getElementById(`rec_unid_${id}`).value || '-';
-                const total = document.getElementById(`rec_total_${id}`).value || '-';
+                const totalTanque = document.getElementById(`rec_total_${id}`).value || '-';
                 
+                // O Total da Área é o que realmente sai do estoque físico
+                const totalArea = dose * area;
+
+                // 🔍 Busca o produto no estoque para abater e pegar Lote/Validade
+                let nomeFinal = prodBusca;
+                let lote = '---';
+                let validade = '---';
+                
+                const prodEstoque = estoqueFazenda.find(p => p.nomeExibicao === prodBusca);
+                if (prodEstoque) {
+                    nomeFinal = prodEstoque.ingrediente;
+                    lote = prodEstoque.lote;
+                    validade = prodEstoque.validade;
+                    
+                    // 🔻 ABATE O ESTOQUE MÁGICO AQUI 🔻
+                    prodEstoque.volume -= totalArea; 
+                }
+
                 let bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
                 linhasHtml += `
-                    <tr style="background-color: ${bg}; border-bottom: 1px solid #e2e8f0; font-size: 11px;">
-                        <td style="padding: 8px; font-weight: bold; color: #1e293b;">${prod}</td>
-                        <td style="padding: 8px; text-align: center;">${dose}</td>
-                        <td style="padding: 8px; text-align: center;">${unid}</td>
-                        <td style="padding: 8px; text-align: right; font-weight: bold; color: #15803d;">${total} ${unid}</td>
+                    <tr style="background-color: ${bg}; border-bottom: 1px solid #e2e8f0; font-size: 10px;">
+                        <td style="padding: 6px; font-weight: bold; color: #1e293b;">${nomeFinal}</td>
+                        <td style="padding: 6px; text-align: center; color: #64748b;">${lote} / ${validade}</td>
+                        <td style="padding: 6px; text-align: center;">${dose.toFixed(2)}</td>
+                        <td style="padding: 6px; text-align: center;">${totalTanque} ${unid}</td>
+                        <td style="padding: 6px; text-align: right; font-weight: bold; color: #15803d;">${totalArea.toFixed(1)} ${unid}</td>
                     </tr>
                 `;
             });
 
+            // Atualiza a lista visual para o consultor ver que o estoque baixou
+            atualizarDatalistEstoque();
+
             const dataHoje = new Date().toLocaleDateString('pt-BR');
-            const consNome = currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor';
+            const consNome = currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
 
             let template = `
-                <div style="width: 210mm; min-height: 297mm; padding: 20mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white;">
-                    <div style="border-bottom: 2px solid #16a34a; padding-bottom: 15px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white;">
+                    <div style="border-bottom: 2px solid #16a34a; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h1 style="color: #16a34a; margin: 0; font-size: 24px; font-weight: 900;">RECEITUÁRIO AGRONÔMICO</h1>
-                            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 12px; font-weight: bold;">ORIGENS PARCERIAS AGRÍCOLAS | DATA: ${dataHoje}</p>
+                            <h1 style="color: #16a34a; margin: 0; font-size: 22px; font-weight: 900;">RECEITUÁRIO AGRONÔMICO</h1>
+                            <p style="margin: 5px 0 0 0; color: #64748b; font-size: 11px; font-weight: bold;">ORIGENS PARCERIAS AGRÍCOLAS | DATA: ${dataHoje}</p>
                         </div>
                     </div>
 
-                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
-                        <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                             <tr>
                                 <td style="padding: 4px; width: 50%;"><b>Fazenda/Cliente:</b> ${fazenda}</td>
                                 <td style="padding: 4px; width: 50%;"><b>Área Alvo:</b> ${area} ha</td>
@@ -4930,44 +4939,44 @@
                         </table>
                     </div>
 
-                    <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px;">PRODUTOS RECOMENDADOS (ESTOQUE)</h3>
-                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+                    <h3 style="font-size: 12px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">PRODUTOS RECOMENDADOS</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
                         <thead>
-                            <tr style="background-color: #16a34a; color: white; text-transform: uppercase; font-size: 10px;">
-                                <th style="padding: 8px; text-align: left;">Produto Comercial / I.A.</th>
-                                <th style="padding: 8px; text-align: center;">Dose/ha</th>
-                                <th style="padding: 8px; text-align: center;">Unid.</th>
-                                <th style="padding: 8px; text-align: right;">Total p/ Área</th>
+                            <tr style="background-color: #16a34a; color: white; text-transform: uppercase; font-size: 9px;">
+                                <th style="padding: 6px; text-align: left;">Produto Comercial / I.A.</th>
+                                <th style="padding: 6px; text-align: center;">Lote / Validade</th>
+                                <th style="padding: 6px; text-align: center;">Dose/ha</th>
+                                <th style="padding: 6px; text-align: center;">Total/Tanque</th>
+                                <th style="padding: 6px; text-align: right;">Total p/ Área</th>
                             </tr>
                         </thead>
                         <tbody>${linhasHtml}</tbody>
                     </table>
 
-                    <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px;">CONDIÇÕES AMBIENTAIS MÍNIMAS</h3>
-                    <p style="font-size: 12px; color: #334155; margin: 0 0 20px 0;">
-                        <b>Temperatura:</b> Abaixo de ${temp} °C | <b>Umidade Relativa:</b> Acima de ${ur} % | <b>Vento:</b> Máx. ${vento} km/h
+                    <h3 style="font-size: 12px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">CONDIÇÕES AMBIENTAIS MÍNIMAS</h3>
+                    <p style="font-size: 11px; color: #334155; margin: 0 0 15px 0;">
+                        <b>Temperatura:</b> ${temp} | <b>Umidade Relativa:</b> ${ur} | <b>Vento:</b> ${vento}
                     </p>
 
-                    <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; margin-bottom: 10px;">OBSERVAÇÕES TÉCNICAS</h3>
-                    <p style="font-size: 12px; color: #334155; white-space: pre-wrap; margin-bottom: 40px;">${obs || 'Nenhuma observação informada.'}</p>
+                    <h3 style="font-size: 12px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">OBSERVAÇÕES TÉCNICAS</h3>
+                    <p style="font-size: 11px; color: #334155; white-space: pre-wrap; margin-bottom: 30px;">${obs || 'Nenhuma observação informada.'}</p>
 
-                    <div style="margin-top: 60px; text-align: center;">
+                    <div style="margin-top: 50px; text-align: center;">
                         <div style="width: 250px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
-                            <p style="margin: 0; font-size: 12px; font-weight: bold;">${consNome}</p>
-                            <p style="margin: 0; font-size: 10px; color: #64748b;">Consultoria Origens</p>
+                            <p style="margin: 0; font-size: 11px; font-weight: bold;">${consNome}</p>
+                            <p style="margin: 0; font-size: 9px; color: #64748b;">Responsável Técnico</p>
                         </div>
                     </div>
                 </div>
             `;
 
-            // Limpa o nome e a data sem usar Regex (Evita o erro do 'g')
+            // Nome do arquivo seguro (sem Regex)
             const nomeFazendaLimpo = fazenda.split(' ').join('_');
             const dataLimpa = dataHoje.split('/').join('-');
-            const nomeArquivoPDF = `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`;
-
+            
             const opt = {
                 margin: 0,
-                filename: nomeArquivoPDF,
+                filename: `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2 },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
@@ -5023,6 +5032,31 @@
 
             document.getElementById('rec_area').value = '';
             recalcularTodosProdutosRec();
+        }
+        function baixarEstoqueAtualizado() {
+            if (estoqueFazenda.length === 0) {
+                alert("Nenhum estoque importado na memória para ser baixado.");
+                return;
+            }
+
+            // Prepara os dados de volta para o formato de tabela do Excel
+            const dadosPlanilha = estoqueFazenda.map(p => ({
+                'INGREDIENTE ATIVO (GRUPO QUÍMICO)': p.ingrediente,
+                'CONCENTRAÇÃO': p.concentracao,
+                'EMPRESA': p.empresa,
+                'LOTE': p.lote,
+                'VALIDADE': p.validade,
+                'UNID.': p.unid,
+                'ESTOQUE': parseFloat(p.volume.toFixed(2)) // Coluna atualizada!
+            }));
+            
+            // Usa a biblioteca XLSX para criar a planilha
+            const worksheet = XLSX.utils.json_to_sheet(dadosPlanilha);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "Estoque Atualizado");
+            
+            const dataHoje = new Date().toLocaleDateString('pt-BR').split('/').join('-');
+            XLSX.writeFile(workbook, `Controle_Estoque_Origens_${dataHoje}.xlsx`);
         }
 
         function calcularAreaTalhoesRec() {
