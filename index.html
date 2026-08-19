@@ -27,6 +27,7 @@
     <!-- JSZip, Shapefile Parser & XLSX Reader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
+    <script src="https://unpkg.com/@mapbox/shp-write@latest/shpwrite.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- jsPDF para Geração Direta de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -3335,18 +3336,81 @@
             const crop = document.getElementById('seeds-crop').value;
             const farmKey = document.getElementById('seeds-sel-farm').value;
             const farmObj = farmsDatabase[farmKey];
+            const targetGeoJSON = seedsCustomGeoJSON || (farmObj ? getLatestSafraGeoJSON(farmObj.geojson) : null);
 
-            const zip = new JSZip();
-            let pathPrefix = "";
-
-            switch (brand) {
-                case 'johndeere': pathPrefix = `Rx/`; break;
-                case 'trimble_aggps': pathPrefix = `AgGPS/Prescriptions/`; break;
-                case 'stara': pathPrefix = `Dados/Mapas/`; break;
-                case 'precision_planting': pathPrefix = `2020/Rx/`; break;
-                case 'caseih': pathPrefix = `Shapefile/`; break;
-                default: pathPrefix = `TASKDATA/`; break;
+            if (!targetGeoJSON) {
+                alert("Nenhum mapa espacial encontrado.");
+                return;
             }
+
+            // HIGIENIZAÇÃO DOS DADOS
+            const safeFeatures = targetGeoJSON.features.map(f => {
+                let safeProps = {};
+                for (let key in f.properties) {
+                    let val = f.properties[key];
+                    if (val === null || val === undefined || val === "") {
+                        safeProps[key] = 0;
+                    } else if (typeof val === 'number') {
+                        safeProps[key] = val;
+                    } else {
+                        safeProps[key] = String(val).substring(0, 50);
+                    }
+                }
+                
+                let geom = f.geometry;
+                if (geom.type === 'MultiPolygon' && geom.coordinates.length === 1) {
+                    geom = { type: 'Polygon', coordinates: geom.coordinates[0] };
+                }
+
+                return { type: "Feature", geometry: geom, properties: safeProps };
+            });
+
+            const safeGeoJSON = { type: "FeatureCollection", features: safeFeatures };
+
+            try {
+                // Gera o Shapefile base usando shp-write
+                const shpZipContent = await shpwrite.zip(safeGeoJSON, { folder: "shapefiles", types: { polygon: true } });
+                const tempZip = await new JSZip().loadAsync(shpZipContent, { base64: typeof shpZipContent === 'string' });
+
+                const zip = new JSZip();
+                let pathPrefix = "";
+
+                switch (brand) {
+                    case 'johndeere': pathPrefix = `Rx/`; break;
+                    case 'trimble_aggps': pathPrefix = `AgGPS/Prescriptions/`; break;
+                    case 'stara': pathPrefix = `Dados/Mapas/`; break;
+                    case 'precision_planting': pathPrefix = `2020/Rx/`; break;
+                    case 'caseih': pathPrefix = `Shapefile/`; break;
+                    default: pathPrefix = `TASKDATA/`; break;
+                }
+
+                const fileNameBase = `Plantio_${crop}_Prescricao`;
+
+                for (let fileName of Object.keys(tempZip.files)) {
+                    if (!tempZip.files[fileName].dir) {
+                        const fileData = await tempZip.file(fileName).async("arraybuffer");
+                        const ext = fileName.split('.').pop();
+                        zip.file(`${pathPrefix}${fileNameBase}.${ext}`, fileData);
+                    }
+                }
+
+                const prjContent = `GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]`;
+                zip.file(`${pathPrefix}${fileNameBase}.prj`, prjContent);
+
+                zip.file(`${pathPrefix}INSTRUCOES_PLANTADEIRA.txt`, `Instruções de Carga no Monitor (${brand.toUpperCase()}):\n1. Extraia a pasta '${pathPrefix.replace('/','')}' na raiz do seu Pendrive.\n2. Insira o pendrive na plantadeira.\n3. Importe o mapa de prescrição de sementes para: ${crop}`);
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(zipBlob);
+                const farmNameStr = farmObj ? farmObj.name.replace(/\s+/g, '_') : 'Fazenda';
+                link.download = `Prescricao_Sementes_${crop}_${brand.toUpperCase()}_${farmNameStr}.zip`;
+                link.click();
+
+            } catch (error) {
+                alert("Erro ao compilar o Shapefile: " + error.message);
+                console.error(error);
+            }
+        }
 
             const fileNameBase = `Plantio_${crop}_Prescricao`;
             const files = generateSHPFiles(farmObj ? farmObj.geojson : seedsCustomGeoJSON, fileNameBase);
@@ -3992,6 +4056,92 @@
                 alert('Processe primeiro a planilha de prescrição para exportar aos monitores!'); 
                 return; 
             }
+
+            const brand = document.getElementById('vrate-monitor-brand').value;
+            const product = document.getElementById('vrate-product').value;
+            const farmKey = document.getElementById('vrate-sel-farm').value;
+            const farmObj = farmsDatabase[farmKey];
+            const targetGeoJSON = vrateCustomGeoJSON || (farmObj ? getLatestSafraGeoJSON(farmObj.geojson) : null);
+
+            if (!targetGeoJSON) {
+                alert("Nenhum mapa espacial (Shapefile/GeoJSON) encontrado para esta prescrição.");
+                return;
+            }
+
+            // HIGIENIZAÇÃO: Limpa atributos nulos e formata geometria para o gerador de Shapefile não travar
+            const safeFeatures = targetGeoJSON.features.map(f => {
+                let safeProps = {};
+                for (let key in f.properties) {
+                    let val = f.properties[key];
+                    if (val === null || val === undefined || val === "") {
+                        safeProps[key] = 0; // Evita nulos que quebram o DBF
+                    } else if (typeof val === 'number') {
+                        safeProps[key] = val;
+                    } else {
+                        safeProps[key] = String(val).substring(0, 50); // Limita o texto
+                    }
+                }
+                
+                // Converte MultiPolygon para Polygon simples (maior compatibilidade com monitores)
+                let geom = f.geometry;
+                if (geom.type === 'MultiPolygon' && geom.coordinates.length === 1) {
+                    geom = { type: 'Polygon', coordinates: geom.coordinates[0] };
+                }
+
+                return { type: "Feature", geometry: geom, properties: safeProps };
+            });
+
+            const safeGeoJSON = { type: "FeatureCollection", features: safeFeatures };
+
+            try {
+                // Gera o Shapefile base usando a biblioteca shp-write
+                const shpZipContent = await shpwrite.zip(safeGeoJSON, { folder: "shapefiles", types: { polygon: true } });
+                const tempZip = await new JSZip().loadAsync(shpZipContent, { base64: typeof shpZipContent === 'string' });
+
+                const zip = new JSZip();
+                let pathPrefix = "";
+
+                switch (brand) {
+                    case 'johndeere': pathPrefix = `Rx/`; break;
+                    case 'trimble_aggps': pathPrefix = `AgGPS/Prescriptions/`; break;
+                    case 'trimble_agdata': pathPrefix = `AgData/Prescriptions/`; break;
+                    case 'stara': pathPrefix = `Dados/Mapas/`; break;
+                    case 'raven': pathPrefix = `rxMaps/`; break;
+                    case 'caseih': pathPrefix = `Shapefile/`; break;
+                    case 'jacto': pathPrefix = `OtMIS/Maps/`; break;
+                    case 'agres': pathPrefix = `Agres/Prescricao/`; break;
+                    default: pathPrefix = `TASKDATA/`; break;
+                }
+
+                const fileNameBase = `${product}_Prescricao`;
+
+                // Copia os arquivos gerados (polygon.shp, polygon.dbf, etc) para a pasta da máquina com o nome correto
+                for (let fileName of Object.keys(tempZip.files)) {
+                    if (!tempZip.files[fileName].dir) {
+                        const fileData = await tempZip.file(fileName).async("arraybuffer");
+                        const ext = fileName.split('.').pop();
+                        zip.file(`${pathPrefix}${fileNameBase}.${ext}`, fileData);
+                    }
+                }
+
+                // Adiciona o arquivo .prj original que é exigido pelas máquinas BR (WGS84)
+                const prjContent = `GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]`;
+                zip.file(`${pathPrefix}${fileNameBase}.prj`, prjContent);
+
+                zip.file(`${pathPrefix}LEIA-ME_PENDRIVE.txt`, `Instruções de Carga do Monitor (${brand.toUpperCase()}):\n1. Extraia a pasta '${pathPrefix.replace('/','')}' diretamente na raiz do seu Pendrive.\n2. Insira o pendrive no monitor do trator/pulverizador.\n3. Importe o mapa de prescrição: ${product}`);
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(zipBlob);
+                const farmNameStr = farmObj ? farmObj.name.replace(/\s+/g, '_') : 'Fazenda';
+                link.download = `Prescricao_${product}_${brand.toUpperCase()}_${farmNameStr}.zip`;
+                link.click();
+
+            } catch (error) {
+                alert("Erro ao compilar o Shapefile: " + error.message);
+                console.error(error);
+            }
+        }
 
             const brand = document.getElementById('vrate-monitor-brand').value;
             const product = document.getElementById('vrate-product').value;
