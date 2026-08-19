@@ -755,10 +755,37 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <span class="text-xs font-black text-slate-700 uppercase block border-b pb-1">Dados da Aplicação</span>
-                                <div class="grid grid-cols-2 gap-3">
-                                    <select id="rec_fazenda" onfocus="carregarFazendasRecomendacao()" onchange="puxarAreaFazenda()" class="w-full text-xs font-bold p-2 border rounded-lg bg-white cursor-pointer focus:ring-2 focus:ring-purple-500 outline-none">
-    <option value="">-- Selecione a Fazenda --</option>
-</select>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Fazenda / Cliente</label>
+                                            <select id="rec_fazenda" onfocus="carregarFazendasRecomendacao()" onchange="aoSelecionarFazendaRec()" class="w-full text-xs font-bold p-2 border rounded-lg bg-white cursor-pointer focus:ring-2 focus:ring-purple-500 outline-none">
+                                                <option value="">-- Selecione a Fazenda --</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Talhões (Segure Ctrl para vários)</label>
+                                            <select id="rec_talhoes" multiple onchange="calcularAreaTalhoesRec()" class="w-full h-20 text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 outline-none">
+                                                <option value="" disabled>-- Selecione a Fazenda Primeiro --</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label>
+                                            <input type="text" id="rec_cultura" class="w-full text-xs font-bold p-2 border rounded-lg">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Área Total Selecionada (ha)</label>
+                                            <input type="number" id="rec_area" oninput="recalcularTodosProdutosRec()" class="w-full text-xs font-black text-slate-800 p-2 border border-slate-300 rounded-lg bg-amber-50">
+                                        </div>
+                                        <div>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Volume de Calda (L/ha)</label>
+                                            <input type="number" id="rec_calda" value="50" class="w-full text-xs font-bold p-2 border rounded-lg">
+                                        </div>
+                                    </div>
+                                </div>
                                     <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label><input type="text" id="rec_cultura" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
                                     <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Área Alvo (ha)</label><input type="number" id="rec_area" value="100" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
                                     <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Volume de Calda (L/ha)</label><input type="number" id="rec_calda" value="50" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
@@ -4893,6 +4920,76 @@
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = template;
             html2pdf().set(opt).from(tempDiv).save();
+        }
+        function aoSelecionarFazendaRec() {
+            const selectFazenda = document.getElementById('rec_fazenda');
+            const selectTalhoes = document.getElementById('rec_talhoes');
+            const nomeFazenda = selectFazenda.value;
+            
+            selectTalhoes.innerHTML = '';
+            let talhoesEncontrados = [];
+
+            // 1. Tenta puxar direto do Banco de Dados em Nuvem (mapas importados)
+            let farmEncontrada = null;
+            if (typeof farmsDatabase !== 'undefined') {
+                for(let key in farmsDatabase) {
+                    if(farmsDatabase[key].name === nomeFazenda) { farmEncontrada = farmsDatabase[key]; break; }
+                }
+            }
+
+            if (farmEncontrada && farmEncontrada.geojson && farmEncontrada.geojson.features) {
+                farmEncontrada.geojson.features.forEach(f => {
+                    const props = f.properties || {};
+                    const nome = props.name || props.Name || props.TALHAO || props.Talhao || 'Talhão S/N';
+                    const area = props.area || props.Area || props.AREA_HA || props.AREA || 0;
+                    talhoesEncontrados.push({ nome: nome, area: parseFloat(area) });
+                });
+            } 
+            // 2. Se não tiver mapa, tenta puxar do FAZENDAS_DB antigo (se ele existir no código)
+            else if (typeof FAZENDAS_DB !== 'undefined' && FAZENDAS_DB[nomeFazenda]) {
+                FAZENDAS_DB[nomeFazenda].forEach(item => {
+                    talhoesEncontrados.push({ nome: item.talhao, area: parseFloat(item.area) });
+                });
+            }
+
+            // Preenche a caixa de seleção múltipla
+            if (talhoesEncontrados.length > 0) {
+                talhoesEncontrados.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.nome;
+                    opt.dataset.area = t.area;
+                    opt.text = `${t.nome} (${t.area.toFixed(1)} ha)`;
+                    selectTalhoes.appendChild(opt);
+                });
+            } else {
+                selectTalhoes.innerHTML = '<option value="" disabled>Nenhum talhão registrado</option>';
+            }
+
+            document.getElementById('rec_area').value = '';
+            recalcularTodosProdutosRec();
+        }
+
+        function calcularAreaTalhoesRec() {
+            const selectTalhoes = document.getElementById('rec_talhoes');
+            const selecionados = Array.from(selectTalhoes.selectedOptions);
+            
+            let areaTotal = 0;
+            selecionados.forEach(opt => {
+                areaTotal += parseFloat(opt.dataset.area) || 0;
+            });
+            
+            document.getElementById('rec_area').value = areaTotal > 0 ? areaTotal.toFixed(2) : '';
+            recalcularTodosProdutosRec(); // Se a área mudar, muda o total de calda e veneno!
+        }
+
+        function recalcularTodosProdutosRec() {
+            // Função para forçar a atualização de todas as linhas de produtos caso a área mude
+            document.querySelectorAll('[id^="rec-linha-"]').forEach(linha => {
+                const id = linha.id.replace('rec-linha-', '');
+                if (typeof calcularTotalRec === 'function') {
+                    calcularTotalRec(id);
+                }
+            });
         }
     </script>
 </body>
