@@ -756,7 +756,9 @@
                             <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <span class="text-xs font-black text-slate-700 uppercase block border-b pb-1">Dados da Aplicação</span>
                                 <div class="grid grid-cols-2 gap-3">
-                                    <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Fazenda / Cliente</label><input type="text" id="rec_fazenda" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
+                                    <select id="rec_fazenda" onfocus="carregarFazendasRecomendacao()" onchange="puxarAreaFazenda()" class="w-full text-xs font-bold p-2 border rounded-lg bg-white cursor-pointer focus:ring-2 focus:ring-purple-500 outline-none">
+    <option value="">-- Selecione a Fazenda --</option>
+</select>
                                     <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label><input type="text" id="rec_cultura" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
                                     <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Área Alvo (ha)</label><input type="number" id="rec_area" value="100" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
                                     <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Volume de Calda (L/ha)</label><input type="number" id="rec_calda" value="50" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
@@ -4655,6 +4657,35 @@
         // =========================================================================
         let estoqueFazenda = [];
         let recRowId = 0;
+        function carregarFazendasRecomendacao() {
+            const select = document.getElementById('rec_fazenda');
+            if (!select) return;
+
+            // Guarda o valor que estava selecionado antes de atualizar
+            const valorAtual = select.value;
+
+            // Limpa as opções e cria a padrão
+            select.innerHTML = '<option value="">-- Selecione uma Fazenda --</option>';
+
+            // farmsDatabase é a variável global que o seu sistema já usa para guardar as fazendas do Firebase
+            if (typeof farmsDatabase !== 'undefined' && Object.keys(farmsDatabase).length > 0) {
+                for (let key in farmsDatabase) {
+                    const farm = farmsDatabase[key];
+                    const opt = document.createElement('option');
+                    // O valor será o nome da fazenda para sair bonito no PDF
+                    opt.value = farm.name; 
+                    opt.text = farm.name;
+                    select.appendChild(opt);
+                }
+            } else {
+                select.innerHTML = '<option value="">Nenhuma fazenda cadastrada</option>';
+            }
+
+            // Se já tinha algo selecionado, mantém
+            if (valorAtual) {
+                select.value = valorAtual;
+            }
+        }
 
         function importarEstoqueExcel(inputEl) {
             if (!inputEl.files || !inputEl.files[0]) return;
