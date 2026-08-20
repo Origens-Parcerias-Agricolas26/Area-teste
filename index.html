@@ -4742,17 +4742,15 @@
                     let produtosAdicionados = 0;
                     let produtosSomados = 0;
 
-                    // Em vez de substituir a lista inteira, vamos verificar linha por linha
                     rows.forEach(r => {
                         const ingrediente = r['INGREDIENTE ATIVO (GRUPO QUÍMICO)'] || r['PRODUTO'] || 'Sem Nome';
-                        if (ingrediente === 'Sem Nome') return; // Pula linhas vazias
+                        if (ingrediente === 'Sem Nome') return;
 
                         const lote = r['LOTE'] || '-';
                         const validade = r['VALIDADE'] || '-';
                         const unid = r['UNID.'] || r['UNID'] || 'L';
                         const volume = parseFloat(r['QUANTIDADE'] || r['ESTOQUE'] || r['VOLUME'] || 0);
                         
-                        // Procura se esse produto EXATO (mesmo ingrediente, lote e validade) já existe na memória
                         const produtoExistente = estoqueFazenda.find(p => 
                             p.ingrediente === ingrediente && 
                             p.lote === lote && 
@@ -4760,24 +4758,20 @@
                         );
 
                         if (produtoExistente) {
-                            // Se ACHOU, apenas SOMA a quantidade nova com a que já estava lá!
                             produtoExistente.volume += volume;
                             produtosSomados++;
                         } else {
-                            // Se NÃO ACHOU, cadastra ele como um produto novo no final da lista
                             estoqueFazenda.push({ ingrediente, lote, validade, unid, volume, nomeExibicao: '' });
                             produtosAdicionados++;
                         }
                     });
 
-                    // Essa função já atualiza os textos de exibição com os saldos finais somados
                     atualizarDatalistEstoque();
-                    
-                    alert(`Estoque atualizado com sucesso!\n\n🔹 ${produtosSomados} produtos tiveram o saldo somado.\n🔹 ${produtosAdicionados} novos produtos foram adicionados à lista.`);
-                    inputEl.value = ''; // Limpa o botão de arquivo
+                    alert(`Estoque atualizado com sucesso!\n\n🔹 ${produtosSomados} produtos somados.\n🔹 ${produtosAdicionados} novos adicionados.`);
+                    inputEl.value = '';
                 } catch (err) {
                     console.error(err);
-                    alert("Erro ao ler planilha de estoque. Verifique se as colunas estão corretas.");
+                    alert("Erro ao ler planilha de estoque.");
                 }
             };
             reader.readAsBinaryString(file);
