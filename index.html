@@ -761,39 +761,52 @@
                         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             
                             <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                                <!-- Info Básica (Dados da Aplicação) -->
+                            <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <span class="text-xs font-black text-slate-700 uppercase block border-b pb-1">Dados da Aplicação</span>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    
+                                    <!-- Coluna Esquerda: Produtor, Fazenda e Importação de Talhões -->
                                     <div class="space-y-3">
-                                        <div>
-                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Fazenda / Cliente</label>
-                                            <select id="rec_fazenda" onfocus="carregarFazendasRecomendacao()" onchange="aoSelecionarFazendaRec()" class="w-full text-xs font-bold p-2 border rounded-lg bg-white cursor-pointer focus:ring-2 focus:ring-purple-500 outline-none">
-                                                <option value="">-- Selecione a Fazenda --</option>
-                                            </select>
+                                        <div class="grid grid-cols-2 gap-2">
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Produtor / Cliente</label>
+                                                <input type="text" id="rec_produtor" placeholder="Ex: João Silva" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
+                                            </div>
+                                            <div>
+                                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Nome da Fazenda</label>
+                                                <input type="text" id="rec_fazenda" placeholder="Ex: Boa Vista" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
+                                            </div>
                                         </div>
                                         <div>
-                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Talhões (Segure Ctrl para vários)</label>
+                                            <div class="flex justify-between items-center mb-1">
+                                                <label class="block text-[10px] font-bold text-slate-500">Talhões (Segure Ctrl para vários)</label>
+                                                <button onclick="document.getElementById('input-talhoes-excel').click()" class="text-[9px] bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-2 py-0.5 rounded transition-all border border-blue-200"><i class="fa-solid fa-upload mr-1"></i>Importar Excel</button>
+                                                <input type="file" id="input-talhoes-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="importarTalhoesExcel(this)">
+                                            </div>
                                             <select id="rec_talhoes" multiple onchange="calcularAreaTalhoesRec()" class="w-full h-20 text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white focus:ring-2 focus:ring-purple-500 outline-none">
-                                                <option value="" disabled>-- Selecione a Fazenda Primeiro --</option>
+                                                <option value="" disabled>-- Importe a planilha de talhões --</option>
                                             </select>
                                         </div>
                                     </div>
+                                    
+                                    <!-- Coluna Direita: Cultura, Área e Calda -->
                                     <div class="space-y-3">
                                         <div>
                                             <label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label>
                                             <input type="text" id="rec_cultura" class="w-full text-xs font-bold p-2 border rounded-lg">
                                         </div>
                                         <div>
-                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Área Total (ha)</label>
+                                            <label class="block text-[10px] font-bold text-slate-500 mb-1">Área Total Selecionada (ha)</label>
                                             <input type="number" id="rec_area" oninput="recalcularTodosProdutosRec()" class="w-full text-xs font-black text-slate-800 p-2 border border-slate-300 rounded-lg bg-amber-50">
                                         </div>
                                         <div>
                                             <label class="block text-[10px] font-bold text-slate-500 mb-1">Volume Calda (L/ha)</label>
-                                            <input type="number" id="rec_calda" value="50" class="w-full text-xs font-bold p-2 border rounded-lg">
+                                            <input type="number" id="rec_calda" value="50" oninput="calcularCalibracaoRec()" class="w-full text-xs font-bold p-2 border rounded-lg">
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
                             <div class="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
                                 <span class="text-xs font-black text-blue-800 uppercase block border-b border-blue-200 pb-1">Datas e Clima</span>
                                 <div class="grid grid-cols-2 gap-3 mb-2">
@@ -4869,8 +4882,9 @@
         }
 
         function gerarPDFRecomendacao() {
+            const produtor = document.getElementById('rec_produtor').value || 'Não informado';
             const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
-            const cultura = document.getElementById('rec_cultura').value || 'Não informada';
+            const clienteFinal = `${produtor} - ${fazenda}`;            
             const area = parseFloat(document.getElementById('rec_area').value) || 0;
             const calda = document.getElementById('rec_calda').value || 0;
             const temp = document.getElementById('rec_temp').value || '---';
@@ -4935,7 +4949,7 @@
                     <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
                         <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
                             <tr>
-                                <td style="padding: 4px; width: 50%;"><b>Fazenda/Cliente:</b> ${fazenda}</td>
+                                <td style="padding: 4px; width: 50%;"><b>Fazenda/Cliente:</b> ${clienteFinal}</td>
                                 <td style="padding: 4px; width: 50%;"><b>Área Alvo:</b> ${area} ha</td>
                             </tr>
                             <tr>
@@ -5077,6 +5091,54 @@
             recalcularTodosProdutosRec(); // Se a área mudar, muda o total de calda e veneno!
         }
 
+        function importarTalhoesExcel(inputEl) {
+            if (!inputEl.files || !inputEl.files[0]) return;
+            const file = inputEl.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function(e) {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet);
+                    
+                    const selectTalhoes = document.getElementById('rec_talhoes');
+                    selectTalhoes.innerHTML = ''; // Limpa a lista atual
+                    
+                    let count = 0;
+                    rows.forEach(r => {
+                        // Aceita vários nomes de colunas possíveis para facilitar
+                        const nome = r['TALHÃO'] || r['TALHAO'] || r['NOME'] || r['LOTE'] || r['TALHÃO/ÁREA'] || '';
+                        const area = parseFloat(r['ÁREA'] || r['AREA'] || r['HA'] || r['HECTARES'] || 0);
+                        
+                        if (nome && area > 0) {
+                            const opt = document.createElement('option');
+                            opt.value = nome;
+                            opt.dataset.area = area;
+                            opt.text = `${nome} (${area.toFixed(2)} ha)`;
+                            selectTalhoes.appendChild(opt);
+                            count++;
+                        }
+                    });
+
+                    if(count === 0) {
+                        selectTalhoes.innerHTML = '<option value="" disabled>Nenhum dado válido. Use colunas TALHAO e AREA.</option>';
+                        alert("Aviso: A planilha precisa ter as colunas com os nomes 'TALHAO' e 'AREA'.");
+                    } else {
+                        alert(`${count} Talhões importados com sucesso! Agora é só selecionar os que deseja aplicar.`);
+                    }
+                    
+                    document.getElementById('rec_area').value = '';
+                    recalcularTodosProdutosRec();
+                    inputEl.value = ''; // reseta o input
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro ao ler a planilha de talhões.");
+                }
+            };
+            reader.readAsBinaryString(file);
+        }
+        
         function recalcularTodosProdutosRec() {
             // Função para forçar a atualização de todas as linhas de produtos caso a área mude
             document.querySelectorAll('[id^="rec-linha-"]').forEach(linha => {
