@@ -68,6 +68,16 @@
         }
         .ndvi-filter { filter: hue-rotate(80deg) saturate(220%) contrast(120%); }
     </style>
+    <style>
+        /* Força a Aba de Administração a aparecer em ecrã inteiro quando não estiver oculta */
+        #admin-content:not(.hidden) {
+            display: block !important;
+            width: 100% !important;
+            min-height: 100vh !important;
+            opacity: 1 !important;
+            visibility: visible !important;
+        }
+    </style>
 </head>
 <body class="bg-slate-50 font-sans text-slate-800 antialiased">
 
