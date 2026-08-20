@@ -5033,7 +5033,7 @@
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = template;
             html2pdf().set(opt).from(tempDiv).save();
-        }
+        })
         function baixarEstoqueAtualizado() {
             if (estoqueFazenda.length === 0) {
                 alert("Nenhum estoque importado na memória para ser baixado.");
