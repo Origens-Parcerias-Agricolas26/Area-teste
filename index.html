@@ -1063,6 +1063,7 @@
         
         let currentUser = null, currentUserRole = "client", currentUserAllowedFarms = [];
         let canAccessSampling = false, canAccessVRate = false, canAccessSeeds = false;
+        let canAccessRecommendation = false;
         
         let farmsDatabase = {}, usersDatabase = [];
         let savedPrescriptionsDatabase = [];
@@ -1136,6 +1137,7 @@
             canAccessSampling = false;
             canAccessVRate = false;
             canAccessSeeds = false;
+            canAccessRecommendation = false;
 
             if (adminEmails.includes(userEmail)) { 
                 currentUserRole = "admin"; 
@@ -1143,6 +1145,7 @@
                 canAccessSampling = true;
                 canAccessVRate = true;
                 canAccessSeeds = true;
+                canAccessRecommendation = true;
             } else {
                 try {
                     const userDoc = await db.collection("users").doc(userEmail).get();
@@ -1151,6 +1154,7 @@
                         currentUserRole = userData.role || "client";
                         currentUserAllowedFarms = userData.farms || [];
                         canAccessSampling = !!userData.allowSampling;
+                        canAccessRecommendation = docData.allowRecommendation || false;
                         canAccessVRate = !!userData.allowVRate;
                         canAccessSeeds = !!userData.allowSeeds;
                     } else { 
@@ -1195,7 +1199,7 @@
             const tabSamplingBtn = document.getElementById('tab-sampling');
             const tabRec = document.getElementById('tab-recommendation');
             
-            if (tabRec) userData.allowRecommendation ? tabRec.classList.remove('hidden') : tabRec.classList.add('hidden');
+            if (tabRec) typeof canAccessRecommendation !== 'undefined' && canAccessRecommendation ? tabRec.classList.remove('hidden') : tabRec.classList.add('hidden');
             if (tabVrateBtn) canAccessVRate ? tabVrateBtn.classList.remove('hidden') : tabVrateBtn.classList.add('hidden');
             if (tabSeedsBtn) canAccessSeeds ? tabSeedsBtn.classList.remove('hidden') : tabSeedsBtn.classList.add('hidden');
             if (tabSamplingBtn) canAccessSampling ? tabSamplingBtn.classList.remove('hidden') : tabSamplingBtn.classList.add('hidden');
