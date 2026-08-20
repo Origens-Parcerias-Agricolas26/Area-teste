@@ -4737,19 +4737,32 @@
                 try {
                     const workbook = XLSX.read(e.target.result, { type: 'binary' });
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                    const rows = XLSX.utils.sheet_to_json(sheet);
+                    
+                    // O pulo do gato {raw: false}: força o sistema a ler as datas exatamente como texto (ex: 10/09/2026)
+                    const rows = XLSX.utils.sheet_to_json(sheet, { raw: false });
                     
                     let produtosAdicionados = 0;
                     let produtosSomados = 0;
 
                     rows.forEach(r => {
-                        const ingrediente = r['INGREDIENTE ATIVO (GRUPO QUÍMICO)'] || r['PRODUTO'] || 'Sem Nome';
+                        // Limpa os nomes das colunas (tira espaços invisíveis e põe em maiúsculas) para nunca falhar a leitura
+                        let linhaLimpa = {};
+                        for (let key in r) {
+                            linhaLimpa[key.trim().toUpperCase()] = r[key];
+                        }
+
+                        // Agora a busca é feita nas colunas limpas
+                        const ingrediente = linhaLimpa['PRODUTO'] || linhaLimpa['INGREDIENTE ATIVO (GRUPO QUÍMICO)'] || 'Sem Nome';
                         if (ingrediente === 'Sem Nome') return;
 
-                        const lote = r['LOTE'] || '-';
-                        const validade = r['VALIDADE'] || '-';
-                        const unid = r['UNID.'] || r['UNID'] || 'L';
-                        const volume = parseFloat(r['QUANTIDADE'] || r['ESTOQUE'] || r['VOLUME'] || 0);
+                        const lote = linhaLimpa['LOTE'] || '-';
+                        const validade = linhaLimpa['VALIDADE'] || '-';
+                        const unid = linhaLimpa['UNID.'] || linhaLimpa['UNID'] || 'L';
+                        
+                        // Garante que a quantidade seja convertida corretamente, mesmo se o Excel puser vírgulas
+                        let volumeStr = linhaLimpa['QUANTIDADE'] || linhaLimpa['ESTOQUE'] || linhaLimpa['VOLUME'] || '0';
+                        if (typeof volumeStr === 'string') volumeStr = volumeStr.replace(/,/g, ''); 
+                        const volume = parseFloat(volumeStr) || 0;
                         
                         const produtoExistente = estoqueFazenda.find(p => 
                             p.ingrediente === ingrediente && 
@@ -4768,10 +4781,10 @@
 
                     atualizarDatalistEstoque();
                     alert(`Estoque atualizado com sucesso!\n\n🔹 ${produtosSomados} produtos somados.\n🔹 ${produtosAdicionados} novos adicionados.`);
-                    inputEl.value = '';
+                    inputEl.value = ''; // Limpa o input
                 } catch (err) {
                     console.error(err);
-                    alert("Erro ao ler planilha de estoque.");
+                    alert("Erro ao ler planilha de estoque. Verifique se o formato está correto.");
                 }
             };
             reader.readAsBinaryString(file);
