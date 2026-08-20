@@ -4920,37 +4920,21 @@
                 const totalTanque = document.getElementById(`rec_total_${id}`).value || '-';
                 const totalArea = dose * area;
 
+                // 🔍 Busca DEFINITIVA à prova de falhas
                 let nomeFinal = prodBusca;
                 let lote = '-';
                 let validade = '-';
                 
                 const prodEstoque = estoqueFazenda.find(p => {
-                    // 🔍 Busca DEFINITIVA à prova de falhas
-                let nomeFinal = prodBusca;
-                let lote = '-';
-                let validade = '-';
-                
-                const prodEstoque = estoqueFazenda.find(p => {
-                    // 1. Tenta achar o produto pelo nome completo (sem o estoque que muda)
                     const buscaSemEst = prodBusca.split(' | Est:')[0].trim().toLowerCase();
                     const estoqueSemEst = (p.nomeExibicao || '').split(' | Est:')[0].trim().toLowerCase();
                     if (buscaSemEst === estoqueSemEst && estoqueSemEst !== '') return true;
                     
-                    // 2. Se a pessoa digitou apenas o nome (Ex: "Abacus"), isola só o nome e busca
                     const buscaSoNome = prodBusca.split(' | ')[0].trim().toLowerCase();
                     const ingredienteLimpo = p.ingrediente.trim().toLowerCase();
                     
                     return buscaSoNome === ingredienteLimpo || ingredienteLimpo.includes(buscaSoNome);
                 });
-
-                if (prodEstoque) {
-                    nomeFinal = prodEstoque.ingrediente;
-                    lote = prodEstoque.lote;
-                    validade = prodEstoque.validade;
-                    
-                    // 🔻 Abate a quantidade do estoque 🔻
-                    prodEstoque.volume -= totalArea; 
-                }
 
                 if (prodEstoque) {
                     nomeFinal = prodEstoque.ingrediente;
