@@ -5599,6 +5599,117 @@
         
         // Inicia a lista de produtores quando carregar a página
         setTimeout(atualizarDatalistProdutores, 500);  
+        // =========================================================================
+        // ATUALIZAÇÃO FORÇADA DOS FILTROS (MAPA, VRATE, SEMENTES E VISITA)
+        // =========================================================================
+        function populateProducerSelector() {
+            const selects = ['sel-producer', 'vrate-sel-producer', 'seeds-sel-producer', 'visit-sel-producer'];
+            let currentVal = 'all';
+            const mainSelect = document.getElementById('sel-producer');
+            if (mainSelect && mainSelect.value) currentVal = mainSelect.value;
+
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '<option value="all">Todos os Produtores</option>';
+            });
+
+            let producersSet = new Set();
+            let keysToDisplay = Object.keys(farmsDatabase);
+
+            if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'admin' && typeof currentUserAllowedFarms !== 'undefined' && !currentUserAllowedFarms.includes('all')) {
+                keysToDisplay = keysToDisplay.filter(k => currentUserAllowedFarms.includes(k));
+            }
+
+            keysToDisplay.forEach(key => {
+                const farm = farmsDatabase[key];
+                if (farm && farm.producer) producersSet.add(farm.producer);
+            });
+
+            const sortedProducers = Array.from(producersSet).sort();
+            sortedProducers.forEach(p => {
+                selects.forEach(id => {
+                    const el = document.getElementById(id);
+                    if (el) el.innerHTML += `<option value="${p}">${p}</option>`;
+                });
+            });
+
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = currentVal;
+            });
+        }
+
+        function populateFarmSelector() {
+            populateProducerSelector();
+            const selects = ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm'];
+            
+            selects.forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.innerHTML = '';
+            });
+
+            let keysToDisplay = Object.keys(farmsDatabase);
+            if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'admin' && typeof currentUserAllowedFarms !== 'undefined' && !currentUserAllowedFarms.includes('all')) {
+                keysToDisplay = keysToDisplay.filter(k => currentUserAllowedFarms.includes(k));
+            }
+
+            const mainProdSelect = document.getElementById('sel-producer');
+            const selectedProducer = mainProdSelect ? mainProdSelect.value : 'all';
+
+            keysToDisplay.forEach(key => {
+                if (farmsDatabase[key]) {
+                    const farm = farmsDatabase[key];
+                    if (selectedProducer === 'all' || farm.producer === selectedProducer) {
+                        selects.forEach(id => {
+                            const el = document.getElementById(id);
+                            if (el) el.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
+                        });
+                    }
+                }
+            });
+
+            const checkboxContainer = document.getElementById('new-farm-checkboxes');
+            if (checkboxContainer) {
+                checkboxContainer.innerHTML = Object.keys(farmsDatabase).map(k => `
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                        <input type="checkbox" name="chk-user-farms" value="${k}" class="chk-farm-item h-4 w-4 text-origens-green rounded">
+                        <span>${farmsDatabase[k].name} ${farmsDatabase[k].producer ? '(' + farmsDatabase[k].producer + ')' : ''} - ${farmsDatabase[k].location}</span>
+                    </label>
+                `).join('');
+            }
+
+            if(typeof populateSafraSelector === 'function') populateSafraSelector();
+            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
+        }
+
+        function changeActiveProducer(sourceSelectId) {
+            const selectedVal = document.getElementById(sourceSelectId).value;
+            ['sel-producer', 'vrate-sel-producer', 'seeds-sel-producer', 'visit-sel-producer'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== selectedVal) el.value = selectedVal;
+            });
+            populateFarmSelector();
+            changeActiveFarm('sel-farm');
+        }
+
+        function changeActiveFarm(sourceSelectId) {
+            const selectedVal = document.getElementById(sourceSelectId).value;
+            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== selectedVal) el.value = selectedVal;
+            });
+
+            if(typeof populateSafraSelector === 'function') populateSafraSelector();
+            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
+
+            if (document.getElementById('content-seeds') && !document.getElementById('content-seeds').classList.contains('hidden')) {
+                if(typeof seedsChangeFarm === 'function') seedsChangeFarm();
+            } else if (document.getElementById('content-vrate') && !document.getElementById('content-vrate').classList.contains('hidden')) {
+                if(typeof vrateChangeFarm === 'function') vrateChangeFarm();
+            } else if (document.getElementById('content-maps') && !document.getElementById('content-maps').classList.contains('hidden')) {
+                if(typeof updateGISMap === 'function') updateGISMap();
+            }
+        }
     </script>
 </body>
 </html>
