@@ -957,6 +957,11 @@
                                         <input type="checkbox" id="chk-allow-sampling" class="h-4 w-4 text-blue-600 rounded">
                                         <span><i class="fa-solid fa-vial-circle-check text-blue-600 mr-1"></i>Permitir Módulo de Amostragem de Solo</span>
                                     </label>
+                                    
+                                    <label class="inline-flex items-center gap-2 cursor-pointer text-xs font-bold text-slate-800">
+                                        <input type="checkbox" id="chk-allow-recommendation" class="h-4 w-4 text-purple-600 rounded">
+                                        <span><i class="fa-solid fa-clipboard-list text-purple-600 mr-1"></i>Permitir Módulo de Recomendação Agronômica</span>
+                                    </label>
                                 </div>
 
                                 <div class="flex gap-2">
@@ -1188,7 +1193,9 @@
             const tabVrateBtn = document.getElementById('tab-vrate');
             const tabSeedsBtn = document.getElementById('tab-seeds');
             const tabSamplingBtn = document.getElementById('tab-sampling');
-
+            const tabRec = document.getElementById('tab-recommendation');
+            
+            if (tabRec) userData.allowRecommendation ? tabRec.classList.remove('hidden') : tabRec.classList.add('hidden');
             if (tabVrateBtn) canAccessVRate ? tabVrateBtn.classList.remove('hidden') : tabVrateBtn.classList.add('hidden');
             if (tabSeedsBtn) canAccessSeeds ? tabSeedsBtn.classList.remove('hidden') : tabSeedsBtn.classList.add('hidden');
             if (tabSamplingBtn) canAccessSampling ? tabSamplingBtn.classList.remove('hidden') : tabSamplingBtn.classList.add('hidden');
@@ -1584,6 +1591,7 @@
             document.getElementById('chk-allow-vrate').checked = !!user.allowVRate;
             document.getElementById('chk-allow-seeds').checked = !!user.allowSeeds;
             document.getElementById('chk-allow-sampling').checked = !!user.allowSampling;
+            document.getElementById('chk-allow-recommendation').checked = !!user.allowSampling;
 
             document.getElementById('btn-save-user').innerText = "Atualizar Permissões do Cliente";
             document.getElementById('btn-cancel-user-edit').classList.remove('hidden');
@@ -1602,6 +1610,7 @@
             document.getElementById('chk-allow-vrate').checked = false;
             document.getElementById('chk-allow-seeds').checked = false;
             document.getElementById('chk-allow-sampling').checked = false;
+            document.getElementById('chk-allow-recommendation').checked = userData.allowRecommendation || false;
 
             document.getElementById('btn-save-user').innerText = "Autorizar E-mail Google";
             document.getElementById('btn-cancel-user-edit').classList.add('hidden');
@@ -1626,6 +1635,7 @@
             const allowVRate = document.getElementById('chk-allow-vrate').checked;
             const allowSeeds = document.getElementById('chk-allow-seeds').checked;
             const allowSampling = document.getElementById('chk-allow-sampling').checked;
+            const allowRecommendation = document.getElementById('chk-allow-recommendation').checked;
 
             const name = nameInput.value.trim();
             const email = emailInput.value.trim().toLowerCase();
@@ -1653,7 +1663,8 @@
                 farms: selectedFarms, 
                 allowVRate: allowVRate, 
                 allowSeeds: allowSeeds, 
-                allowSampling: allowSampling 
+                allowSampling: allowSamplin, 
+                allowRecommendation: allowRecommendation
             };
 
             try {
