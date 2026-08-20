@@ -5150,14 +5150,16 @@
             
             localStorage.setItem('origens_clientes_memoria', JSON.stringify(memoria));
             atualizarDatalistProdutores();
+        } catch (err) {
+            console.error(err);
+            alert("Erro ao ler a planilha de talhões.");
         }
-                 catch (err) {
-                    console.error(err);
-                    alert("Erro ao ler a planilha de talhões.");
-                }
-            };
-            reader.readAsBinaryString(file);
-        }
+    };
+    
+    if (file) {
+        reader.readAsBinaryString(file);
+    }
+}
         
         function recalcularTodosProdutosRec() {
             // Função para forçar a atualização de todas as linhas de produtos caso a área mude
