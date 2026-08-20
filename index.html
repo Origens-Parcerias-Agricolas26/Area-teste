@@ -4929,31 +4929,35 @@
                 // O total da área é o que será abatido do estoque
                 const totalArea = dose * area;
 
+                // 🔍 Busca Super Inteligente: acha o produto de qualquer jeito!
                 let nomeFinal = prodBusca;
-                let lote = '---';
-                let validade = '---';
+                let lote = '-';
+                let validade = '-';
                 
-                const prodEstoque = estoqueFazenda.find(p => p.nomeExibicao === prodBusca);
+                const prodEstoque = estoqueFazenda.find(p => {
+                    // Limpa os textos para comparar em letras minúsculas (ignora maiúsculas/minúsculas)
+                    const buscaLimpa = prodBusca.split(' | Est:')[0].trim().toLowerCase();
+                    const estoqueLimpo = p.nomeExibicao.split(' | Est:')[0].trim().toLowerCase();
+                    const ingredienteLimpo = p.ingrediente.trim().toLowerCase();
+                    
+                    // 1. Tenta achar pelo nome completo da lista
+                    if (buscaLimpa === estoqueLimpo) return true;
+                    // 2. Tenta achar só pelo nome do produto (Ex: "Abacus")
+                    if (buscaLimpa === ingredienteLimpo) return true;
+                    // 3. Se o nome digitado contiver a palavra "Abacus"
+                    if (buscaLimpa.includes(ingredienteLimpo)) return true;
+                    
+                    return false;
+                });
+
                 if (prodEstoque) {
                     nomeFinal = prodEstoque.ingrediente;
                     lote = prodEstoque.lote;
                     validade = prodEstoque.validade;
                     
-                    // ABATE A QUANTIDADE DO ESTOQUE
+                    // 🔻 ABATE O ESTOQUE MÁGICO AQUI 🔻
                     prodEstoque.volume -= totalArea; 
                 }
-
-                let bg = idx % 2 === 0 ? '#ffffff' : '#f8fafc';
-                linhasHtml += `
-                    <tr style="background-color: ${bg}; border-bottom: 1px solid #e2e8f0; font-size: 10px;">
-                        <td style="padding: 6px; font-weight: bold; color: #1e293b;">${nomeFinal}</td>
-                        <td style="padding: 6px; text-align: center; color: #64748b;">${lote}<br>${validade}</td>
-                        <td style="padding: 6px; text-align: center;">${dose.toFixed(2)}</td>
-                        <td style="padding: 6px; text-align: center;">${totalTanque} ${unid}</td>
-                        <td style="padding: 6px; text-align: right; font-weight: bold; color: #15803d;">${totalArea.toFixed(1)} ${unid}</td>
-                    </tr>
-                `;
-            });
 
             // Atualiza a visualização do estoque visualmente
             atualizarDatalistEstoque();
