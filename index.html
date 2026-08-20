@@ -5101,92 +5101,51 @@
         }
 
         function importarTalhoesExcel(inputEl) {
-    if (!inputEl.files || !inputEl.files[0]) return;
-    const file = inputEl.files[0];
-    const reader = new FileReader();
+            if (!inputEl.files || !inputEl.files[0]) return;
+            const file = inputEl.files[0];
+            const reader = new FileReader();
 
-    reader.onload = function(e) {
-        try {
-            const workbook = XLSX.read(e.target.result, { type: 'binary' });
-            const sheet = workbook.Sheets[workbook.SheetNames[0]];
-            const rows = XLSX.utils.sheet_to_json(sheet);
-            
-            const selectTalhoes = document.getElementById('rec_talhoes');
-            selectTalhoes.innerHTML = ''; // Limpa a lista atual
-            
-            let count = 0;
-            rows.forEach(r => {
-                // Aceita vários nomes de colunas possíveis para facilitar
-                const nome = r['TALHÃO'] || r['TALHAO'] || r['NOME'] || r['LOTE'] || r['TALHÃO/ÁREA'] || '';
-                const area = parseFloat(r['ÁREA'] || r['AREA'] || r['HA'] || r['HECTARES'] || 0);
-                
-                if (nome) {
-                    const opt = document.createElement('option');
-                    opt.value = nome;
-                    opt.text = nome + ' (' + area + ' ha)';
-                    opt.dataset.area = area;
-                    opt.selected = true; // Seleciona automaticamente o que for importado
-                    selectTalhoes.appendChild(opt);
-                    count++;
+            reader.onload = function(e) {
+                try {
+                    const workbook = XLSX.read(e.target.result, { type: 'binary' });
+                    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(sheet);
+                    
+                    const selectTalhoes = document.getElementById('rec_talhoes');
+                    selectTalhoes.innerHTML = ''; // Limpa a lista atual
+                    
+                    let count = 0;
+                    rows.forEach(r => {
+                        // Aceita vários nomes de colunas possíveis para facilitar
+                        const nome = r['TALHÃO'] || r['TALHAO'] || r['NOME'] || r['LOTE'] || r['TALHÃO/ÁREA'] || '';
+                        const area = parseFloat(r['ÁREA'] || r['AREA'] || r['HA'] || r['HECTARES'] || 0);
+                        
+                        if (nome) {
+                            const opt = document.createElement('option');
+                            opt.value = nome;
+                            opt.text = nome + ' (' + area + ' ha)';
+                            opt.dataset.area = area;
+                            opt.selected = true; // Seleciona automaticamente o que for importado
+                            selectTalhoes.appendChild(opt);
+                            count++;
+                        }
+                    });
+
+                    // Atualiza os cálculos da tela após importar
+                    if (count > 0 && typeof calcularAreaTalhoesRec === 'function') {
+                        calcularAreaTalhoesRec();
+                    }
+
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro ao ler a planilha de talhões.");
                 }
-            });
-
-            // Atualiza os cálculos da tela após importar
-            if (count > 0 && typeof calcularAreaTalhoesRec === 'function') {
-                calcularAreaTalhoesRec();
+            };
+            
+            if (file) {
+                reader.readAsBinaryString(file);
             }
-
-        } catch (err) {
-            console.error(err);
-            alert("Erro ao ler a planilha de talhões.");
         }
-    };
-    
-    if (file) {
-        reader.readAsBinaryString(file);
-    }
-}
-
-function salvarMemoriaRecomendacao() {
-    const produtorEl = document.getElementById('rec_produtor');
-    const fazendaEl = document.getElementById('rec_fazenda');
-    const selectTalhoes = document.getElementById('rec_talhoes');
-    
-    // BLINDAGEM: Se os elementos não existirem na tela (porque mudou de aba), aborta a função sem travar.
-    if (!produtorEl || !fazendaEl || !selectTalhoes) return;
-
-    const produtor = produtorEl.value.trim();
-    const fazenda = fazendaEl.value.trim();
-
-    // Só salva se tiver produtor, fazenda e se tiver talhões de verdade importados
-    if (!produtor || !fazenda || selectTalhoes.options.length === 0 || selectTalhoes.options[0].disabled) return;
-
-    let talhoes = [];
-    for (let i = 0; i < selectTalhoes.options.length; i++) {
-        talhoes.push({
-            nome: selectTalhoes.options[i].value,
-            area: selectTalhoes.options[i].dataset.area,
-            texto: selectTalhoes.options[i].text
-        });
-    }
-
-    let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
-    
-    // Remove o antigo se já existir (para atualizar com os novos talhões se você importou outro excel)
-    memoria = memoria.filter(m => !(m.produtor === produtor && m.fazenda === fazenda));
-    memoria.push({ produtor, fazenda, talhoes });
-    
-    localStorage.setItem('origens_clientes_memoria', JSON.stringify(memoria));
-    
-    if (typeof atualizarDatalistProdutores === 'function') {
-        atualizarDatalistProdutores();
-    }
-}
-    
-    if (file) {
-        reader.readAsBinaryString(file);
-    }
-}
         
         function recalcularTodosProdutosRec() {
             // Função para forçar a atualização de todas as linhas de produtos caso a área mude
@@ -5197,6 +5156,8 @@ function salvarMemoriaRecomendacao() {
                 }
             });
         }
+        
+        
       // =========================================================================
         // MEMÓRIA INTELIGENTE DE CLIENTES E TALHÕES (LOCALSTORAGE)
         // =========================================================================
