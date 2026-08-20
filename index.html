@@ -771,11 +771,13 @@
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
                                                 <label class="block text-[10px] font-bold text-slate-500 mb-1">Produtor / Cliente</label>
-                                                <input type="text" id="rec_produtor" placeholder="Ex: João Silva" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
+                                                <input type="text" id="rec_produtor" list="lista-produtores" onchange="carregarFazendasMemoria()" placeholder="Ex: João Silva" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
+                                                <datalist id="lista-produtores"></datalist>
                                             </div>
                                             <div>
                                                 <label class="block text-[10px] font-bold text-slate-500 mb-1">Nome da Fazenda</label>
-                                                <input type="text" id="rec_fazenda" placeholder="Ex: Boa Vista" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
+                                                <input type="text" id="rec_fazenda" list="lista-fazendas" onchange="carregarTalhoesMemoria()" placeholder="Ex: Boa Vista" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
+                                                <datalist id="lista-fazendas"></datalist>
                                             </div>
                                         </div>
                                         <div>
@@ -4882,6 +4884,7 @@
         }
 
         function gerarPDFRecomendacao() {
+            salvarMemoriaRecomendacao();
             // Pega as informações e junta Produtor e Fazenda
             const produtor = document.getElementById('rec_produtor').value || 'Não informado';
             const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
@@ -5105,6 +5108,77 @@
                 }
             });
         }
+      // =========================================================================
+        // MEMÓRIA INTELIGENTE DE CLIENTES E TALHÕES (LOCALSTORAGE)
+        // =========================================================================
+        function salvarMemoriaRecomendacao() {
+            const produtor = document.getElementById('rec_produtor').value.trim();
+            const fazenda = document.getElementById('rec_fazenda').value.trim();
+            const selectTalhoes = document.getElementById('rec_talhoes');
+            
+            // Só salva se tiver produtor, fazenda e se tiver talhões de verdade importados
+            if (!produtor || !fazenda || selectTalhoes.options.length === 0 || selectTalhoes.options[0].disabled) return;
+
+            let talhoes = [];
+            for (let i = 0; i < selectTalhoes.options.length; i++) {
+                talhoes.push({
+                    nome: selectTalhoes.options[i].value,
+                    area: selectTalhoes.options[i].dataset.area,
+                    texto: selectTalhoes.options[i].text
+                });
+            }
+
+            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
+            
+            // Remove o antigo se já existir (para atualizar com os novos talhões se você importou outro excel)
+            memoria = memoria.filter(m => !(m.produtor === produtor && m.fazenda === fazenda));
+            memoria.push({ produtor, fazenda, talhoes });
+            
+            localStorage.setItem('origens_clientes_memoria', JSON.stringify(memoria));
+            atualizarDatalistProdutores();
+        }
+
+        function atualizarDatalistProdutores() {
+            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
+            const produtoresUnicos = [...new Set(memoria.map(m => m.produtor))];
+            const datalistProd = document.getElementById('lista-produtores');
+            if(datalistProd) datalistProd.innerHTML = produtoresUnicos.map(p => `<option value="${p}">`).join('');
+        }
+
+        function carregarFazendasMemoria() {
+            const produtor = document.getElementById('rec_produtor').value;
+            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
+            const fazendas = memoria.filter(m => m.produtor === produtor).map(m => m.fazenda);
+            
+            const datalistFaz = document.getElementById('lista-fazendas');
+            if(datalistFaz) datalistFaz.innerHTML = fazendas.map(f => `<option value="${f}">`).join('');
+        }
+
+        function carregarTalhoesMemoria() {
+            const produtor = document.getElementById('rec_produtor').value;
+            const fazenda = document.getElementById('rec_fazenda').value;
+            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
+            
+            const cliente = memoria.find(m => m.produtor === produtor && m.fazenda === fazenda);
+            if (cliente && cliente.talhoes && cliente.talhoes.length > 0) {
+                const selectTalhoes = document.getElementById('rec_talhoes');
+                selectTalhoes.innerHTML = '';
+                cliente.talhoes.forEach(t => {
+                    const opt = document.createElement('option');
+                    opt.value = t.nome;
+                    opt.dataset.area = t.area;
+                    opt.text = t.texto;
+                    selectTalhoes.appendChild(opt);
+                });
+                
+                // Prepara a área para a nova recomendação
+                document.getElementById('rec_area').value = '';
+                if(typeof recalcularTodosProdutosRec === 'function') recalcularTodosProdutosRec();
+            }
+        }
+        
+        // Inicia a lista de produtores quando carregar a página
+        setTimeout(atualizarDatalistProdutores, 500);  
     </script>
 </body>
 </html>
