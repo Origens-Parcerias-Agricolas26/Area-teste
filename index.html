@@ -1595,7 +1595,9 @@
             document.getElementById('chk-allow-vrate').checked = !!user.allowVRate;
             document.getElementById('chk-allow-seeds').checked = !!user.allowSeeds;
             document.getElementById('chk-allow-sampling').checked = !!user.allowSampling;
+            if (document.getElementById('chk-allow-recommendation')) {
             document.getElementById('chk-allow-recommendation').checked = !!user.allowRecommendation;
+        }
 
             document.getElementById('btn-save-user').innerText = "Atualizar Permissões do Cliente";
             document.getElementById('btn-cancel-user-edit').classList.remove('hidden');
@@ -1639,7 +1641,7 @@
             const allowVRate = document.getElementById('chk-allow-vrate').checked;
             const allowSeeds = document.getElementById('chk-allow-seeds').checked;
             const allowSampling = document.getElementById('chk-allow-sampling').checked;
-            const allowRecommendation = document.getElementById('chk-allow-recommendation').checked;
+            const allowRecommendation = document.getElementById('chk-allow-recommendation') ? document.getElementById('chk-allow-recommendation').checked : false;
 
             const name = nameInput.value.trim();
             const email = emailInput.value.trim().toLowerCase();
