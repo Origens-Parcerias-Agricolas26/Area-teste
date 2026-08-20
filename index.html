@@ -905,25 +905,26 @@
                     <!-- TELA 1: NOVO RELATÓRIO -->
                     <div id="visit-form-view" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Produtor</label>
-                                <select id="visit-sel-producer" onchange="changeActiveProducer('visit-sel-producer')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Fazenda</label>
-                                <select id="visit-sel-farm" onchange="visitChangeFarm()" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Safra</label>
-                                <select id="visit-sel-safra" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Talhão / Área</label>
-                                <select id="visit-sel-talhao" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white">
-                                    <option value="Geral" selected>Visita Geral (Toda a Fazenda)</option>
-                                </select>
-                            </div>
-                        </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Produtor</label>
+                        <select id="visit-sel-producer" onchange="changeActiveProducer('visit-sel-producer')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Fazenda</label>
+                        <!-- Agora ele chama a função global changeActiveFarm -->
+                        <select id="visit-sel-farm" onchange="changeActiveFarm('visit-sel-farm')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
+                    </div>
+                    <div>
+        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Safra</label>
+        <!-- Transformado em campo de texto livre -->
+        <input type="text" id="visit-sel-safra" placeholder="Ex: 2025/2026" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white">
+    </div>
+    <div>
+        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Talhão / Área</label>
+        <!-- Transformado em campo de texto livre -->
+        <input type="text" id="visit-sel-talhao" placeholder="Ex: Visita Geral ou Talhão 1" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white">
+    </div>
+</div>
 
                         <div class="space-y-2">
                             <div class="flex justify-between items-center">
@@ -1820,14 +1821,15 @@
             const prodSelect = document.getElementById('sel-producer');
             const vrateProdSelect = document.getElementById('vrate-sel-producer');
             const seedsProdSelect = document.getElementById('seeds-sel-producer');
+            const visitProdSelect = document.getElementById('visit-sel-producer'); // <- Adicionado
 
             if (!prodSelect) return;
-
             const currentVal = prodSelect.value || 'all';
 
             prodSelect.innerHTML = '<option value="all">Todos os Produtores</option>';
             if (vrateProdSelect) vrateProdSelect.innerHTML = '<option value="all">Todos os Produtores</option>';
             if (seedsProdSelect) seedsProdSelect.innerHTML = '<option value="all">Todos os Produtores</option>';
+            if (visitProdSelect) visitProdSelect.innerHTML = '<option value="all">Todos os Produtores</option>'; // <- Adicionado
 
             let producersSet = new Set();
             let keysToDisplay = Object.keys(farmsDatabase);
@@ -1846,36 +1848,39 @@
                 prodSelect.innerHTML += `<option value="${p}">${p}</option>`;
                 if (vrateProdSelect) vrateProdSelect.innerHTML += `<option value="${p}">${p}</option>`;
                 if (seedsProdSelect) seedsProdSelect.innerHTML += `<option value="${p}">${p}</option>`;
+                if (visitProdSelect) visitProdSelect.innerHTML += `<option value="${p}">${p}</option>`; // <- Adicionado
             });
 
             prodSelect.value = currentVal;
             if (vrateProdSelect) vrateProdSelect.value = currentVal;
             if (seedsProdSelect) seedsProdSelect.value = currentVal;
+            if (visitProdSelect) visitProdSelect.value = currentVal; // <- Adicionado
         }
 
         function changeActiveProducer(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
-            ['sel-producer', 'vrate-sel-producer', 'seeds-sel-producer'].forEach(id => {
+            // <- Adicionamos o ID da Visita na sincronização abaixo
+            ['sel-producer', 'vrate-sel-producer', 'seeds-sel-producer', 'visit-sel-producer'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.value !== selectedVal) el.value = selectedVal;
             });
             
             populateFarmSelector();
-            
-            // Força a atualização do mapa para a primeira fazenda do produtor selecionado
             changeActiveFarm('sel-farm');
         }
 
         function populateFarmSelector() {
-            populateProducerSelector(); // Garante que a lista de produtores está atualizada primeiro
+            populateProducerSelector();
 
             const farmSelect = document.getElementById('sel-farm');
             const vrateSelect = document.getElementById('vrate-sel-farm');
             const seedsSelect = document.getElementById('seeds-sel-farm');
+            const visitSelect = document.getElementById('visit-sel-farm'); // <- Adicionado
 
             if (farmSelect) farmSelect.innerHTML = '';
             if (vrateSelect) vrateSelect.innerHTML = '';
             if (seedsSelect) seedsSelect.innerHTML = '';
+            if (visitSelect) visitSelect.innerHTML = ''; // <- Adicionado
 
             let keysToDisplay = Object.keys(farmsDatabase);
             if (currentUserRole !== 'admin' && !currentUserAllowedFarms.includes('all')) {
@@ -1887,11 +1892,11 @@
             keysToDisplay.forEach(key => {
                 if (farmsDatabase[key]) {
                     const farm = farmsDatabase[key];
-                    // Só adiciona a fazenda se for "Todos" ou se o produtor for o selecionado
                     if (selectedProducer === 'all' || farm.producer === selectedProducer) {
                         if (farmSelect) farmSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
                         if (vrateSelect) vrateSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
                         if (seedsSelect) seedsSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
+                        if (visitSelect) visitSelect.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`; // <- Adicionado
                     }
                 }
             });
@@ -1909,10 +1914,11 @@
             populateSafraSelector();
             populateTalhaoSelector();
         }
-           
+
         function changeActiveFarm(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
-            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm'].forEach(id => {
+            // <- Adicionamos o ID da Visita na sincronização abaixo
+            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.value !== selectedVal) el.value = selectedVal;
             });
