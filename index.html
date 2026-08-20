@@ -1595,7 +1595,7 @@
             document.getElementById('chk-allow-vrate').checked = !!user.allowVRate;
             document.getElementById('chk-allow-seeds').checked = !!user.allowSeeds;
             document.getElementById('chk-allow-sampling').checked = !!user.allowSampling;
-            document.getElementById('chk-allow-recommendation').checked = !!user.allowSampling;
+            document.getElementById('chk-allow-recommendation').checked = !!user.allowRecommendation;
 
             document.getElementById('btn-save-user').innerText = "Atualizar Permissões do Cliente";
             document.getElementById('btn-cancel-user-edit').classList.remove('hidden');
@@ -1614,7 +1614,7 @@
             document.getElementById('chk-allow-vrate').checked = false;
             document.getElementById('chk-allow-seeds').checked = false;
             document.getElementById('chk-allow-sampling').checked = false;
-            document.getElementById('chk-allow-recommendation').checked = userData.allowRecommendation || false;
+            document.getElementById('chk-allow-recommendation').checked = false;
 
             document.getElementById('btn-save-user').innerText = "Autorizar E-mail Google";
             document.getElementById('btn-cancel-user-edit').classList.add('hidden');
