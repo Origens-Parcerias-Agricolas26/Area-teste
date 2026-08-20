@@ -4882,9 +4882,13 @@
         }
 
         function gerarPDFRecomendacao() {
+            // Pega as informações e junta Produtor e Fazenda
             const produtor = document.getElementById('rec_produtor').value || 'Não informado';
             const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
-            const clienteFinal = `${produtor} - ${fazenda}`;            
+            const clienteFinal = `${produtor} - ${fazenda}`;
+            
+            // As outras informações (Cultura voltou!)
+            const cultura = document.getElementById('rec_cultura').value || 'Não informada';
             const area = parseFloat(document.getElementById('rec_area').value) || 0;
             const calda = document.getElementById('rec_calda').value || 0;
             const temp = document.getElementById('rec_temp').value || '---';
@@ -4904,7 +4908,6 @@
                 // O total da área é o que será abatido do estoque
                 const totalArea = dose * area;
 
-                // Busca o produto selecionado para extrair o Lote e abater o saldo
                 let nomeFinal = prodBusca;
                 let lote = '---';
                 let validade = '---';
@@ -4931,7 +4934,7 @@
                 `;
             });
 
-            // Atualiza a visualização do estoque (para o consultor ver que os litros/kg caíram)
+            // Atualiza a visualização do estoque visualmente
             atualizarDatalistEstoque();
 
             const dataHoje = new Date().toLocaleDateString('pt-BR');
@@ -4990,6 +4993,7 @@
                 </div>
             `;
 
+            // Nome limpo (só com a fazenda)
             const nomeFazendaLimpo = fazenda.split(' ').join('_');
             const dataLimpa = dataHoje.split('/').join('-');
             
@@ -5004,53 +5008,6 @@
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = template;
             html2pdf().set(opt).from(tempDiv).save();
-        }
-        function aoSelecionarFazendaRec() {
-            const selectFazenda = document.getElementById('rec_fazenda');
-            const selectTalhoes = document.getElementById('rec_talhoes');
-            const nomeFazenda = selectFazenda.value;
-            
-            selectTalhoes.innerHTML = '';
-            let talhoesEncontrados = [];
-
-            // 1. Tenta puxar direto do Banco de Dados em Nuvem (mapas importados)
-            let farmEncontrada = null;
-            if (typeof farmsDatabase !== 'undefined') {
-                for(let key in farmsDatabase) {
-                    if(farmsDatabase[key].name === nomeFazenda) { farmEncontrada = farmsDatabase[key]; break; }
-                }
-            }
-
-            if (farmEncontrada && farmEncontrada.geojson && farmEncontrada.geojson.features) {
-                farmEncontrada.geojson.features.forEach(f => {
-                    const props = f.properties || {};
-                    const nome = props.name || props.Name || props.TALHAO || props.Talhao || 'Talhão S/N';
-                    const area = props.area || props.Area || props.AREA_HA || props.AREA || 0;
-                    talhoesEncontrados.push({ nome: nome, area: parseFloat(area) });
-                });
-            } 
-            // 2. Se não tiver mapa, tenta puxar do FAZENDAS_DB antigo (se ele existir no código)
-            else if (typeof FAZENDAS_DB !== 'undefined' && FAZENDAS_DB[nomeFazenda]) {
-                FAZENDAS_DB[nomeFazenda].forEach(item => {
-                    talhoesEncontrados.push({ nome: item.talhao, area: parseFloat(item.area) });
-                });
-            }
-
-            // Preenche a caixa de seleção múltipla
-            if (talhoesEncontrados.length > 0) {
-                talhoesEncontrados.forEach(t => {
-                    const opt = document.createElement('option');
-                    opt.value = t.nome;
-                    opt.dataset.area = t.area;
-                    opt.text = `${t.nome} (${t.area.toFixed(1)} ha)`;
-                    selectTalhoes.appendChild(opt);
-                });
-            } else {
-                selectTalhoes.innerHTML = '<option value="" disabled>Nenhum talhão registrado</option>';
-            }
-
-            document.getElementById('rec_area').value = '';
-            recalcularTodosProdutosRec();
         }
         function baixarEstoqueAtualizado() {
             if (estoqueFazenda.length === 0) {
