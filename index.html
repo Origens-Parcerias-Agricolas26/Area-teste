@@ -5120,27 +5120,38 @@
                         // Aceita vários nomes de colunas possíveis para facilitar
                         const nome = r['TALHÃO'] || r['TALHAO'] || r['NOME'] || r['LOTE'] || r['TALHÃO/ÁREA'] || '';
                         const area = parseFloat(r['ÁREA'] || r['AREA'] || r['HA'] || r['HECTARES'] || 0);
-                        
-                        if (nome && area > 0) {
-                            const opt = document.createElement('option');
-                            opt.value = nome;
-                            opt.dataset.area = area;
-                            opt.text = `${nome} (${area.toFixed(2)} ha)`;
-                            selectTalhoes.appendChild(opt);
-                            count++;
-                        }
-                    });
+                        function salvarMemoriaRecomendacao() {
+            const produtorEl = document.getElementById('rec_produtor');
+            const fazendaEl = document.getElementById('rec_fazenda');
+            const selectTalhoes = document.getElementById('rec_talhoes');
+            
+            // BLINDAGEM: Se os elementos não existirem na tela (porque mudou de aba), aborta a função sem travar.
+            if (!produtorEl || !fazendaEl || !selectTalhoes) return;
 
-                    if(count === 0) {
-                        selectTalhoes.innerHTML = '<option value="" disabled>Nenhum dado válido. Use colunas TALHAO e AREA.</option>';
-                        alert("Aviso: A planilha precisa ter as colunas com os nomes 'TALHAO' e 'AREA'.");
-                    } else {
-                        alert(`${count} Talhões importados com sucesso! Agora é só selecionar os que deseja aplicar.`);
-                    }
-                    
-                    document.getElementById('rec_area').value = '';
-                    recalcularTodosProdutosRec();
-                    inputEl.value = ''; // reseta o input
+            const produtor = produtorEl.value.trim();
+            const fazenda = fazendaEl.value.trim();
+
+            // Só salva se tiver produtor, fazenda e se tiver talhões de verdade importados
+            if (!produtor || !fazenda || selectTalhoes.options.length === 0 || selectTalhoes.options[0].disabled) return;
+
+            let talhoes = [];
+            for (let i = 0; i < selectTalhoes.options.length; i++) {
+                talhoes.push({
+                    nome: selectTalhoes.options[i].value,
+                    area: selectTalhoes.options[i].dataset.area,
+                    texto: selectTalhoes.options[i].text
+                });
+            }
+
+            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
+            
+            // Remove o antigo se já existir (para atualizar com os novos talhões se você importou outro excel)
+            memoria = memoria.filter(m => !(m.produtor === produtor && m.fazenda === fazenda));
+            memoria.push({ produtor, fazenda, talhoes });
+            
+            localStorage.setItem('origens_clientes_memoria', JSON.stringify(memoria));
+            atualizarDatalistProdutores();
+        }
                 } catch (err) {
                     console.error(err);
                     alert("Erro ao ler a planilha de talhões.");
