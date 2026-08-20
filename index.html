@@ -4739,31 +4739,49 @@
                     const sheet = workbook.Sheets[workbook.SheetNames[0]];
                     const rows = XLSX.utils.sheet_to_json(sheet);
                     
-                    estoqueFazenda = rows.map(r => {
-                        // Puxa exatamente as colunas que vi no seu vídeo
+                    let produtosAdicionados = 0;
+                    let produtosSomados = 0;
+
+                    // Em vez de substituir a lista inteira, vamos verificar linha por linha
+                    rows.forEach(r => {
                         const ingrediente = r['INGREDIENTE ATIVO (GRUPO QUÍMICO)'] || r['PRODUTO'] || 'Sem Nome';
+                        if (ingrediente === 'Sem Nome') return; // Pula linhas vazias
+
                         const lote = r['LOTE'] || '-';
                         const validade = r['VALIDADE'] || '-';
                         const unid = r['UNID.'] || r['UNID'] || 'L';
                         const volume = parseFloat(r['QUANTIDADE'] || r['ESTOQUE'] || r['VOLUME'] || 0);
                         
-                        // Formata o texto bonito para a lista suspensa
-                        const nomeExibicao = `${ingrediente} | Lote: ${lote} | Val: ${validade} | Est: ${volume.toFixed(2)} ${unid}`;
-                        
-                        return { ingrediente, lote, validade, unid, volume, nomeExibicao };
-                    }).filter(p => p.ingrediente !== 'Sem Nome');
+                        // Procura se esse produto EXATO (mesmo ingrediente, lote e validade) já existe na memória
+                        const produtoExistente = estoqueFazenda.find(p => 
+                            p.ingrediente === ingrediente && 
+                            p.lote === lote && 
+                            p.validade === validade
+                        );
 
+                        if (produtoExistente) {
+                            // Se ACHOU, apenas SOMA a quantidade nova com a que já estava lá!
+                            produtoExistente.volume += volume;
+                            produtosSomados++;
+                        } else {
+                            // Se NÃO ACHOU, cadastra ele como um produto novo no final da lista
+                            estoqueFazenda.push({ ingrediente, lote, validade, unid, volume, nomeExibicao: '' });
+                            produtosAdicionados++;
+                        }
+                    });
+
+                    // Essa função já atualiza os textos de exibição com os saldos finais somados
                     atualizarDatalistEstoque();
-                    alert(`Estoque importado! ${estoqueFazenda.length} produtos carregados com Lote e Validade.`);
-                    inputEl.value = '';
+                    
+                    alert(`Estoque atualizado com sucesso!\n\n🔹 ${produtosSomados} produtos tiveram o saldo somado.\n🔹 ${produtosAdicionados} novos produtos foram adicionados à lista.`);
+                    inputEl.value = ''; // Limpa o botão de arquivo
                 } catch (err) {
                     console.error(err);
-                    alert("Erro ao ler planilha de estoque. Verifique as colunas.");
+                    alert("Erro ao ler planilha de estoque. Verifique se as colunas estão corretas.");
                 }
             };
             reader.readAsBinaryString(file);
         }
-
         function atualizarDatalistEstoque() {
             const datalist = document.getElementById('lista-estoque');
             if (datalist) {
