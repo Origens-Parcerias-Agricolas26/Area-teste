@@ -5718,7 +5718,7 @@
             }
         }
         // =========================================================================
-        // UPLOAD E TRANSCRIÇÃO DE ARQUIVO DE ÁUDIO VIA API (GEMINI) - VERSÃO AQ.
+        // UPLOAD E TRANSCRIÇÃO DE ÁUDIO VIA API - VERSÃO CORRETA (CABEÇALHO HTTP)
         // =========================================================================
         async function handleAudioFileUpload(inputEl) {
             if (!inputEl.files || !inputEl.files[0]) return;
@@ -5737,16 +5737,14 @@
 
                 try {
                     // ==========================================================
-                    // COLE A SUA CHAVE AQ AQUI (Tirei os espaços por segurança):
-                    const GEMINI_API_KEY = "AQ.Ab8RN6JGAB9E4LdydFWzyVsR7L7YMFcw9RNnpJScI7AIYpMFdw()";
+                    // COLE SUA CHAVE AQ ABAIXO (ENTRE AS ASPAS DUPLAS):
+                    const GEMINI_API_KEY = "AQ.Ab8RN6JGAB9E4LdydFWzyVsR7L7YMFcw9RNnpJScI7AIYpMFdw";
                     // ==========================================================
                     
-                    // Verificador de Cache no Console (F12)
-                    console.log("🟢 INICIANDO TRANSCRIÇÃO - Código Atualizado!");
-                    console.log("🔑 Prefixo da Chave usada:", GEMINI_API_KEY.substring(0, 10) + "...");
+                    console.log("🟢 INICIANDO TRANSCRIÇÃO - Código Cabecalho HTTP!");
 
-                    // URL padrão com a chave na query string
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+                    // URL LIMPA - Sem o ?key= no final
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
 
                     const payload = {
                         contents: [{
@@ -5759,7 +5757,10 @@
 
                     const response = await fetch(url, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'x-goog-api-key': GEMINI_API_KEY // A chave vai escondida aqui!
+                        },
                         body: JSON.stringify(payload)
                     });
 
