@@ -5721,25 +5721,6 @@
             }
         }
         // =========================================================================
-        // UPLOAD E TRANSCRIÇÃO VIA API - VERSÃO MODELO 3.5 (CORREÇÃO DE BUG AQ.)
-        // =========================================================================
-        async function handleAudioFileUpload(inputEl) {
-            if (!inputEl.files || !inputEl.files[0]) return;
-            const file = inputEl.files[0];
-            const textArea = document.getElementById('visit-report-text');
-
-            const textoAnterior = textArea.value;
-            textArea.value = "Enviando áudio para a IA processar... Aguarde.\n";
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            
-            reader.onload = async function (e) {
-                const base64Audio = e.target.result.split(',')[1];
-                const mimeType = file.type;
-
-                try {
-        // =========================================================================
         // UPLOAD E TRANSCRIÇÃO DE ÁUDIO VIA API - PADRÃO OFICIAL GOOGLE (AQ.)
         // =========================================================================
         async function handleAudioFileUpload(inputEl) {
@@ -5758,10 +5739,8 @@
                 const mimeType = file.type;
 
                 try {
-                    // ==========================================================
-                    // 1. COLE A SUA CHAVE (AQ.) ENTRE AS ASPAS DUPLAS ABAIXO:
+                    // Chave já preenchida para você:
                     const GEMINI_API_KEY = "AQ.Ab8RN6LtWamSAIPzbG5U9u4bdyjLuAEUTTMckf-7VblVsT00Aw";
-                    // ==========================================================
                     
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
@@ -5791,7 +5770,7 @@
 
                 } catch (error) {
                     console.error("❌ Erro na API do Gemini:", error);
-                    alert("Erro ao transcrever. Se a chave for nova, aguarde uns minutos e tente de novo.");
+                    alert("Erro ao transcrever. Verifique a conexão ou a chave.");
                     textArea.value = textoAnterior;
                 }
                 
@@ -5815,20 +5794,18 @@
             textArea.value = "A IA está corrigindo e formatando seu relatório... Aguarde uns segundos. ✨\n";
 
             try {
-                // ==========================================================
-                // 2. COLE A SUA CHAVE (AQ.) AQUI TAMBÉM:
+                // Chave já preenchida para você:
                 const GEMINI_API_KEY = "AQ.Ab8RN6LtWamSAIPzbG5U9u4bdyjLuAEUTTMckf-7VblVsT00Aw";
-                // ==========================================================
                 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
                 const payload = {
                     contents: [{
                         parts: [{ 
-                        text: "Você é um engenheiro agrônomo sênior e revisor de textos. Pegue o texto abaixo, corrija todos os erros de português, melhore a coesão, use vocabulário técnico e organize a estrutura nos padrões de um relatório profissional e normas da ABNT. Retorne apenas o texto revisado:\n\n" + textoBruto 
-                }]
-            }]
-        };
+                            text: "Você é um engenheiro agrônomo sênior e revisor de textos. Pegue o texto abaixo, corrija todos os erros de português, melhore a coesão, use vocabulário técnico e organize a estrutura nos padrões de um relatório profissional e normas da ABNT. Retorne apenas o texto revisado:\n\n" + textoBruto 
+                        }]
+                    }]
+                };
 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -5849,7 +5826,7 @@
                 alert("Ocorreu um erro ao revisar o texto. O texto original foi restaurado.");
                 textArea.value = textoAnterior;
             }
-        }                    
+        }
     </script>
 </body>
 </html>
