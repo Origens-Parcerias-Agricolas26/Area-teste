@@ -5718,7 +5718,7 @@
             }
         }
         // =========================================================================
-        // UPLOAD E TRANSCRIÇÃO DE ÁUDIO VIA API - VERSÃO CORRETA (CABEÇALHO HTTP)
+        // UPLOAD E TRANSCRIÇÃO VIA API - VERSÃO MODELO 3.5 (CORREÇÃO DE BUG AQ.)
         // =========================================================================
         async function handleAudioFileUpload(inputEl) {
             if (!inputEl.files || !inputEl.files[0]) return;
@@ -5737,14 +5737,17 @@
 
                 try {
                     // ==========================================================
-                    // COLE SUA CHAVE AQ ABAIXO (ENTRE AS ASPAS DUPLAS):
-                    const GEMINI_API_KEY = "AQ.Ab8RN6JGAB9E4LdydFWzyVsR7L7YMFcw9RNnpJScI7AIYpMFdw";
+                    // COLE A SUA CHAVE AQ ABAIXO (ENTRE AS ASPAS DUPLAS):
+                    let GEMINI_API_KEY = "AQ.Ab8RN6JGAB9E4LdydFWzyVsR7L7YMFcw9RNnpJScI7AIYpMFdw";
                     // ==========================================================
                     
-                    console.log("🟢 INICIANDO TRANSCRIÇÃO - Código Cabecalho HTTP!");
+                    // Limpeza extrema: remove espaços, quebras de linha e lixo invisível da cópia
+                    GEMINI_API_KEY = GEMINI_API_KEY.replace(/[^a-zA-Z0-9.\-_]/g, "");
+                    
+                    console.log("🟢 INICIANDO TRANSCRIÇÃO - Modelo 3.5-Flash Ativado!");
 
-                    // URL LIMPA - Sem o ?key= no final
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+                    // Atualizado para o modelo gemini-3.5-flash (compatível com chaves AQ.)
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
                     const payload = {
                         contents: [{
@@ -5757,26 +5760,23 @@
 
                     const response = await fetch(url, {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'x-goog-api-key': GEMINI_API_KEY // A chave vai escondida aqui!
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
 
                     const data = await response.json();
                     
-                    if (data && data.candidates && data.candidates[0].content) {
+                    if (response.ok && data.candidates) {
                         const transcricao = data.candidates[0].content.parts[0].text;
                         textArea.value = (textoAnterior + '\n\n' + transcricao).trim();
                         console.log("✅ Transcrição concluída com sucesso!");
                     } else {
-                        throw new Error("Erro da API: " + JSON.stringify(data));
+                        throw new Error(JSON.stringify(data));
                     }
 
                 } catch (error) {
                     console.error("❌ Erro na API do Gemini:", error);
-                    alert("Ocorreu um erro ao transcrever o áudio. Verifique o Console (F12) para detalhes.");
+                    alert("A IA recusou a chave. O erro detalhado está no Console (F12).");
                     textArea.value = textoAnterior;
                 }
                 
