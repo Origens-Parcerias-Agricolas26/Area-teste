@@ -1282,7 +1282,7 @@
                         currentUserRole = userData.role || "client";
                         currentUserAllowedFarms = userData.farms || [];
                         canAccessSampling = !!userData.allowSampling;
-                        canAccessRecommendation = docData.allowRecommendation || false;
+                        canAccessRecommendation = userData.allowRecommendation || false;
                         canAccessVRate = !!userData.allowVRate;
                         canAccessSeeds = !!userData.allowSeeds;
                         canAccessVisit = !!userData.allowVisit;
