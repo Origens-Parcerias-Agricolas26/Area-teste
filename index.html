@@ -938,6 +938,9 @@
                                 <button id="btn-mic-ia" onclick="toggleIAAudioTranscription()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex items-center gap-1.5 transition-all">
                                     <i class="fa-solid fa-microphone"></i><span id="txt-mic-ia">Gravar pelo Microfone</span>
                                 </button>
+                                <button onclick="revisarRelatorioIA()" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex items-center gap-1.5 transition-all mt-2">
+                                    <i class="fa-solid fa-wand-magic-sparkles"></i><span>Corrigir e Formatar (ABNT)</span>
+                                </button>
                             </div>
                             <textarea id="visit-report-text" rows="8" class="w-full text-sm p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="Digite as observações agronômicas ou clique em Gravar Áudio para ditar o relatório..."></textarea>
                         </div>
@@ -5736,7 +5739,7 @@
                 const mimeType = file.type;
 
                 try {
-                    // =========================================================================
+        // =========================================================================
         // UPLOAD E TRANSCRIÇÃO DE ÁUDIO VIA API - PADRÃO OFICIAL GOOGLE (AQ.)
         // =========================================================================
         async function handleAudioFileUpload(inputEl) {
@@ -5798,6 +5801,57 @@
                 
                 inputEl.value = ''; 
             };
+        }
+        // =========================================================================
+        // REVISÃO DE TEXTO E FORMATAÇÃO ABNT COM IA
+        // =========================================================================
+        async function revisarRelatorioIA() {
+            const textArea = document.getElementById('visit-report-text');
+            const textoBruto = textArea.value.trim();
+
+            if (!textoBruto) {
+                alert("Por favor, escreva ou grave um relatório primeiro para a IA revisar!");
+                return;
+            }
+
+            const textoAnterior = textArea.value;
+            textArea.value = "A IA está corrigindo e formatando seu relatório... Aguarde uns segundos. ✨\n";
+
+            try {
+                // ==========================================================
+                // COLE A MESMA CHAVE AQ. QUE VOCÊ USOU NA FUNÇÃO DO ÁUDIO
+                const GEMINI_API_KEY = "AQ.Ab8RN6LtWamSAIPzbG5U9u4bdyjLuAEUTTMckf-7VblVsT00Aw";
+                // ==========================================================
+                
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+                const payload = {
+                    contents: [{
+                        parts: [{ 
+                            text: "Você é um engenheiro agrônomo sênior e revisor de textos. Pegue o texto abaixo, corrija todos os erros de português, melhore a coesão, use vocabulário técnico e organize a estrutura nos padrões de um relatório profissional e normas da ABNT. Retorne apenas o texto revisado:\n\n" + textoBruto 
+                        }]
+                    }]
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                
+                if (response.ok && data.candidates) {
+                    textArea.value = data.candidates[0].content.parts[0].text;
+                } else {
+                    throw new Error(JSON.stringify(data));
+                }
+
+            } catch (error) {
+                console.error("Erro na API do Gemini:", error);
+                alert("Ocorreu um erro ao revisar o texto. O texto original foi restaurado.");
+                textArea.value = textoAnterior;
+            }
         }
     </script>
 </body>
