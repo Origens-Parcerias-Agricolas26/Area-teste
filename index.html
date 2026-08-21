@@ -5736,18 +5736,34 @@
                 const mimeType = file.type;
 
                 try {
-                    // ==========================================================
-                    // COLE A SUA CHAVE AQ ABAIXO (ENTRE AS ASPAS DUPLAS):
-                    let GEMINI_API_KEY = "AQ.Ab8RN6JGAB9E4LdydFWzyVsR7L7YMFcw9RNnpJScI7AIYpMFdw";
-                    // ==========================================================
-                    
-                    // Limpeza extrema: remove espaços, quebras de linha e lixo invisível da cópia
-                    GEMINI_API_KEY = GEMINI_API_KEY.replace(/[^a-zA-Z0-9.\-_]/g, "");
-                    
-                    console.log("🟢 INICIANDO TRANSCRIÇÃO - Modelo 3.5-Flash Ativado!");
+                    // =========================================================================
+        // UPLOAD E TRANSCRIÇÃO DE ÁUDIO VIA API - PADRÃO OFICIAL GOOGLE (AQ.)
+        // =========================================================================
+        async function handleAudioFileUpload(inputEl) {
+            if (!inputEl.files || !inputEl.files[0]) return;
+            const file = inputEl.files[0];
+            const textArea = document.getElementById('visit-report-text');
 
-                    // Atualizado para o modelo gemini-3.5-flash (compatível com chaves AQ.)
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+            const textoAnterior = textArea.value;
+            textArea.value = "Enviando áudio para a IA processar... Aguarde.\n";
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            
+            reader.onload = async function (e) {
+                const base64Audio = e.target.result.split(',')[1];
+                const mimeType = file.type;
+
+                try {
+                    // ==========================================================
+                    // COLE A SUA CHAVE (AQ.) ENTRE AS ASPAS DUPLAS ABAIXO:
+                    const GEMINI_API_KEY = "AQ.Ab8RN6LtWamSAIPzbG5U9u4bdyjLuAEUTTMckf-7VblVsT00Aw";
+                    // ==========================================================
+                    
+                    console.log("🟢 Iniciando transcrição com a chave AQ...");
+
+                    // O padrão exato que o Google recomendou no print
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
                     const payload = {
                         contents: [{
@@ -5769,14 +5785,14 @@
                     if (response.ok && data.candidates) {
                         const transcricao = data.candidates[0].content.parts[0].text;
                         textArea.value = (textoAnterior + '\n\n' + transcricao).trim();
-                        console.log("✅ Transcrição concluída com sucesso!");
+                        console.log("✅ Transcrição concluída!");
                     } else {
                         throw new Error(JSON.stringify(data));
                     }
 
                 } catch (error) {
                     console.error("❌ Erro na API do Gemini:", error);
-                    alert("A IA recusou a chave. O erro detalhado está no Console (F12).");
+                    alert("Erro ao transcrever. Se a chave for nova, aguarde uns minutos e tente de novo.");
                     textArea.value = textoAnterior;
                 }
                 
