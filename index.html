@@ -5119,12 +5119,12 @@
     const selectTalhoes = document.getElementById('rec_talhoes');
     const talhoesSelecionados = Array.from(selectTalhoes.selectedOptions).map(opt => opt.value).join(', ') || 'Nenhum';
 
-    // Puxar a Logo Base64 (que você já tem no projeto para os outros mapas)
+    // Puxar a Logo Base64
     const logoImg = document.getElementById('pdf-logo-origens');
     const logoSrc = (logoImg && logoImg.src && logoImg.src.length > 100) ? logoImg.src : '';
     const logoHtml = logoSrc ? `<img src="${logoSrc}" style="height: 55px; object-fit: contain;">` : '<h2 style="font-weight:900; font-size:24px; color:#0f172a;">ORIGENS</h2>';
 
-    // 2. Montar a Tabela de Produtos (Mantendo a inteligência de Lote e Validade)
+    // 2. Montar a Tabela de Produtos e Abater do Estoque
     let linhasHtml = '';
     let numItens = 0;
     
@@ -5141,156 +5141,149 @@
         let validade = '-';
         
         // Abater do estoque e pegar os dados reais
-        const prodEstoque = estoqueFazenda.find(p => {
-            const buscaSemEst = prodBusca.split(' | Est:')[0].trim().toLowerCase();
-            const estoqueSemEst = (p.nomeExibicao || '').split(' | Est:')[0].trim().toLowerCase();
-            if (buscaSemEst === estoqueSemEst && estoqueSemEst !== '') return true;
-            
-            const buscaSoNome = prodBusca.split(' | ')[0].trim().toLowerCase();
-            const ingredienteLimpo = p.ingrediente.trim().toLowerCase();
-            return buscaSoNome === ingredienteLimpo || ingredienteLimpo.includes(buscaSoNome);
-        });
+        if (typeof estoqueFazenda !== 'undefined' && estoqueFazenda.length > 0) {
+            const prodEstoque = estoqueFazenda.find(p => {
+                const buscaSemEst = prodBusca.split(' | Est:')[0].trim().toLowerCase();
+                const estoqueSemEst = (p.nomeExibicao || '').split(' | Est:')[0].trim().toLowerCase();
+                if (buscaSemEst === estoqueSemEst && estoqueSemEst !== '') return true;
+                
+                const buscaSoNome = prodBusca.split(' | ')[0].trim().toLowerCase();
+                const ingredienteLimpo = p.ingrediente.trim().toLowerCase();
+                return buscaSoNome === ingredienteLimpo || ingredienteLimpo.includes(buscaSoNome);
+            });
 
-        if (prodEstoque) {
-            nomeFinal = prodEstoque.ingrediente;
-            lote = prodEstoque.lote;
-            validade = prodEstoque.validade;
-            prodEstoque.volume -= totalArea; 
+            if (prodEstoque) {
+                nomeFinal = prodEstoque.ingrediente;
+                lote = prodEstoque.lote;
+                validade = prodEstoque.validade;
+                prodEstoque.volume -= totalArea; 
+            }
         }
 
-        let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+        // Estilo Inline na Tabela para garantir renderização no HTML2PDF
+        let bg = idx % 2 === 0 ? 'background-color: white;' : 'background-color: #f8fafc;';
         linhasHtml += `
-            <tr class="border-b border-slate-200 text-[9.5px] ${bg}">
-                <td class="p-1.5 border-r border-slate-200 font-bold text-slate-800">${nomeFinal}</td>
-                <td class="p-1.5 border-r border-slate-200 text-center text-slate-600">${lote}<br>${validade}</td>
-                <td class="p-1.5 border-r border-slate-200 text-center font-medium">${dose.toFixed(2)}</td>
-                <td class="p-1.5 border-r border-slate-200 text-center font-bold text-emerald-800 bg-emerald-50">${totalTanque} ${unid}</td>
-                <td class="p-1.5 text-right font-bold text-green-700">${totalArea.toFixed(1)} ${unid}</td>
+            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 9.5px; ${bg}">
+                <td style="padding: 6px; border-right: 1px solid #e2e8f0; font-weight: bold; color: #1e293b;">${nomeFinal}</td>
+                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; color: #475569;">${lote}<br>${validade}</td>
+                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: 500;">${dose.toFixed(2)}</td>
+                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: bold; color: #065f46; background-color: #ecfdf5;">${totalTanque} ${unid}</td>
+                <td style="padding: 6px; text-align: right; font-weight: bold; color: #15803d;">${totalArea.toFixed(1)} ${unid}</td>
             </tr>
         `;
         numItens++;
     });
 
-    atualizarDatalistEstoque();
+    if (typeof atualizarDatalistEstoque === 'function') atualizarDatalistEstoque();
     const dataHoje = new Date().toLocaleDateString('pt-BR');
     const consNome = typeof currentUser !== 'undefined' && currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
 
-    // 3. NOVO TEMPLATE DO PDF (Design Moderno com Tailwind)
+    // 3. NOVO TEMPLATE DO PDF COM ESTILOS INLINE (Resolve a tela em branco!)
     let template = `
-        <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: 'Plus Jakarta Sans', Helvetica, Arial, sans-serif; box-sizing: border-box; background: white;" class="text-slate-900 leading-tight">
+        <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white; color: #0f172a; line-height: 1.2;">
             
-            <!-- CABEÇALHO DA ORIGENS -->
-            <div class="border-2 border-slate-800 p-3 mb-3 bg-slate-50 flex items-center justify-between gap-4">
-                <div class="w-1/3 flex justify-start">
+            <div style="border: 2px solid #1e293b; padding: 12px; margin-bottom: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
+                <div style="width: 33%; text-align: left;">
                     ${logoHtml}
                 </div>
-                <div class="w-2/3 text-right">
-                    <h2 class="text-base font-extrabold text-slate-900 tracking-wide uppercase m-0">RELATÓRIO DE VISITA TÉCNICA</h2>
-                    <p class="text-[10px] text-slate-600 font-semibold m-0 mt-1">RECOMENDAÇÃO DE APLICAÇÃO DE DEFENSIVOS</p>
+                <div style="width: 66%; text-align: right;">
+                    <h2 style="font-size: 16px; font-weight: 900; color: #0f172a; letter-spacing: 0.05em; margin: 0;">RELATÓRIO DE VISITA TÉCNICA</h2>
+                    <p style="font-size: 10px; color: #475569; font-weight: bold; margin: 4px 0 0 0;">RECOMENDAÇÃO DE APLICAÇÃO DE DEFENSIVOS</p>
                 </div>
             </div>
 
-            <!-- TÍTULOS -->
-            <div class="flex justify-between items-center border-b-2 border-slate-800 pb-1.5 mb-2 font-bold text-[11px]">
-                <span>FAZENDA/CLIENTE: <span class="text-green-700 uppercase">${clienteFinal}</span></span>
-                <span>DATA DA EMISSÃO: <span class="text-red-600">${dataHoje}</span></span>
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 6px; margin-bottom: 8px; font-weight: bold; font-size: 11px;">
+                <span>FAZENDA/CLIENTE: <span style="color: #15803d; text-transform: uppercase;">${clienteFinal}</span></span>
+                <span>DATA DA EMISSÃO: <span style="color: #dc2626;">${dataHoje}</span></span>
             </div>
 
-            <!-- INFORMAÇÕES DE ÁREA E CULTURA -->
-            <div class="grid grid-cols-2 gap-x-2 gap-y-1 mb-3 text-[10px] bg-slate-50 p-2 border border-slate-200 rounded">
-                <div class="col-span-2"><strong>TALHÃO(ÕES):</strong> ${talhoesSelecionados}</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; font-size: 10px; background: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                <div style="grid-column: span 2;"><strong>TALHÃO(ÕES):</strong> ${talhoesSelecionados}</div>
                 <div><strong>ÁREA TOTAL (ha):</strong> ${area}</div>
                 <div><strong>CULTURA:</strong> ${cultura}</div>
                 <div><strong>DATA VISITA:</strong> ${dataVisita}</div>
                 <div><strong>DATA APLICAÇÃO:</strong> ${dataAplicacao}</div>
             </div>
 
-            <!-- CALIBRAÇÃO DO EQUIPAMENTO -->
-            <div class="mb-3">
-                <div class="bg-slate-800 text-white font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider mb-1">
+            <div style="margin-bottom: 12px;">
+                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
                     ESPECIFICAÇÕES DA CALIBRAÇÃO DO EQUIPAMENTO
                 </div>
-                <div class="grid grid-cols-3 gap-1 text-[9.5px] border border-slate-200 p-1.5 bg-slate-50">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
                     <div><strong>MODELO:</strong> ${modeloEq}</div>
                     <div><strong>CAP. TANQUE:</strong> ${tanque} L</div>
                     <div><strong>VAZÃO:</strong> ${vazao} L/ha</div>
                     <div><strong>BICO:</strong> ${bicoEq}</div>
                     <div><strong>TIPO GOTA:</strong> ${gotaEq}</div>
                     <div><strong>PRESSÃO:</strong> ${pressaoEq} PSI</div>
-                    <div class="col-span-3 bg-amber-50 p-1 font-bold text-amber-900 border-t border-slate-200 text-center mt-1">
+                    <div style="grid-column: span 3; background: #fffbeb; padding: 4px; font-weight: bold; color: #78350f; border-top: 1px solid #e2e8f0; text-align: center; margin-top: 4px;">
                         RENDIMENTO CALCULADO: ${haPorTanque.toFixed(1)} HA / TANQUE
                     </div>
                 </div>
             </div>
 
-            <!-- CLIMA -->
-            <div class="mb-3">
-                <div class="bg-slate-800 text-white font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider mb-1">
+            <div style="margin-bottom: 12px;">
+                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
                     CONDIÇÕES AMBIENTAIS MÍNIMAS PARA APLICAÇÃO
                 </div>
-                <div class="grid grid-cols-3 gap-1 text-[9.5px] border border-slate-200 p-1.5 bg-slate-50">
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
                     <div><strong>UMIDADE:</strong> ${ur}</div>
                     <div><strong>VENTO:</strong> ${vento}</div>
                     <div><strong>TEMP.:</strong> ${temp}</div>
                 </div>
             </div>
 
-            <!-- TABELA DE PRODUTOS -->
-            <div class="mb-3">
-                <div class="bg-slate-800 text-white font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider mb-1 flex justify-between items-center">
+            <div style="margin-bottom: 12px;">
+                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
                     <span>PRODUTOS RECOMENDADOS</span>
-                    <span class="text-[8px] text-emerald-300 font-mono">${numItens} ITENS</span>
+                    <span style="font-size: 8px; color: #6ee7b7; font-family: monospace;">${numItens} ITENS</span>
                 </div>
-                <table class="w-full text-left border-collapse border border-slate-300 text-[8.5px]">
+                <table style="width: 100%; text-align: left; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 8.5px;">
                     <thead>
-                        <tr class="bg-slate-200 text-slate-800 font-bold border-b border-slate-300">
-                            <th class="p-1.5 border-r border-slate-300">PRODUTO</th>
-                            <th class="p-1.5 border-r border-slate-300 text-center">LOTE / VAL.</th>
-                            <th class="p-1.5 border-r border-slate-300 text-center">DOSE (/ha)</th>
-                            <th class="p-1.5 border-r border-slate-300 text-center bg-emerald-100">TOTAL / TANQUE</th>
-                            <th class="p-1 border-r border-slate-300 text-center">LOTE / VAL.</th>
-                            <th class="p-1.5 text-right">TOTAL P/ ÁREA</th>
+                        <tr style="background: #e2e8f0; color: #1e293b; font-weight: bold; border-bottom: 1px solid #cbd5e1;">
+                            <th style="padding: 6px; border-right: 1px solid #cbd5e1;">PRODUTO</th>
+                            <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">LOTE / VAL.</th>
+                            <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">DOSE (/ha)</th>
+                            <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center; background: #d1fae5;">TOTAL / TANQUE</th>
+                            <th style="padding: 6px; text-align: right;">TOTAL P/ ÁREA</th>
                         </tr>
                     </thead>
                     <tbody>${linhasHtml}</tbody>
                 </table>
             </div>
 
-            <!-- OBSERVAÇÕES -->
-            <div class="mb-3">
-                <div class="bg-slate-800 text-white font-bold px-2 py-0.5 text-[9px] uppercase tracking-wider mb-1">
+            <div style="margin-bottom: 12px;">
+                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
                     OBSERVAÇÕES TÉCNICAS
                 </div>
-                <div class="border border-slate-200 p-2 bg-slate-50 text-[9.5px] text-slate-700 min-h-[40px] whitespace-pre-line">
+                <div style="border: 1px solid #e2e8f0; padding: 8px; background: #f8fafc; font-size: 9.5px; color: #334155; min-height: 40px; white-space: pre-line;">
                     ${obs || 'Nenhuma observação inserida.'}
                 </div>
             </div>
 
-            <!-- PRECAUÇÕES -->
-            <div class="mb-3">
-                <div class="bg-slate-800 text-white font-bold px-2 py-0.5 text-[8.5px] uppercase tracking-wider mb-1">
+            <div style="margin-bottom: 12px;">
+                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 8.5px; letter-spacing: 0.05em; margin-bottom: 4px;">
                     PRECAUÇÕES DE USO E SEGURANÇA
                 </div>
-                <ol class="list-decimal pl-3.5 text-[7.5px] text-slate-700 space-y-0.5 leading-tight font-medium m-0 mt-1">
-                    <li>Antes de iniciar o manuseio dos produtos, leia atenciosamente as instruções do rótulo e/ou bula.</li>
-                    <li>Use os equipamentos de proteção individual (EPI) recomendados.</li>
-                    <li>Ao fazer a aferição do equipamento de aplicação, utilize água limpa e verifique se há vazamentos.</li>
-                    <li>Faça a tríplice lavagem ou lavagem sob pressão das embalagens vazias e descarte corretamente.</li>
-                    <li>Não reutilize a embalagem vazia. Mantenha sobras nas embalagens originais fechadas em local trancado.</li>
-                    <li>Não coma, não beba e não fume durante o manuseio do produto. Não manuseie com mãos desprotegidas.</li>
-                    <li>Após o manuseio/aplicação dos produtos tome banho, troque e lave as suas roupas.</li>
+                <ol style="padding-left: 14px; font-size: 7.5px; color: #334155; margin: 4px 0; font-weight: 500;">
+                    <li style="margin-bottom: 2px;">Antes de iniciar o manuseio dos produtos, leia atenciosamente as instruções do rótulo e/ou bula.</li>
+                    <li style="margin-bottom: 2px;">Use os equipamentos de proteção individual (EPI) recomendados.</li>
+                    <li style="margin-bottom: 2px;">Ao fazer a aferição do equipamento de aplicação, utilize água limpa e verifique se há vazamentos.</li>
+                    <li style="margin-bottom: 2px;">Faça a tríplice lavagem ou lavagem sob pressão das embalagens vazias e descarte corretamente.</li>
+                    <li style="margin-bottom: 2px;">Não reutilize a embalagem vazia. Mantenha sobras nas embalagens originais fechadas em local trancado.</li>
+                    <li style="margin-bottom: 2px;">Não coma, não beba e não fume durante o manuseio do produto. Não manuseie com mãos desprotegidas.</li>
+                    <li style="margin-bottom: 2px;">Após o manuseio/aplicação dos produtos tome banho, troque e lave as suas roupas.</li>
                 </ol>
             </div>
 
-            <!-- ASSINATURAS -->
-            <div class="grid grid-cols-2 gap-4 border-t border-slate-300 pt-3 mt-4 text-[9px]">
-                <div class="text-center">
-                    <div class="border-t border-slate-400 pt-0.5 font-bold uppercase">${consNome}</div>
-                    <div class="text-[8px] text-slate-500">Responsável Técnico / CREA</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 16px; font-size: 9px;">
+                <div style="text-align: center;">
+                    <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">${consNome}</div>
+                    <div style="font-size: 8px; color: #64748b;">Responsável Técnico / CREA</div>
                 </div>
-                <div class="text-center flex flex-col justify-end">
-                    <div class="border-t border-slate-400 pt-0.5 font-bold uppercase">PRODUTOR / CLIENTE</div>
-                    <div class="text-[8px] text-slate-500">Responsável Operacional</div>
+                <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end;">
+                    <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">PRODUTOR / CLIENTE</div>
+                    <div style="font-size: 8px; color: #64748b;">Responsável Operacional</div>
                 </div>
             </div>
         </div>
@@ -5304,20 +5297,25 @@
         margin: 0,
         filename: `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
+        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // Anexamos temporariamente na tela de forma invisível para garantir que o CSS do Tailwind seja carregado no momento do 'print'
+    // Criamos a "tela fantasma" e forçamos ela a ficar no topo para o html2canvas não se perder
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = template;
-    tempDiv.style.position = 'absolute';
+    tempDiv.style.position = 'fixed';
+    tempDiv.style.top = '0';
     tempDiv.style.left = '-9999px';
+    tempDiv.style.zIndex = '-1000';
     document.body.appendChild(tempDiv);
 
-    html2pdf().set(opt).from(tempDiv).save().then(() => {
-        document.body.removeChild(tempDiv);
-    });
+    // Atraso de meio segundo (500ms) para dar tempo do navegador processar o HTML antes da "foto"
+    setTimeout(() => {
+        html2pdf().set(opt).from(tempDiv).save().then(() => {
+            document.body.removeChild(tempDiv);
+        });
+    }, 500);
 }
         function baixarEstoqueAtualizado() {
             if (estoqueFazenda.length === 0) {
