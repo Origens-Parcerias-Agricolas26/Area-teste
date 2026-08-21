@@ -5718,33 +5718,35 @@
             }
         }
         // =========================================================================
-        // UPLOAD E TRANSCRIÇÃO DE ARQUIVO DE ÁUDIO VIA API (GEMINI) - ATIVADO!
+        // UPLOAD E TRANSCRIÇÃO DE ARQUIVO DE ÁUDIO VIA API (GEMINI) - VERSÃO AQ.
         // =========================================================================
         async function handleAudioFileUpload(inputEl) {
             if (!inputEl.files || !inputEl.files[0]) return;
             const file = inputEl.files[0];
             const textArea = document.getElementById('visit-report-text');
 
-            // Dá um feedback visual para o usuário não achar que travou
             const textoAnterior = textArea.value;
-            textArea.value = "Enviando áudio para a IA processar... Aguarde, isso pode levar alguns segundos.\n";
+            textArea.value = "Enviando áudio para a IA processar... Aguarde.\n";
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
             
             reader.onload = async function (e) {
-                // Remove o prefixo "data:audio/mp3;base64," para enviar só o código puro
                 const base64Audio = e.target.result.split(',')[1];
                 const mimeType = file.type;
 
                 try {
                     // ==========================================================
-                    // COLOQUE SUA CHAVE NOVA (QUE COMEÇA COM AQ) NAS ASPAS ABAIXO:
-                    const GEMINI_API_KEY = "AQ.Ab8RN6JGAB9E4LdydFWzyVsR7L7YMFcw9RNnpJScI7AIYpMFdw";
+                    // COLE A SUA CHAVE AQ AQUI (Tirei os espaços por segurança):
+                    const GEMINI_API_KEY = "AQ.Ab8RN6JGAB9E4LdydFWzyVsR7L7YMFcw9RNnpJScI7AIYpMFdw();
                     // ==========================================================
                     
-                    // URL limpa, sem a chave na frente
-                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent`;
+                    // Verificador de Cache no Console (F12)
+                    console.log("🟢 INICIANDO TRANSCRIÇÃO - Código Atualizado!");
+                    console.log("🔑 Prefixo da Chave usada:", GEMINI_API_KEY.substring(0, 10) + "...");
+
+                    // URL padrão com a chave na query string
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
                     const payload = {
                         contents: [{
@@ -5757,10 +5759,7 @@
 
                     const response = await fetch(url, {
                         method: 'POST',
-                        headers: { 
-                            'Content-Type': 'application/json',
-                            'x-goog-api-key': GEMINI_API_KEY // A chave agora vai escondida aqui no cabeçalho!
-                        },
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(payload)
                     });
 
@@ -5769,17 +5768,18 @@
                     if (data && data.candidates && data.candidates[0].content) {
                         const transcricao = data.candidates[0].content.parts[0].text;
                         textArea.value = (textoAnterior + '\n\n' + transcricao).trim();
+                        console.log("✅ Transcrição concluída com sucesso!");
                     } else {
-                        throw new Error("A IA não retornou um texto válido. " + JSON.stringify(data));
+                        throw new Error("Erro da API: " + JSON.stringify(data));
                     }
 
                 } catch (error) {
-                    console.error("Erro na API do Gemini:", error);
+                    console.error("❌ Erro na API do Gemini:", error);
                     alert("Ocorreu um erro ao transcrever o áudio. Verifique o Console (F12) para detalhes.");
                     textArea.value = textoAnterior;
                 }
                 
-                inputEl.value = ''; // Limpa o input
+                inputEl.value = ''; 
             };
         }
     </script>
