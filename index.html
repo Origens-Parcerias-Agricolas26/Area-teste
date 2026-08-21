@@ -5297,25 +5297,12 @@
         margin: 0,
         filename: `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, scrollY: 0 },
+        html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
 
-    // Criamos a "tela fantasma" e forçamos ela a ficar no topo para o html2canvas não se perder
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = template;
-    tempDiv.style.position = 'fixed';
-    tempDiv.style.top = '0';
-    tempDiv.style.left = '-9999px';
-    tempDiv.style.zIndex = '-1000';
-    document.body.appendChild(tempDiv);
-
-    // Atraso de meio segundo (500ms) para dar tempo do navegador processar o HTML antes da "foto"
-    setTimeout(() => {
-        html2pdf().set(opt).from(tempDiv).save().then(() => {
-            document.body.removeChild(tempDiv);
-        });
-    }, 500);
+    // A MÁGICA ESTÁ AQUI: passamos o template gigante direto para o gerador de PDF
+    html2pdf().set(opt).from(template).save();
 }
         function baixarEstoqueAtualizado() {
             if (estoqueFazenda.length === 0) {
