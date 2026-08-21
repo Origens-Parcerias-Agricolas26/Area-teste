@@ -5825,10 +5825,10 @@
                 const payload = {
                     contents: [{
                         parts: [{ 
-                            text: "Você é um engenheiro agrônomo sênior e revisor de textos. Pegue o texto abaixo, corrija todos os erros de português, melhore a coesão, use vocabulário técnico e organize a estrutura nos padrões de um relatório profissional e normas da ABNT. Retorne apenas o texto revisado:\n\n" + textoBruto 
-                        }]
-                    }]
-                };
+                        text: "Você é um engenheiro agrônomo sênior e revisor de textos. Pegue o texto abaixo, corrija todos os erros de português, melhore a coesão, use vocabulário técnico e organize a estrutura nos padrões de um relatório profissional e normas da ABNT. Retorne apenas o texto revisado:\n\n" + textoBruto 
+                }]
+            }]
+        };
 
                 const response = await fetch(url, {
                     method: 'POST',
@@ -5849,8 +5849,7 @@
                 alert("Ocorreu um erro ao revisar o texto. O texto original foi restaurado.");
                 textArea.value = textoAnterior;
             }
-        }
-                    
+        }                    
     </script>
 </body>
 </html>
