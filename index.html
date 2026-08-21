@@ -930,10 +930,13 @@
 </div>
 
                         <div class="space-y-2">
-                            <div class="flex justify-between items-center">
-                                <label class="block text-xs font-bold text-slate-700 uppercase"><i class="fa-solid fa-align-left text-cyan-600 mr-1"></i>Relatório Técnico</label>
-                                <button id="btn-mic-ia" onclick="toggleIAAudioTranscription()" class="bg-indigo-100 hover:bg-indigo-200 text-indigo-700 font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex items-center gap-1.5 transition-all">
-                                    <i class="fa-solid fa-microphone"></i><span id="txt-mic-ia">Gravar Áudio (Transcrição IA)</span>
+                            <div class="flex items-center gap-2">
+                                <input type="file" id="visit-audio-upload" accept="audio/*" class="hidden" onchange="handleAudioFileUpload(this)">
+                                <button onclick="document.getElementById('visit-audio-upload').click()" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex items-center gap-1.5 transition-all">
+                                    <i class="fa-solid fa-file-audio"></i><span>Importar Áudio</span>
+                                </button>
+                                <button id="btn-mic-ia" onclick="toggleIAAudioTranscription()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex items-center gap-1.5 transition-all">
+                                    <i class="fa-solid fa-microphone"></i><span id="txt-mic-ia">Gravar pelo Microfone</span>
                                 </button>
                             </div>
                             <textarea id="visit-report-text" rows="8" class="w-full text-sm p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none" placeholder="Digite as observações agronômicas ou clique em Gravar Áudio para ditar o relatório..."></textarea>
@@ -5713,6 +5716,74 @@
             } else if (document.getElementById('content-maps') && !document.getElementById('content-maps').classList.contains('hidden')) {
                 if(typeof updateGISMap === 'function') updateGISMap();
             }
+        }
+        // =========================================================================
+        // UPLOAD E TRANSCRIÇÃO DE ARQUIVO DE ÁUDIO VIA API (GEMINI)
+        // =========================================================================
+        async function handleAudioFileUpload(inputEl) {
+            if (!inputEl.files || !inputEl.files[0]) return;
+            const file = inputEl.files[0];
+            const textArea = document.getElementById('visit-report-text');
+
+            // Dá um feedback visual para o usuário não achar que travou
+            const textoAnterior = textArea.value;
+            textArea.value = "Enviando áudio para a IA processar... Aguarde, isso pode levar alguns segundos.\n";
+
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            
+            reader.onload = async function (e) {
+                // Remove o prefixo "data:audio/mp3;base64," para enviar só o código puro
+                const base64Audio = e.target.result.split(',')[1];
+                const mimeType = file.type;
+
+                try {
+                    /*
+                    // ---------------------------------------------------------
+                    // AQUI FICA A CHAMADA REAL PARA A API DO GEMINI
+                    // Para funcionar, você deve gerar uma API Key gratuita no Google AI Studio
+                    // ---------------------------------------------------------
+                    
+                    const GEMINI_API_KEY = "COLE_SUA_API_KEY_AQUI";
+                    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+
+                    const payload = {
+                        contents: [{
+                            parts: [
+                                { text: "Transcreva este áudio agronômico e organize as ideias em um texto claro e profissional." },
+                                { inline_data: { mime_type: mimeType, data: base64Audio } }
+                            ]
+                        }]
+                    };
+
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    
+                    if (data && data.candidates && data.candidates[0].content) {
+                        const transcricao = data.candidates[0].content.parts[0].text;
+                        textArea.value = (textoAnterior + '\n\n' + transcricao).trim();
+                    } else {
+                        throw new Error("A IA não retornou um texto válido.");
+                    }
+                    */
+
+                    // Como a API Key não está preenchida, damos um alerta e restauramos o texto
+                    alert("A interface de upload está pronta! Para que a transcrição de arquivos funcione, você precisará inserir sua API Key do Gemini no código-fonte.");
+                    textArea.value = textoAnterior;
+
+                } catch (error) {
+                    console.error("Erro na API do Gemini:", error);
+                    alert("Ocorreu um erro ao transcrever o áudio.");
+                    textArea.value = textoAnterior;
+                }
+                
+                inputEl.value = ''; // Limpa o input para permitir enviar o mesmo arquivo de novo se der erro
+            };
         }
     </script>
 </body>
