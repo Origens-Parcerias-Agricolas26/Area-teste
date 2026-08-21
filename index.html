@@ -5759,13 +5759,10 @@
 
                 try {
                     // ==========================================================
-                    // COLE A SUA CHAVE (AQ.) ENTRE AS ASPAS DUPLAS ABAIXO:
-                    const GEMINI_API_KEY = "AQ.Ab8RN6LtWamSAIPzbG5U9u4bdyjLuAEUTTMckf-7VblVsT00Aw";
+                    // 1. COLE A SUA CHAVE (AQ.) ENTRE AS ASPAS DUPLAS ABAIXO:
+                    const GEMINI_API_KEY = "COLE_AQUI_A_SUA_CHAVE";
                     // ==========================================================
                     
-                    console.log("🟢 Iniciando transcrição com a chave AQ...");
-
-                    // O padrão exato que o Google recomendou no print
                     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
                     const payload = {
@@ -5788,7 +5785,6 @@
                     if (response.ok && data.candidates) {
                         const transcricao = data.candidates[0].content.parts[0].text;
                         textArea.value = (textoAnterior + '\n\n' + transcricao).trim();
-                        console.log("✅ Transcrição concluída!");
                     } else {
                         throw new Error(JSON.stringify(data));
                     }
@@ -5802,6 +5798,7 @@
                 inputEl.value = ''; 
             };
         }
+
         // =========================================================================
         // REVISÃO DE TEXTO E FORMATAÇÃO ABNT COM IA
         // =========================================================================
@@ -5819,8 +5816,8 @@
 
             try {
                 // ==========================================================
-                // COLE A MESMA CHAVE AQ. QUE VOCÊ USOU NA FUNÇÃO DO ÁUDIO
-                const GEMINI_API_KEY = "AQ.Ab8RN6LtWamSAIPzbG5U9u4bdyjLuAEUTTMckf-7VblVsT00Aw";
+                // 2. COLE A SUA CHAVE (AQ.) AQUI TAMBÉM:
+                const GEMINI_API_KEY = "COLE_AQUI_A_SUA_CHAVE";
                 // ==========================================================
                 
                 const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
