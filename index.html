@@ -741,28 +741,56 @@
                     <!-- ================= VISÃO 2: CONFERE / AUDITORIA ================= -->
                     <div id="sampling-confere-view" class="hidden space-y-4 flex-1 flex flex-col">
                         
-                        <!-- Filtros Inteligentes Multi-seleção -->
+                        <!-- Filtros Inteligentes Multi-seleção com Dropdowns -->
                         <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
                             <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
                                 <span class="text-xs font-extrabold text-slate-800"><i class="fa-solid fa-filter text-blue-600 mr-1"></i>Filtros Inteligentes (Multi-seleção)</span>
                                 <button onclick="clearConfereFilters()" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded transition-all shadow-sm">Limpar Filtros</button>
                             </div>
                             <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                                <div>
+                                <!-- Dropdown Equipe -->
+                                <div class="relative w-full" id="box-dropdown-equipe">
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Equipe de Coleta</label>
-                                    <div id="chk-confere-equipe" class="max-h-32 overflow-y-auto bg-slate-50 border border-slate-300 rounded-lg p-2 space-y-1 text-xs"></div>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-equipe')" class="w-full bg-slate-50 border border-slate-300 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-equipe" class="truncate pointer-events-none">Todas as Equipes</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-equipe" class="confere-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl p-2 max-h-56 overflow-y-auto space-y-1">
+                                        <div id="chk-confere-equipe"></div>
+                                    </div>
                                 </div>
-                                <div>
+                                <!-- Dropdown Data -->
+                                <div class="relative w-full" id="box-dropdown-data">
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data da Coleta</label>
-                                    <div id="chk-confere-data" class="max-h-32 overflow-y-auto bg-slate-50 border border-slate-300 rounded-lg p-2 space-y-1 text-xs"></div>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-data')" class="w-full bg-slate-50 border border-slate-300 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-data" class="truncate pointer-events-none">Todas as Datas</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-data" class="confere-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl p-2 max-h-56 overflow-y-auto space-y-1">
+                                        <div id="chk-confere-data"></div>
+                                    </div>
                                 </div>
-                                <div>
+                                <!-- Dropdown Produtor -->
+                                <div class="relative w-full" id="box-dropdown-produtor">
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Produtor (Solicitante)</label>
-                                    <div id="chk-confere-produtor" class="max-h-32 overflow-y-auto bg-slate-50 border border-slate-300 rounded-lg p-2 space-y-1 text-xs"></div>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-produtor')" class="w-full bg-slate-50 border border-slate-300 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-produtor" class="truncate pointer-events-none">Todos os Produtores</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-produtor" class="confere-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl p-2 max-h-56 overflow-y-auto space-y-1">
+                                        <div id="chk-confere-produtor"></div>
+                                    </div>
                                 </div>
-                                <div>
+                                <!-- Dropdown Fazenda -->
+                                <div class="relative w-full" id="box-dropdown-fazenda">
                                     <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fazenda</label>
-                                    <div id="chk-confere-fazenda" class="max-h-32 overflow-y-auto bg-slate-50 border border-slate-300 rounded-lg p-2 space-y-1 text-xs"></div>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-fazenda')" class="w-full bg-slate-50 border border-slate-300 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-fazenda" class="truncate pointer-events-none">Todas as Fazendas</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-fazenda" class="confere-dropdown hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl p-2 max-h-56 overflow-y-auto space-y-1">
+                                        <div id="chk-confere-fazenda"></div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -6187,6 +6215,22 @@
             populateConfereFilters();
             applyConfereFilters();
         }
+        // Abre/Fecha Dropdowns do Confere e clica fora para fechar
+        function toggleConfereDropdown(id) {
+            const el = document.getElementById(id);
+            const isHidden = el.classList.contains('hidden');
+            document.querySelectorAll('.confere-dropdown').forEach(d => d.classList.add('hidden'));
+            if (isHidden) el.classList.remove('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#box-dropdown-equipe') && 
+                !e.target.closest('#box-dropdown-data') && 
+                !e.target.closest('#box-dropdown-produtor') && 
+                !e.target.closest('#box-dropdown-fazenda')) {
+                document.querySelectorAll('.confere-dropdown').forEach(d => d.classList.add('hidden'));
+            }
+        });
 
         function populateConfereFilters() {
             const equipes = new Set(), datas = new Set(), produtores = new Set(), fazendas = new Set();
@@ -6234,7 +6278,21 @@
             let prs = Array.from(document.querySelectorAll('.chk-produtor-item:checked')).map(c => c.value);
             let fzs = Array.from(document.querySelectorAll('.chk-fazenda-item:checked')).map(c => c.value);
 
-            // Se nenhum checkbox estiver marcado em um bloco, significa que "Tudo" é válido para aquele bloco.
+            // Atualiza os títulos dos Dropdowns Dinamicamente
+            const updateTitle = (id, arr, emptyText) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                if (arr.length === 0) el.innerText = emptyText;
+                else if (arr.length === 1) el.innerText = arr[0];
+                else el.innerText = `${arr.length} Selecionados(as)`;
+            };
+            
+            updateTitle('title-equipe', eqs, 'Todas as Equipes');
+            updateTitle('title-data', dts, 'Todas as Datas');
+            updateTitle('title-produtor', prs, 'Todos os Produtores');
+            updateTitle('title-fazenda', fzs, 'Todas as Fazendas');
+
+            // Lógica de Cascata
             const isEqAll = eqs.length === 0;
             const isDtAll = dts.length === 0;
             const isPrAll = prs.length === 0;
@@ -6257,7 +6315,7 @@
                 return mEq && mDt && mPr && mFz;
             });
 
-            // Atualiza a visualização (cascata) dos checkboxes
+            // Atualiza a visualização (cascata) dos checkboxes ocultando o que não faz parte da fazenda
             const updateCheckboxes = (className, validSet) => {
                 document.querySelectorAll('.' + className).forEach(chk => {
                     if (!validSet.has(chk.value)) {
