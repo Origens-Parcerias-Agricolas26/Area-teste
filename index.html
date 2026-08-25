@@ -351,14 +351,15 @@
                                     <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
                                 </label>
                                 <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="chk-labels" onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+                                    <input type="checkbox" id="chk-labels" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
                                     <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
                                 </label>
                                 <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="chk-values" onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+                                    <input type="checkbox" id="chk-values" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
                                     <span class="text-sm font-semibold text-slate-700">Valores do Parâmetro</span>
                                 </label>
                             </div>
+                        </div>
 
                         <div class="space-y-2 mt-4">
                             <button id="btn-export-pdf" onclick="generatePerfectPDF()" class="w-full bg-origens-green hover:bg-origens-dark text-white font-bold p-3 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs">
@@ -446,7 +447,7 @@
                                     <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
                                 </label>
                                 <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="vrate-chk-values" onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
+                                    <input type="checkbox" id="vrate-chk-values" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
                                     <span class="text-sm font-semibold text-slate-700">Valores das Doses</span>
                                 </label>
                             </div>
@@ -583,7 +584,7 @@
                                     <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
                                 </label>
                                 <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="seeds-chk-values" onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
+                                    <input type="checkbox" id="seeds-chk-values" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
                                     <span class="text-sm font-semibold text-slate-700">População / Cultivares</span>
                                 </label>
                             </div>
