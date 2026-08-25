@@ -2247,6 +2247,15 @@
                 return;
             }
 
+            // 1. MEMÓRIA DE SELEÇÃO DE TALHÕES
+            // Captura quais talhões estavam marcados antes da troca de safra
+            const previouslyCheckedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
+            const lastFarmKey = container.getAttribute('data-last-farm');
+            
+            // Se trocou de Fazenda, reseta e marca todos. Se trocou só de Safra, mantém a seleção anterior.
+            const isNewFarm = lastFarmKey !== selectedFarmKey;
+            container.setAttribute('data-last-farm', selectedFarmKey);
+
             const selectedSafras = getSelectedSafras();
             const currentGeoJSON = farmsDatabase[selectedFarmKey].geojson || { "type": "FeatureCollection", "features": [] };
             const talhoesSet = new Set();
@@ -2255,7 +2264,7 @@
                 currentGeoJSON.features.forEach(f => {
                     if (f.properties && f.properties.Talhao) {
                         const featureSafra = f.properties.safra_origem || extractSafra(f.properties);
-                        const hasHistorico = f.properties.safras_historico && selectedSafras.some(s => f.properties.safras_historico[s]);
+                        const hasHistorico = f.properties && f.properties.safras_historico && selectedSafras.some(s => f.properties.safras_historico[s]);
                         const hasDirectSafra = featureSafra && selectedSafras.includes(featureSafra);
                         if (!selectedSafras.length || hasHistorico || hasDirectSafra) {
                             talhoesSet.add(String(f.properties.Talhao));
@@ -2270,34 +2279,39 @@
                 return;
             }
 
+            // 2. MONTAGEM DA LISTA MANTENDO O CHECKBOX
             let html = `
                 <label class="flex items-center gap-2 cursor-pointer font-bold text-emerald-800 border-b pb-1 mb-1 bg-emerald-50/50 p-1 rounded">
-                    <input type="checkbox" id="chk-master-talhao" checked onchange="toggleMasterTalhao(this)" class="h-3.5 w-3.5 text-origens-green rounded">
+                    <input type="checkbox" id="chk-master-talhao" onchange="toggleMasterTalhao(this)" class="h-3.5 w-3.5 text-origens-green rounded">
                     <span>Selecionar Todos</span>
                 </label>
             `;
-            html += sortedTalhoes.map(t => `
-                <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700 px-1">
-                    <input type="checkbox" name="chk-talhao-item" value="${t}" checked onchange="syncMasterTalhaoCheck()" class="chk-talhao-item h-3.5 w-3.5 text-origens-green rounded">
-                    <span>Talhão ${t}</span>
-                </label>
-            `).join('');
+
+            html += sortedTalhoes.map(t => {
+                // Se for nova fazenda, marca todos. Se for troca de safra, mantém a marcar se já estava marcado antes.
+                const shouldBeChecked = isNewFarm || previouslyCheckedTalhoes.includes(t);
+                return `
+                    <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700 px-1">
+                        <input type="checkbox" name="chk-talhao-item" value="${t}" ${shouldBeChecked ? 'checked' : ''} onchange="syncMasterTalhaoCheck()" class="chk-talhao-item h-3.5 w-3.5 text-origens-green rounded">
+                        <span>Talhão ${t}</span>
+                    </label>
+                `;
+            }).join('');
 
             container.innerHTML = html;
-        }
-
-        function toggleMasterTalhao(masterChk) {
-            document.querySelectorAll('.chk-talhao-item').forEach(i => i.checked = masterChk.checked);
-            updateGISMap();
+            
+            // Sincroniza a caixinha "Selecionar Todos" e re-renderiza o mapa com o filtro mantido
+            syncMasterTalhaoCheck();
         }
 
         function syncMasterTalhaoCheck() {
             const items = document.querySelectorAll('.chk-talhao-item');
             const master = document.getElementById('chk-master-talhao');
-            if (master && items.length) master.checked = Array.from(items).every(i => i.checked);
+            if (master && items.length) {
+                master.checked = Array.from(items).every(i => i.checked);
+            }
             updateGISMap();
         }
-
         function toggleAllSafras() {
             const items = document.querySelectorAll('.chk-safra-item');
             if (!items.length) return;
