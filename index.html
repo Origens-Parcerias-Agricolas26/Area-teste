@@ -2251,11 +2251,13 @@
             }
 
             // 1. MEMÓRIA DE SELEÇÃO DE TALHÕES
-            // Captura quais talhões estavam marcados antes da troca de safra
             const previouslyCheckedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
-            const lastFarmKey = container.getAttribute('data-last-farm');
             
-            // Se trocou de Fazenda, reseta e marca todos. Se trocou só de Safra, mantém a seleção anterior.
+            // VERIFICAÇÃO NOVA: O "Selecionar Todos" estava marcado?
+            const masterChkNode = document.getElementById('chk-master-talhao');
+            const masterWasChecked = masterChkNode ? masterChkNode.checked : true; // Se não existia, assume true
+            
+            const lastFarmKey = container.getAttribute('data-last-farm');
             const isNewFarm = lastFarmKey !== selectedFarmKey;
             container.setAttribute('data-last-farm', selectedFarmKey);
 
@@ -2282,7 +2284,7 @@
                 return;
             }
 
-            // 2. MONTAGEM DA LISTA MANTENDO O CHECKBOX
+            // 2. MONTAGEM DA LISTA MANTENDO O COMPORTAMENTO CORRETO
             let html = `
                 <label class="flex items-center gap-2 cursor-pointer font-bold text-emerald-800 border-b pb-1 mb-1 bg-emerald-50/50 p-1 rounded">
                     <input type="checkbox" id="chk-master-talhao" onchange="toggleMasterTalhao(this)" class="h-3.5 w-3.5 text-origens-green rounded">
@@ -2291,8 +2293,11 @@
             `;
 
             html += sortedTalhoes.map(t => {
-                // Se for nova fazenda, marca todos. Se for troca de safra, mantém a marca se já estava marcado antes.
-                const shouldBeChecked = isNewFarm || previouslyCheckedTalhoes.includes(t);
+                // A MÁGICA ACONTECE AQUI:
+                // Se é uma fazenda nova OU se "Selecionar Todos" estava marcado, marca este talhão.
+                // Caso contrário (você filtrou manualmente), mantém apenas os que estavam na memória.
+                const shouldBeChecked = isNewFarm || masterWasChecked || previouslyCheckedTalhoes.includes(t);
+                
                 return `
                     <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700 px-1">
                         <input type="checkbox" name="chk-talhao-item" value="${t}" ${shouldBeChecked ? 'checked' : ''} onchange="syncMasterTalhaoCheck()" class="chk-talhao-item h-3.5 w-3.5 text-origens-green rounded">
@@ -2303,10 +2308,8 @@
 
             container.innerHTML = html;
             
-            // Sincroniza a caixinha "Selecionar Todos" e re-renderiza o mapa com o filtro mantido
             syncMasterTalhaoCheck();
         }
-
         // Função que aciona a caixinha "Selecionar Todos" e marca/desmarca os talhões
         function toggleMasterTalhao(masterChk) {
             document.querySelectorAll('.chk-talhao-item').forEach(i => i.checked = masterChk.checked);
