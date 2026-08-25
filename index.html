@@ -6444,57 +6444,50 @@
         });
         
         // =========================================================================
-        // CAÇA-FANTASMAS: TROCA DE ABAS E CORREÇÃO DOS MAPAS
+        // ATUALIZAÇÃO FORÇADA DOS FILTROS (MAPA, VRATE, SEMENTES E AGORA HISTÓRICOS)
         // =========================================================================
-        window.switchTab = function(tabId) {
-            const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
+        window.changeActiveFarm = function(sourceSelectId) {
+            const selectedVal = document.getElementById(sourceSelectId).value;
             
-            // 1. Pega todas as caixas de módulos
-            const allModules = document.querySelectorAll('[id^="content-"]');
-            
-            allModules.forEach(mod => {
-                if (mod.id === 'content-' + tabId) {
-                    // Aba ativa: Remove o hidden e limpa estilos forçados
-                    mod.classList.remove('hidden');
-                    mod.style.display = ''; 
-                } else {
-                    // Abas inativas: Adiciona hidden e ESCONDE À FORÇA para não deixar buracos
-                    mod.classList.add('hidden');
-                    mod.style.display = 'none'; 
-                }
-            });
-            
-            // 2. Atualiza a cor dos botões do menu lateral
-            tabs.forEach(id => {
-                const btn = document.getElementById('tab-' + id);
-                if (btn) {
-                    if (id === tabId) {
-                        btn.classList.add('bg-slate-800', 'text-white');
-                        btn.classList.remove('text-slate-300');
-                    } else {
-                        btn.classList.remove('bg-slate-800', 'text-white');
-                        btn.classList.add('text-slate-300');
-                    }
-                }
+            // 1. Sincroniza todas as caixinhas de fazenda para mostrar a mesma coisa
+            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== selectedVal) el.value = selectedVal;
             });
 
-            // 3. Reseta a aba interna para "Formulário" para não vazar o Histórico
-            if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
-            if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
-            
-            // 4. Joga a tela pro topo automaticamente
-            const mainContainer = document.querySelector('main');
-            if (mainContainer) mainContainer.scrollTo(0, 0);
+            if(typeof populateSafraSelector === 'function') populateSafraSelector();
+            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
 
-            // 5. MÁGICA DOS MAPAS: Força o navegador a recalcular o tamanho da tela
-            // Isso evita que os mapas de Taxa Variável e Sementes fiquem brancos!
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-                if (tabId === 'maps' && typeof map !== 'undefined' && map !== null) map.invalidateSize();
-                if (tabId === 'vrate' && typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
-                if (tabId === 'seeds' && typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
-            }, 150);
+            // 2. MÁGICA DOS MÓDULOS: Atualiza SÓ o que a pessoa está vendo na hora
+            if (document.getElementById('content-seeds') && !document.getElementById('content-seeds').classList.contains('hidden')) {
+                if(typeof seedsChangeFarm === 'function') seedsChangeFarm();
+            } 
+            else if (document.getElementById('content-vrate') && !document.getElementById('content-vrate').classList.contains('hidden')) {
+                if(typeof vrateChangeFarm === 'function') vrateChangeFarm();
+            } 
+            else if (document.getElementById('content-maps') && !document.getElementById('content-maps').classList.contains('hidden')) {
+                if(typeof updateGISMap === 'function') updateGISMap();
+            } 
+            // ATUALIZAÇÃO DO MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA
+            else if (document.getElementById('content-recommendation') && !document.getElementById('content-recommendation').classList.contains('hidden')) {
+                if(typeof recChangeFarm === 'function') recChangeFarm();
+                
+                // Se o Histórico estiver aberto, atualiza a tabela NA HORA!
+                const recHistory = document.getElementById('rec-history-view');
+                if (recHistory && !recHistory.classList.contains('hidden')) {
+                    if(typeof loadRecHistory === 'function') loadRecHistory();
+                }
+            }
+            // ATUALIZAÇÃO DO MÓDULO 6: VISITA TÉCNICA
+            else if (document.getElementById('content-visit') && !document.getElementById('content-visit').classList.contains('hidden')) {
+                // Se o Histórico estiver aberto, atualiza a tabela NA HORA!
+                const visitHistory = document.getElementById('visit-history-view');
+                if (visitHistory && !visitHistory.classList.contains('hidden')) {
+                    if(typeof loadVisitHistory === 'function') loadVisitHistory();
+                }
+            }
         };
+        
     </script>
 </body>
 </html>
