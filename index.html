@@ -5270,7 +5270,10 @@
             const formView = document.getElementById('rec-form-view');
             const historyView = document.getElementById('rec-history-view');
             
-            // Usando o jeito correto de esconder/mostrar sem quebrar as outras abas
+            // Limpa o estilo forçado que estava fazendo a tabela "vazar" nas outras abas
+            if (formView) formView.style.display = '';
+            if (historyView) historyView.style.display = '';
+
             if (view === 'form') {
                 if (formView) formView.classList.remove('hidden');
                 if (historyView) historyView.classList.add('hidden');
@@ -5887,6 +5890,10 @@
         function toggleVisitView(view) {
             const formView = document.getElementById('visit-form-view');
             const historyView = document.getElementById('visit-history-view');
+            
+            if (formView) formView.style.display = '';
+            if (historyView) historyView.style.display = '';
+
             if (view === 'form') {
                 if (formView) formView.classList.remove('hidden');
                 if (historyView) historyView.classList.add('hidden');
