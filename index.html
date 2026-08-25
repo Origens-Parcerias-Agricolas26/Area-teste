@@ -6449,7 +6449,7 @@
         });
         
         // =========================================================================
-        // TROCA DE ABAS E ATUALIZAÇÃO DE FILTROS E HISTÓRICOS (VERSÃO FINAL)
+        // TROCA DE ABAS COM REDESENHO UNIVERSAL DE MAPAS (LEAFLET)
         // =========================================================================
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
@@ -6459,10 +6459,9 @@
                 const btn = document.getElementById('tab-' + id);
                 
                 if (el) {
-                    // Limpa qualquer estilo de display que tenha ficado travado nas tentativas anteriores
+                    // Garante que não tem nenhum estilo inline bloqueando a tela
                     el.style.display = ''; 
                     
-                    // O Tailwind esconde perfeitamente a tela apenas usando a classe 'hidden'
                     if (id === tabId) {
                         el.classList.remove('hidden');
                     } else {
@@ -6470,7 +6469,7 @@
                     }
                 }
                 
-                // Cores do menu lateral
+                // Atualiza as cores do botão no menu lateral
                 if (btn) {
                     if (id === tabId) {
                         btn.classList.add('bg-slate-800', 'text-white');
@@ -6490,13 +6489,23 @@
             const mainContainer = document.querySelector('main');
             if (mainContainer) mainContainer.scrollTo(0, 0);
 
-            // MÁGICA DOS MAPAS: O Leaflet precisa ser avisado que a tela abriu para desenhar o mapa
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-                if (tabId === 'maps' && typeof map !== 'undefined' && map !== null) map.invalidateSize();
-                if (tabId === 'vrate' && typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
-                if (tabId === 'seeds' && typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
-            }, 200);
+            // MÁGICA UNIVERSAL DOS MAPAS: 
+            // Em vez de adivinhar o nome das variáveis, pegamos os mapas direto pelo HTML!
+            // Disparamos isso 2 vezes (100ms e 400ms) para garantir que funcione em qualquer PC.
+            [100, 400].forEach(tempo => {
+                setTimeout(() => {
+                    window.dispatchEvent(new Event('resize'));
+                    
+                    // Varre as IDs das caixas de mapa da sua plataforma
+                    ['map-left', 'map-right', 'vrate-map', 'seeds-map'].forEach(id => {
+                        const mapDiv = document.getElementById(id);
+                        // Se a div existe e tem um mapa Leaflet dentro, força a renderização!
+                        if (mapDiv && mapDiv._leaflet_map) {
+                            mapDiv._leaflet_map.invalidateSize();
+                        }
+                    });
+                }, tempo);
+            });
         };
 
         // =========================================================================
