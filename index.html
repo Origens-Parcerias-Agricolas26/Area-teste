@@ -5840,7 +5840,6 @@
         let speechRecognition = null;
         let isRecordingAudio = false;
 
-        // Controle de Abas dentro do Módulo
         function toggleVisitView(view) {
             if (view === 'form') {
                 document.getElementById('visit-form-view').classList.remove('hidden');
@@ -5851,28 +5850,43 @@
             }
         }
 
-        // Popula as Safras e Talhões ao mudar a fazenda na Visita
-        function visitChangeFarm() {
-            const farmKey = document.getElementById('visit-sel-farm').value;
-            const safraSelect = document.getElementById('visit-sel-safra');
-            const talhaoSelect = document.getElementById('visit-sel-talhao');
-            
-            safraSelect.innerHTML = '<option value="2026">Safra 2026</option><option value="2025">Safra 2025</option>';
-            talhaoSelect.innerHTML = '<option value="Geral">Visita Geral (Toda a Fazenda)</option>';
+        async function handleAudioFileUpload(inputEl) {
+            if (!inputEl.files || !inputEl.files[0]) return;
+            const file = inputEl.files[0];
+            const textArea = document.getElementById('visit-report-text');
+            const textoAnterior = textArea.value;
+            textArea.value = "Enviando áudio para a IA processar... Aguarde.\n";
 
-            const farmObj = farmsDatabase[farmKey];
-            if (farmObj && farmObj.geojson && farmObj.geojson.features) {
-                let talhoesSet = new Set();
-                farmObj.geojson.features.forEach(f => {
-                    if (f.properties && f.properties.Talhao) talhoesSet.add(String(f.properties.Talhao));
-                });
-                Array.from(talhoesSet).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(t => {
-                    talhaoSelect.innerHTML += `<option value="${t}">Talhão ${t}</option>`;
-                });
-            }
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            
+            reader.onload = async function (e) {
+                const base64Audio = e.target.result.split(',')[1];
+                try {
+                    const url = "https://api-gemini.tiagoritterm.workers.dev";
+                    const payload = {
+                        contents: [{
+                            parts: [
+                                { text: "Você é um assistente agronômico. Transcreva este áudio ditado por um consultor no campo e organize as ideias em um texto claro e profissional para um relatório de visita técnica." },
+                                { inline_data: { mime_type: file.type, data: base64Audio } }
+                            ]
+                        }]
+                    };
+
+                    const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                    const data = await response.json();
+                    
+                    if (response.ok && data.candidates) {
+                        textArea.value = (textoAnterior + '\n\n' + data.candidates[0].content.parts[0].text).trim();
+                    } else throw new Error(JSON.stringify(data));
+                } catch (error) {
+                    alert("Erro ao transcrever. Verifique a conexão ou a chave.");
+                    textArea.value = textoAnterior;
+                }
+                inputEl.value = ''; 
+            };
         }
 
-        // Transcrição de Áudio Nativa (Speech-to-Text do Navegador)
         function toggleIAAudioTranscription() {
             const btnText = document.getElementById('txt-mic-ia');
             const btnIcon = document.querySelector('#btn-mic-ia i');
@@ -5889,10 +5903,7 @@
             }
 
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) {
-                alert("O seu navegador não suporta transcrição de áudio por IA. Recomendamos o uso do Google Chrome.");
-                return;
-            }
+            if (!SpeechRecognition) { alert("Navegador não suporta transcrição."); return; }
 
             speechRecognition = new SpeechRecognition();
             speechRecognition.lang = 'pt-BR';
@@ -5908,41 +5919,50 @@
             };
 
             speechRecognition.onresult = function(event) {
-                let interimTranscript = '';
                 let finalTranscript = '';
-
                 for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    if (event.results[i].isFinal) {
-                        finalTranscript += event.results[i][0].transcript + '. ';
-                    } else {
-                        interimTranscript += event.results[i][0].transcript;
-                    }
+                    if (event.results[i].isFinal) finalTranscript += event.results[i][0].transcript + '. ';
                 }
-                
-                if (finalTranscript) {
-                    textArea.value = (textArea.value + '\n' + finalTranscript).trim();
-                }
+                if (finalTranscript) textArea.value = (textArea.value + '\n' + finalTranscript).trim();
             };
-
-            speechRecognition.onerror = function(event) {
-                console.error("Erro na gravação de áudio:", event.error);
-                toggleIAAudioTranscription(); // Para e reseta o botão
-            };
-
             speechRecognition.start();
         }
 
-        // Lida com o Upload de Imagens convertendo para Base64
+        async function revisarRelatorioIA() {
+            const textArea = document.getElementById('visit-report-text');
+            const textoBruto = textArea.value.trim();
+            if (!textoBruto) { alert("Escreva um relatório primeiro!"); return; }
+
+            const textoAnterior = textArea.value;
+            textArea.value = "A IA está corrigindo e formatando seu relatório... Aguarde uns segundos. ✨\n";
+
+            try {
+                const url = "https://api-gemini.tiagoritterm.workers.dev";
+                const payload = {
+                    contents: [{
+                        parts: [{ text: "Você é um engenheiro agrônomo sênior e revisor de textos. Pegue o texto abaixo, corrija todos os erros de português, melhore a coesão, use vocabulário técnico e organize a estrutura nos padrões de um relatório profissional e normas da ABNT. Retorne apenas o texto revisado:\n\n" + textoBruto }]
+                    }]
+                };
+
+                const response = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                const data = await response.json();
+                
+                if (response.ok && data.candidates) textArea.value = data.candidates[0].content.parts[0].text;
+                else throw new Error(JSON.stringify(data));
+            } catch (error) {
+                alert("Erro ao revisar o texto.");
+                textArea.value = textoAnterior;
+            }
+        }
+
         function handleVisitImagesUpload(inputEl) {
             if (!inputEl.files) return;
             const container = document.getElementById('visit-images-preview');
-            
             Array.from(inputEl.files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = function(e) {
                     const base64Str = e.target.result;
                     visitImagesArray.push(base64Str);
-                    
                     const imgDiv = document.createElement('div');
                     imgDiv.className = "relative w-20 h-20 rounded-lg overflow-hidden border border-slate-300 shadow-sm";
                     imgDiv.innerHTML = `
@@ -5961,7 +5981,6 @@
             btnEl.parentElement.remove();
         }
 
-        // Salvar Relatório no Firebase e Gerar PDF
         async function saveAndGenerateVisitReport() {
             const farmKey = document.getElementById('visit-sel-farm').value;
             const farmInfo = farmsDatabase[farmKey];
@@ -5974,7 +5993,6 @@
 
             if (!texto) { alert("O relatório não pode estar vazio."); return; }
 
-            // Gera o HTML do PDF
             const dataHoje = new Date().toLocaleDateString('pt-BR');
             const consNome = currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
 
@@ -6019,35 +6037,13 @@
                 </div>
             `;
 
-            // Exportar e Salvar
-            const opt = {
-                margin: 0,
-                filename: `RVT_${farmInfo.name.replace(/\s+/g, '_')}_${dataHoje.replace(/\//g, '-')}.pdf`,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
+            const opt = { margin: 0, filename: `RVT_${farmInfo.name.replace(/\s+/g, '_')}_${dataHoje.replace(/\//g, '-')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
             const tempDiv = document.createElement('div');
             tempDiv.innerHTML = template;
 
-            // Salvar no Banco
             try {
-                // Para não estourar o banco com PDFs nativos pesados, salvamos os metadados. O PDF é gerado on-the-fly pelo Client ou salvo em Storage se tivessem Firebase Storage ativo. 
-                // Aqui salvamos o registro textual no Firestore para histórico visual
-                const record = {
-                    farmId: farmKey,
-                    farmName: farmInfo.name,
-                    producer: produtor,
-                    safra: safra,
-                    talhao: talhao,
-                    texto: texto,
-                    consultor: consNome,
-                    createdAt: new Date().toISOString()
-                };
+                const record = { farmId: farmKey, farmName: farmInfo.name, producer: produtor, safra: safra, talhao: talhao, texto: texto, consultor: consNome, createdAt: new Date().toISOString() };
                 await db.collection("visit_reports").add(record);
-                
-                // Gera o PDF visualmente
                 html2pdf().set(opt).from(tempDiv).save();
 
                 alert("Relatório de Visita salvo e PDF gerado com sucesso!");
@@ -6056,310 +6052,123 @@
                 visitImagesArray = [];
                 toggleVisitView('history');
                 loadVisitHistory();
-
             } catch (error) {
                 alert("Erro ao salvar o relatório: " + error.message);
             }
         }
 
-        
-    
+        async function loadVisitHistory() {
+            const tbody = document.getElementById('visit-table-body');
+            if (!tbody) return;
+            tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico...</td></tr>`;
+
+            try {
+                const snapshot = await db.collection("visit_reports").get();
+                let relatorios = [];
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    if (currentUserRole !== 'admin' && !currentUserAllowedFarms.includes('all')) {
+                        if (!currentUserAllowedFarms.includes(d.farmId)) return;
+                    }
+                    relatorios.push({ id: doc.id, ...d });
+                });
+
+                if (relatorios.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum relatório de visita encontrado.</td></tr>`;
+                    return;
+                }
+
+                relatorios.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+                let html = '';
+                relatorios.forEach(data => {
+                    const dataFormatada = data.createdAt ? new Date(data.createdAt).toLocaleDateString('pt-BR') : '-';
+                    let acoesHtml = `
+                        <button onclick="viewVisitReport('${data.id}')" class="bg-cyan-100 text-cyan-700 hover:bg-cyan-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-eye mr-1"></i> Ler</button>
+                        <button onclick="baixarPdfHistoricoVisita('${data.id}')" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-file-pdf mr-1"></i> PDF</button>
+                    `;
+                    if (typeof canEditVisit !== 'undefined' && canEditVisit) {
+                        acoesHtml += `<button onclick="deletarRelatorioVisita('${data.id}')" class="text-red-500 hover:text-red-700 px-3 py-1.5 bg-red-50 rounded-lg font-bold transition-all"><i class="fa-solid fa-trash"></i></button>`;
+                    }
+                    html += `
+                        <tr class="hover:bg-slate-50 border-b border-slate-200">
+                            <td class="p-3 font-semibold text-slate-800">${dataFormatada}</td>
+                            <td class="p-3 font-bold text-slate-700">${data.farmName || '-'} <br> <span class="text-[10px] font-medium text-slate-500">Produtor: ${data.producer || '-'}</span></td>
+                            <td class="p-3 text-slate-600 font-medium">Safra ${data.safra || '-'} <br> <span class="text-[10px] text-emerald-700 font-bold">Local: ${data.talhao !== 'Geral' && data.talhao ? 'T. ' + data.talhao : (data.talhao || '-')}</span></td>
+                            <td class="p-3 text-right">${acoesHtml}</td>
+                        </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico.</td></tr>`;
+            }
+        }
+
         async function viewVisitReport(docId) {
             try {
                 const doc = await db.collection("visit_reports").doc(docId).get();
                 if (doc.exists) {
                     const d = doc.data();
                     const dataFormatada = new Date(d.createdAt).toLocaleDateString('pt-BR');
-                    // Exibe os dados em um Alert bonito ou modal. (Usaremos alert estruturado por simplicidade, ou você pode plugar um modal se já tiver).
                     alert(`📋 RELATÓRIO DE VISITA (${dataFormatada})\n\n📍 Fazenda: ${d.farmName} (${d.producer})\n🌱 Safra: ${d.safra} | Local: ${d.talhao}\n👨‍🌾 Consultor: ${d.consultor}\n\n📝 RELATO:\n${d.texto}`);
                 }
-            } catch (e) {
-                alert("Erro ao abrir relatório.");
-            }
+            } catch (e) { alert("Erro ao abrir relatório."); }
         }
 
         async function baixarPdfHistoricoVisita(docId) {
-    try {
-        // Busca os dados do Firebase
-        const doc = await db.collection("visit_reports").doc(docId).get();
-        if (!doc.exists) {
-            alert("Relatório não encontrado no banco de dados.");
-            return;
-        }
-        
-        const d = doc.data();
-        const dataFormatada = new Date(d.createdAt).toLocaleDateString('pt-BR');
-
-        // Monta o mesmo Layout do Relatório original
-        const template = `
-            <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white;">
-                <div style="border-bottom: 2px solid #0891b2; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <h1 style="color: #0891b2; margin: 0; font-size: 22px; font-weight: 900;">RELATÓRIO DE VISITA TÉCNICA</h1>
-                        <p style="margin: 5px 0 0 0; color: #64748b; font-size: 11px; font-weight: bold;">ORIGENS PARCERIAS AGRÍCOLAS | DATA: ${dataFormatada}</p>
-                    </div>
-                </div>
-                <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
-                    <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
-                        <tr>
-                            <td style="padding: 4px; width: 50%;"><b>Produtor:</b> ${d.producer}</td>
-                            <td style="padding: 4px; width: 50%;"><b>Fazenda:</b> ${d.farmName}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 4px;"><b>Safra:</b> ${d.safra}</td>
-                            <td style="padding: 4px;"><b>Local Avaliado:</b> ${d.talhao !== 'Geral' ? 'Talhão ' + d.talhao : d.talhao}</td>
-                        </tr>
-                    </table>
-                </div>
-                <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">OBSERVAÇÕES E RECOMENDAÇÕES</h3>
-                <p style="font-size: 12px; color: #334155; white-space: pre-wrap; line-height: 1.6;">${d.texto}</p>
-                <div style="margin-top: 50px; text-align: center;">
-                    <div style="width: 250px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
-                        <p style="margin: 0; font-size: 11px; font-weight: bold;">${d.consultor}</p>
-                        <p style="margin: 0; font-size: 9px; color: #64748b;">Responsável Técnico</p>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        // Transforma o texto temporário em um elemento do navegador
-        const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = template;
-
-        // Configurações do gerador de PDF
-        const opt = {
-            margin: 0,
-            filename: `RVT_${d.farmName.replace(/\s+/g, '_')}_${dataFormatada.replace(/\//g, '-')}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2 },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
-
-        // Roda a mágica e baixa o arquivo!
-        html2pdf().set(opt).from(tempDiv).save();
-
-    } catch (e) {
-        console.error("Erro ao gerar PDF:", e);
-        alert("Ocorreu um erro ao baixar o PDF.");
-    }
-}
-        
-        // Inicia a lista de produtores quando carregar a página
-        setTimeout(atualizarDatalistProdutores, 500);  
-        // =========================================================================
-        // ATUALIZAÇÃO FORÇADA DOS FILTROS (MAPA, VRATE, SEMENTES E VISITA)
-        // =========================================================================
-        function populateProducerSelector() {
-            const selects = ['sel-producer', 'vrate-sel-producer', 'seeds-sel-producer', 'visit-sel-producer'];
-            let currentVal = 'all';
-            const mainSelect = document.getElementById('sel-producer');
-            if (mainSelect && mainSelect.value) currentVal = mainSelect.value;
-
-            selects.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = '<option value="all">Todos os Produtores</option>';
-            });
-
-            let producersSet = new Set();
-            let keysToDisplay = Object.keys(farmsDatabase);
-
-            if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'admin' && typeof currentUserAllowedFarms !== 'undefined' && !currentUserAllowedFarms.includes('all')) {
-                keysToDisplay = keysToDisplay.filter(k => currentUserAllowedFarms.includes(k));
-            }
-
-            keysToDisplay.forEach(key => {
-                const farm = farmsDatabase[key];
-                if (farm && farm.producer) producersSet.add(farm.producer);
-            });
-
-            const sortedProducers = Array.from(producersSet).sort();
-            sortedProducers.forEach(p => {
-                selects.forEach(id => {
-                    const el = document.getElementById(id);
-                    if (el) el.innerHTML += `<option value="${p}">${p}</option>`;
-                });
-            });
-
-            selects.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.value = currentVal;
-            });
-        }
-
-        function populateFarmSelector() {
-            populateProducerSelector();
-            const selects = ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm'];
-            
-            selects.forEach(id => {
-                const el = document.getElementById(id);
-                if (el) el.innerHTML = '';
-            });
-
-            let keysToDisplay = Object.keys(farmsDatabase);
-            if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'admin' && typeof currentUserAllowedFarms !== 'undefined' && !currentUserAllowedFarms.includes('all')) {
-                keysToDisplay = keysToDisplay.filter(k => currentUserAllowedFarms.includes(k));
-            }
-
-            const mainProdSelect = document.getElementById('sel-producer');
-            const selectedProducer = mainProdSelect ? mainProdSelect.value : 'all';
-
-            keysToDisplay.forEach(key => {
-                if (farmsDatabase[key]) {
-                    const farm = farmsDatabase[key];
-                    if (selectedProducer === 'all' || farm.producer === selectedProducer) {
-                        selects.forEach(id => {
-                            const el = document.getElementById(id);
-                            if (el) el.innerHTML += `<option value="${key}">${farm.name} (${farm.area} Ha)</option>`;
-                        });
-                    }
-                }
-            });
-
-            const checkboxContainer = document.getElementById('new-farm-checkboxes');
-            if (checkboxContainer) {
-                checkboxContainer.innerHTML = Object.keys(farmsDatabase).map(k => `
-                    <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
-                        <input type="checkbox" name="chk-user-farms" value="${k}" class="chk-farm-item h-4 w-4 text-origens-green rounded">
-                        <span>${farmsDatabase[k].name} ${farmsDatabase[k].producer ? '(' + farmsDatabase[k].producer + ')' : ''} - ${farmsDatabase[k].location}</span>
-                    </label>
-                `).join('');
-            }
-
-            if(typeof populateSafraSelector === 'function') populateSafraSelector();
-            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
-        }
-
-        function changeActiveProducer(sourceSelectId) {
-            const selectedVal = document.getElementById(sourceSelectId).value;
-            ['sel-producer', 'vrate-sel-producer', 'seeds-sel-producer', 'visit-sel-producer'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.value !== selectedVal) el.value = selectedVal;
-            });
-            populateFarmSelector();
-            changeActiveFarm('sel-farm');
-        }
-
-        function changeActiveFarm(sourceSelectId) {
-            const selectedVal = document.getElementById(sourceSelectId).value;
-            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.value !== selectedVal) el.value = selectedVal;
-            });
-
-            if(typeof populateSafraSelector === 'function') populateSafraSelector();
-            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
-
-            if (document.getElementById('content-seeds') && !document.getElementById('content-seeds').classList.contains('hidden')) {
-                if(typeof seedsChangeFarm === 'function') seedsChangeFarm();
-            } else if (document.getElementById('content-vrate') && !document.getElementById('content-vrate').classList.contains('hidden')) {
-                if(typeof vrateChangeFarm === 'function') vrateChangeFarm();
-            } else if (document.getElementById('content-maps') && !document.getElementById('content-maps').classList.contains('hidden')) {
-                if(typeof updateGISMap === 'function') updateGISMap();
-            }
-        }
-        // =========================================================================
-        // UPLOAD E TRANSCRIÇÃO DE ÁUDIO VIA API - PADRÃO OFICIAL GOOGLE (AQ.)
-        // =========================================================================
-        async function handleAudioFileUpload(inputEl) {
-            if (!inputEl.files || !inputEl.files[0]) return;
-            const file = inputEl.files[0];
-            const textArea = document.getElementById('visit-report-text');
-
-            const textoAnterior = textArea.value;
-            textArea.value = "Enviando áudio para a IA processar... Aguarde.\n";
-
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            
-            reader.onload = async function (e) {
-                const base64Audio = e.target.result.split(',')[1];
-                const mimeType = file.type;
-
-                try {
-                    // Chave já preenchida para você:
-                    const url = "https://api-gemini.tiagoritterm.workers.dev";
-
-                    const payload = {
-                        contents: [{
-                            parts: [
-                                { text: "Você é um assistente agronômico. Transcreva este áudio ditado por um consultor no campo e organize as ideias em um texto claro e profissional para um relatório de visita técnica." },
-                                { inline_data: { mime_type: mimeType, data: base64Audio } }
-                            ]
-                        }]
-                    };
-
-                    const response = await fetch(url, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    const data = await response.json();
-                    
-                    if (response.ok && data.candidates) {
-                        const transcricao = data.candidates[0].content.parts[0].text;
-                        textArea.value = (textoAnterior + '\n\n' + transcricao).trim();
-                    } else {
-                        throw new Error(JSON.stringify(data));
-                    }
-
-                } catch (error) {
-                    console.error("❌ Erro na API do Gemini:", error);
-                    alert("Erro ao transcrever. Verifique a conexão ou a chave.");
-                    textArea.value = textoAnterior;
-                }
-                
-                inputEl.value = ''; 
-            };
-        }
-
-        // =========================================================================
-        // REVISÃO DE TEXTO E FORMATAÇÃO ABNT COM IA
-        // =========================================================================
-        async function revisarRelatorioIA() {
-            const textArea = document.getElementById('visit-report-text');
-            const textoBruto = textArea.value.trim();
-
-            if (!textoBruto) {
-                alert("Por favor, escreva ou grave um relatório primeiro para a IA revisar!");
-                return;
-            }
-
-            const textoAnterior = textArea.value;
-            textArea.value = "A IA está corrigindo e formatando seu relatório... Aguarde uns segundos. ✨\n";
-
             try {
-                // Chave já preenchida para você:
-                const url = "https://api-gemini.tiagoritterm.workers.dev";
+                const doc = await db.collection("visit_reports").doc(docId).get();
+                if (!doc.exists) return;
+                const d = doc.data();
+                const dataFormatada = new Date(d.createdAt).toLocaleDateString('pt-BR');
+                const template = `
+                    <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white;">
+                        <div style="border-bottom: 2px solid #0891b2; padding-bottom: 10px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center;">
+                            <div>
+                                <h1 style="color: #0891b2; margin: 0; font-size: 22px; font-weight: 900;">RELATÓRIO DE VISITA TÉCNICA</h1>
+                                <p style="margin: 5px 0 0 0; color: #64748b; font-size: 11px; font-weight: bold;">ORIGENS PARCERIAS AGRÍCOLAS | DATA: ${dataFormatada}</p>
+                            </div>
+                        </div>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px; margin-bottom: 15px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 11px;">
+                                <tr>
+                                    <td style="padding: 4px; width: 50%;"><b>Produtor:</b> ${d.producer}</td>
+                                    <td style="padding: 4px; width: 50%;"><b>Fazenda:</b> ${d.farmName}</td>
+                                </tr>
+                                <tr>
+                                    <td style="padding: 4px;"><b>Safra:</b> ${d.safra}</td>
+                                    <td style="padding: 4px;"><b>Local Avaliado:</b> ${d.talhao !== 'Geral' ? 'Talhão ' + d.talhao : d.talhao}</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <h3 style="font-size: 14px; color: #1e293b; border-bottom: 1px solid #cbd5e1; padding-bottom: 3px; margin-bottom: 8px;">OBSERVAÇÕES E RECOMENDAÇÕES</h3>
+                        <p style="font-size: 12px; color: #334155; white-space: pre-wrap; line-height: 1.6;">${d.texto}</p>
+                        <div style="margin-top: 50px; text-align: center;">
+                            <div style="width: 250px; border-top: 1px solid #000; margin: 0 auto; padding-top: 5px;">
+                                <p style="margin: 0; font-size: 11px; font-weight: bold;">${d.consultor}</p>
+                                <p style="margin: 0; font-size: 9px; color: #64748b;">Responsável Técnico</p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = template;
+                const opt = { margin: 0, filename: `RVT_${d.farmName.replace(/\s+/g, '_')}_${dataFormatada.replace(/\//g, '-')}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+                html2pdf().set(opt).from(tempDiv).save();
+            } catch (e) { alert("Ocorreu um erro ao baixar o PDF."); }
+        }
 
-                const payload = {
-                    contents: [{
-                        parts: [{ 
-                            text: "Você é um engenheiro agrônomo sênior e revisor de textos. Pegue o texto abaixo, corrija todos os erros de português, melhore a coesão, use vocabulário técnico e organize a estrutura nos padrões de um relatório profissional e normas da ABNT. Retorne apenas o texto revisado:\n\n" + textoBruto 
-                        }]
-                    }]
-                };
-
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-                
-                if (response.ok && data.candidates) {
-                    textArea.value = data.candidates[0].content.parts[0].text;
-                } else {
-                    throw new Error(JSON.stringify(data));
-                }
-
-            } catch (error) {
-                console.error("Erro na API do Gemini:", error);
-                alert("Ocorreu um erro ao revisar o texto. O texto original foi restaurado.");
-                textArea.value = textoAnterior;
+        async function deletarRelatorioVisita(id) {
+            if (!canEditVisit) return;
+            if (confirm("Tem certeza que deseja excluir este relatório permanentemente do banco de dados?")) {
+                try {
+                    await db.collection("visit_reports").doc(id).delete();
+                    alert("Relatório excluído com sucesso!");
+                    loadVisitHistory();
+                } catch (erro) { alert("Erro ao excluir. Tente novamente."); }
             }
-        }        
+        }
+        
         // =========================================================================
         // LÓGICA DO BI: AUDITORIA / CONFERE DE AMOSTRAGEM COM FILTROS EM CASCATA
         // =========================================================================
@@ -6382,22 +6191,19 @@
                 confView.classList.remove('hidden');
                 btnGen.className = "px-4 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition-all bg-transparent";
                 btnConf.className = "px-4 py-1.5 text-xs font-bold rounded-lg bg-white text-blue-700 shadow-sm transition-all";
-                
                 if (confereRawRows.length === 0) fetchConfereData();
             }
         }
 
         async function fetchConfereData() {
             const tbody = document.getElementById('confere-table-body');
-            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando Auditoria com o Google Sheets...</td></tr>`;
-
+            if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando Auditoria...</td></tr>`;
             try {
                 const response = await fetch(GOOGLE_SHEETS_CONFERE_URL);
                 const csvText = await response.text();
                 parseConfereCSV(csvText);
             } catch (error) {
-                console.error("Erro ao buscar aba Confere:", error);
-                if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-600 font-bold">Erro ao carregar a Auditoria. Verifique sua conexão.</td></tr>`;
+                if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-red-600 font-bold">Erro ao carregar.</td></tr>`;
             }
         }
 
@@ -6406,53 +6212,41 @@
             confereRawRows = [];
             if (lines.length < 2) return;
 
-            let headerIdx = 0;
-            let headerRow = [];
+            let headerIdx = 0, headerRow = [];
             for (let i = 0; i < Math.min(5, lines.length); i++) {
                 const tempCols = lines[i].split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim().toUpperCase());
-                if (tempCols.includes('EQUIPE DE COLETA') || tempCols.includes('DATA')) {
-                    headerRow = tempCols;
-                    headerIdx = i;
-                    break;
-                }
+                if (tempCols.includes('EQUIPE DE COLETA') || tempCols.includes('DATA')) { headerRow = tempCols; headerIdx = i; break; }
             }
 
-            const iEquipe = headerRow.findIndex(h => h.includes('EQUIPE'));
-            const iData = headerRow.findIndex(h => h === 'DATA');
+            const iEq = headerRow.findIndex(h => h.includes('EQUIPE'));
+            const iDt = headerRow.findIndex(h => h === 'DATA');
             const iSol = headerRow.findIndex(h => h.includes('SOLICITANTE') || h.includes('PRODUTOR'));
             const iFaz = headerRow.findIndex(h => h.includes('FAZENDA') || h.includes('PROPRIEDADE'));
-            const iArea = headerRow.findIndex(h => h.includes('ÁREA') || h.includes('AREA') || h === 'HA');
+            const iAr = headerRow.findIndex(h => h.includes('ÁREA') || h.includes('AREA') || h === 'HA');
             const iNcb = headerRow.findIndex(h => h === 'NCB');
             const iAmPr = headerRow.findIndex(h => h === 'AM_PR');
 
             for (let i = headerIdx + 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
-
                 const cols = line.split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
-
-                const equipe = iEquipe > -1 ? cols[iEquipe] : '';
-                const dataStr = iData > -1 ? cols[iData] : '';
-                const areaStr = iArea > -1 ? cols[iArea] : '0';
+                const eq = iEq > -1 ? cols[iEq] : '';
+                const dtStr = iDt > -1 ? cols[iDt] : '';
+                const arStr = iAr > -1 ? cols[iAr] : '0';
                 
-                if (equipe.toUpperCase().includes('TOTAL')) continue; // Pula linha de totais
-                if (!equipe && !dataStr && parseNumber(areaStr) === 0) continue; 
+                if (eq.toUpperCase().includes('TOTAL')) continue;
+                if (!eq && !dtStr && parseNumber(arStr) === 0) continue; 
 
                 confereRawRows.push({
-                    equipe: equipe || 'N/I',
-                    data: dataStr || 'N/I',
-                    solicitante: iSol > -1 ? cols[iSol] || 'N/I' : 'N/I',
-                    fazenda: iFaz > -1 ? cols[iFaz] || 'N/I' : 'N/I',
-                    area: parseNumber(areaStr) || 0,
-                    ncb: iNcb > -1 ? cols[iNcb] || '-' : '-',
-                    amPr: iAmPr > -1 ? cols[iAmPr] || '-' : '-'
+                    equipe: eq || 'N/I', data: dtStr || 'N/I', solicitante: iSol > -1 ? cols[iSol] || 'N/I' : 'N/I',
+                    fazenda: iFaz > -1 ? cols[iFaz] || 'N/I' : 'N/I', area: parseNumber(arStr) || 0,
+                    ncb: iNcb > -1 ? cols[iNcb] || '-' : '-', amPr: iAmPr > -1 ? cols[iAmPr] || '-' : '-'
                 });
             }
-
             populateConfereFilters();
             applyConfereFilters();
         }
-        // Abre/Fecha Dropdowns do Confere e clica fora para fechar
+
         function toggleConfereDropdown(id) {
             const el = document.getElementById(id);
             const isHidden = el.classList.contains('hidden');
@@ -6461,44 +6255,21 @@
         }
 
         document.addEventListener('click', (e) => {
-            if (!e.target.closest('#box-dropdown-equipe') && 
-                !e.target.closest('#box-dropdown-data') && 
-                !e.target.closest('#box-dropdown-produtor') && 
-                !e.target.closest('#box-dropdown-fazenda')) {
-                document.querySelectorAll('.confere-dropdown').forEach(d => d.classList.add('hidden'));
-            }
-        });
-
-        // =========================================================================
-        // CONTROLE VISUAL: ABRIR/FECHAR DROPDOWNS DO CONFERE
-        // =========================================================================
-        function toggleConfereDropdown(id) {
-            const el = document.getElementById(id);
-            const isHidden = el.classList.contains('hidden');
-            document.querySelectorAll('.confere-dropdown').forEach(d => d.classList.add('hidden'));
-            if (isHidden) el.classList.remove('hidden');
-        }
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#box-dropdown-equipe') && 
-                !e.target.closest('#box-dropdown-data') && 
-                !e.target.closest('#box-dropdown-produtor') && 
-                !e.target.closest('#box-dropdown-fazenda')) {
+            if (!e.target.closest('#box-dropdown-equipe') && !e.target.closest('#box-dropdown-data') && !e.target.closest('#box-dropdown-produtor') && !e.target.closest('#box-dropdown-fazenda')) {
                 document.querySelectorAll('.confere-dropdown').forEach(d => d.classList.add('hidden'));
             }
         });
         
         function populateConfereFilters() {
-            const equipes = new Set(), datas = new Set(), produtores = new Set(), fazendas = new Set();
-            
+            const eqs = new Set(), dts = new Set(), prs = new Set(), fzs = new Set();
             confereRawRows.forEach(r => {
-                if (r.equipe !== 'N/I') equipes.add(r.equipe);
-                if (r.data !== 'N/I') datas.add(r.data);
-                if (r.solicitante !== 'N/I') produtores.add(r.solicitante);
-                if (r.fazenda !== 'N/I') fazendas.add(r.fazenda);
+                if (r.equipe !== 'N/I') eqs.add(r.equipe);
+                if (r.data !== 'N/I') dts.add(r.data);
+                if (r.solicitante !== 'N/I') prs.add(r.solicitante);
+                if (r.fazenda !== 'N/I') fzs.add(r.fazenda);
             });
 
-            const buildCheckboxes = (set, className, isDate = false) => {
+            const buildCheckboxes = (set, cls, isDate = false) => {
                 let arr = Array.from(set);
                 if (isDate) {
                     arr.sort((a, b) => {
@@ -6506,21 +6277,19 @@
                         if (pa.length === 3 && pb.length === 3) return new Date(pb[2], pb[1]-1, pb[0]) - new Date(pa[2], pa[1]-1, pa[0]);
                         return b.localeCompare(a);
                     });
-                } else {
-                    arr.sort();
-                }
+                } else arr.sort();
                 return arr.map(v => `
                     <label class="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700 p-2 hover:bg-slate-100 rounded-md transition-colors w-full">
-                        <input type="checkbox" value="${v}" onchange="applyConfereFilters()" class="${className} h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500">
+                        <input type="checkbox" value="${v}" onchange="applyConfereFilters()" class="${cls} h-4 w-4 text-blue-600 border-slate-300 rounded focus:ring-blue-500">
                         <span class="truncate w-full">${v}</span>
                     </label>
                 `).join('');
             };
 
-            document.getElementById('chk-confere-equipe').innerHTML = buildCheckboxes(equipes, 'chk-equipe-item');
-            document.getElementById('chk-confere-data').innerHTML = buildCheckboxes(datas, 'chk-data-item', true);
-            document.getElementById('chk-confere-produtor').innerHTML = buildCheckboxes(produtores, 'chk-produtor-item');
-            document.getElementById('chk-confere-fazenda').innerHTML = buildCheckboxes(fazendas, 'chk-fazenda-item');
+            document.getElementById('chk-confere-equipe').innerHTML = buildCheckboxes(eqs, 'chk-equipe-item');
+            document.getElementById('chk-confere-data').innerHTML = buildCheckboxes(dts, 'chk-data-item', true);
+            document.getElementById('chk-confere-produtor').innerHTML = buildCheckboxes(prs, 'chk-produtor-item');
+            document.getElementById('chk-confere-fazenda').innerHTML = buildCheckboxes(fzs, 'chk-fazenda-item');
         }
 
         function clearConfereFilters() {
@@ -6534,12 +6303,7 @@
             let prs = Array.from(document.querySelectorAll('.chk-produtor-item:checked')).map(c => c.value);
             let fzs = Array.from(document.querySelectorAll('.chk-fazenda-item:checked')).map(c => c.value);
 
-            // Verifica se a categoria está vazia (logo, permite todas as linhas daquela categoria)
-            const isEqAll = eqs.length === 0;
-            const isDtAll = dts.length === 0;
-            const isPrAll = prs.length === 0;
-            const isFzAll = fzs.length === 0;
-
+            const isEqAll = eqs.length === 0, isDtAll = dts.length === 0, isPrAll = prs.length === 0, isFzAll = fzs.length === 0;
             const validEqs = new Set(), validDts = new Set(), validPrs = new Set(), validFzs = new Set();
 
             const filteredRows = confereRawRows.filter(r => {
@@ -6548,7 +6312,6 @@
                 const mPr = isPrAll || prs.includes(r.solicitante);
                 const mFz = isFzAll || fzs.includes(r.fazenda);
 
-                // Permite a cascata: se uma linha atende os "outros" 3 filtros, ela aparece como opção neste
                 if (mDt && mPr && mFz) validEqs.add(r.equipe);
                 if (mEq && mPr && mFz) validDts.add(r.data);
                 if (mEq && mDt && mFz) validPrs.add(r.solicitante);
@@ -6557,15 +6320,10 @@
                 return mEq && mDt && mPr && mFz;
             });
 
-            // Oculta os checkboxes que não fazem sentido com o filtro atual
-            const updateCheckboxes = (className, validSet) => {
-                document.querySelectorAll('.' + className).forEach(chk => {
-                    if (!validSet.has(chk.value)) {
-                        chk.checked = false; 
-                        chk.parentElement.style.display = 'none'; 
-                    } else {
-                        chk.parentElement.style.display = 'flex'; 
-                    }
+            const updateCheckboxes = (cls, validSet) => {
+                document.querySelectorAll('.' + cls).forEach(chk => {
+                    if (!validSet.has(chk.value)) { chk.checked = false; chk.parentElement.style.display = 'none'; } 
+                    else chk.parentElement.style.display = 'flex';
                 });
             };
 
@@ -6574,19 +6332,14 @@
             updateCheckboxes('chk-produtor-item', validPrs);
             updateCheckboxes('chk-fazenda-item', validFzs);
 
-            // Atualiza os títulos dos Dropdowns (Ex: "Todos os Produtores (19)" ou "Colorado")
-            const updateTitle = (id, arr, emptyText, listClassName) => {
+            const updateTitle = (id, arr, emptyText, listCls) => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                
                 if (arr.length === 0) {
                     let visibleCount = 0;
-                    document.querySelectorAll('.' + listClassName).forEach(chk => {
-                        if (chk.parentElement.style.display !== 'none') visibleCount++;
-                    });
+                    document.querySelectorAll('.' + listCls).forEach(chk => { if (chk.parentElement.style.display !== 'none') visibleCount++; });
                     el.innerText = `${emptyText} (${visibleCount})`;
-                }
-                else if (arr.length === 1) el.innerText = arr[0];
+                } else if (arr.length === 1) el.innerText = arr[0];
                 else el.innerText = `${arr.length} Selecionados`;
             };
             
@@ -6608,14 +6361,10 @@
                 return;
             }
 
-            let totalArea = 0;
-            let pontosValidos = 0; 
-
+            let totalArea = 0, pontosValidos = 0; 
             tbody.innerHTML = filtered.map(r => {
                 totalArea += r.area;
-                const ncbFmt = r.ncb !== '-' ? r.ncb : '';
-                const amPrFmt = r.amPr !== '-' ? r.amPr : '';
-                const unionPts = [ncbFmt, amPrFmt].filter(x => x).join(' / ');
+                const unionPts = [r.ncb !== '-' ? r.ncb : '', r.amPr !== '-' ? r.amPr : ''].filter(x => x).join(' / ');
                 if (r.area > 0) pontosValidos++;
 
                 return `
@@ -6632,154 +6381,16 @@
 
             document.getElementById('kpi-confere-area').innerText = `${totalArea.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ha`;
             document.getElementById('kpi-confere-linhas').innerText = `${pontosValidos}`;
-            
-            const tamAmostra = pontosValidos > 0 ? (totalArea / pontosValidos) : 0;
-            document.getElementById('kpi-confere-amostra').innerText = `${tamAmostra.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})} ha/pt`;
+            document.getElementById('kpi-confere-amostra').innerText = `${pontosValidos > 0 ? (totalArea / pontosValidos).toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1}) : 0} ha/pt`;
         }
 
-        function renderConfereTable(filtered) {
-            const tbody = document.getElementById('confere-table-body');
-            if (!filtered.length) {
-                if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-semibold italic">Nenhum registro encontrado para este cruzamento de filtros.</td></tr>`;
-                document.getElementById('kpi-confere-area').innerText = '0,00 ha';
-                document.getElementById('kpi-confere-amostra').innerText = '0,0 ha/pt';
-                document.getElementById('kpi-confere-linhas').innerText = '0';
-                return;
-            }
-
-            let totalArea = 0;
-            let pontosValidos = 0; 
-
-            tbody.innerHTML = filtered.map(r => {
-                totalArea += r.area;
-                const ncbFmt = r.ncb !== '-' ? r.ncb : '';
-                const amPrFmt = r.amPr !== '-' ? r.amPr : '';
-                const unionPts = [ncbFmt, amPrFmt].filter(x => x).join(' / ');
-                if (r.area > 0) pontosValidos++;
-
-                return `
-                    <tr class="hover:bg-slate-50 transition-colors">
-                        <td class="p-3 font-semibold text-slate-700">${r.data}</td>
-                        <td class="p-3 font-bold text-blue-800"><i class="fa-solid fa-users text-[10px] mr-1"></i> ${r.equipe}</td>
-                        <td class="p-3 text-slate-600">${r.solicitante}</td>
-                        <td class="p-3 font-bold text-slate-900">${r.fazenda}</td>
-                        <td class="p-3 text-center text-slate-500 font-mono">${unionPts || '-'}</td>
-                        <td class="p-3 text-right font-black text-emerald-700">${r.area.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
-                    </tr>
-                `;
-            }).join('');
-
-            document.getElementById('kpi-confere-area').innerText = `${totalArea.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} ha`;
-            document.getElementById('kpi-confere-linhas').innerText = `${pontosValidos}`;
-            
-            const tamAmostra = pontosValidos > 0 ? (totalArea / pontosValidos) : 0;
-            document.getElementById('kpi-confere-amostra').innerText = `${tamAmostra.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})} ha/pt`;
-        }
-        // =========================================================================
-        // DEIXAR MAPAS LIMPOS POR PADRÃO (Apenas Contorno do Perímetro)
-        // =========================================================================
         window.addEventListener('DOMContentLoaded', () => {
-            const boxesToUncheck = [
-                'chk-labels', 'chk-values', 
-                'vrate-chk-labels', 'vrate-chk-values', 
-                'seeds-chk-labels', 'seeds-chk-values'
-            ];
-            
-            boxesToUncheck.forEach(id => {
+            ['chk-labels', 'chk-values', 'vrate-chk-labels', 'vrate-chk-values', 'seeds-chk-labels', 'seeds-chk-values'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.checked = false;
             });
+            setTimeout(atualizarDatalistProdutores, 500);
         });
-        // =========================================================================
-        // HISTÓRICO E EXCLUSÃO DE RELATÓRIOS DE VISITA TÉCNICA
-        // =========================================================================
-        
-        async function loadVisitHistory() {
-            const tbody = document.getElementById('visit-table-body');
-            if (!tbody) return;
-
-            tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico na nuvem...</td></tr>`;
-
-            try {
-                // CORREÇÃO: Buscando na coleção correta "visit_reports"
-                const snapshot = await db.collection("visit_reports").get();
-                let relatorios = [];
-
-                snapshot.forEach(doc => {
-                    const d = doc.data();
-                    
-                    // FILTRO DE SEGURANÇA: Só exibe a fazenda se o usuário for admin ou tiver permissão explícita nela
-                    if (currentUserRole !== 'admin' && !currentUserAllowedFarms.includes('all')) {
-                        if (!currentUserAllowedFarms.includes(d.farmId)) {
-                            return; // Pula este relatório e não mostra na tabela
-                        }
-                    }
-                    relatorios.push({ id: doc.id, ...d });
-                });
-
-                if (relatorios.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum relatório de visita encontrado.</td></tr>`;
-                    return;
-                }
-
-                // Ordena os relatórios do mais recente para o mais antigo
-                relatorios.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-                let html = '';
-                relatorios.forEach(data => {
-                    const dataFormatada = data.createdAt ? new Date(data.createdAt).toLocaleDateString('pt-BR') : '-';
-
-                    // Botões Padrões (Sempre aparecem)
-                    let acoesHtml = `
-                        <button onclick="viewVisitReport('${data.id}')" class="bg-cyan-100 text-cyan-700 hover:bg-cyan-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-eye mr-1"></i> Ler</button>
-                        <button onclick="baixarPdfHistoricoVisita('${data.id}')" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-file-pdf mr-1"></i> PDF</button>
-                    `;
-
-                    // Lixeira protegida: Só aparece se canEditVisit for true
-                    if (typeof canEditVisit !== 'undefined' && canEditVisit) {
-                        acoesHtml += `
-                            <button onclick="deletarRelatorioVisita('${data.id}')" class="text-red-500 hover:text-red-700 px-3 py-1.5 bg-red-50 rounded-lg font-bold transition-all" title="Excluir Relatório">
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        `;
-                    }
-
-                    html += `
-                        <tr class="hover:bg-slate-50 border-b border-slate-200">
-                            <td class="p-3 font-semibold text-slate-800">${dataFormatada}</td>
-                            <td class="p-3 font-bold text-slate-700">${data.farmName || '-'} <br> <span class="text-[10px] font-medium text-slate-500">Produtor: ${data.producer || 'Não informado'}</span></td>
-                            <td class="p-3 text-slate-600 font-medium">Safra ${data.safra || '-'} <br> <span class="text-[10px] text-emerald-700 font-bold">Local: ${data.talhao !== 'Geral' && data.talhao ? 'T. ' + data.talhao : (data.talhao || '-')}</span></td>
-                            <td class="p-3 text-right">${acoesHtml}</td>
-                        </tr>
-                    `;
-                });
-
-                tbody.innerHTML = html;
-
-            } catch (error) {
-                console.error("Erro ao carregar histórico de visitas:", error);
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico.</td></tr>`;
-            }
-        }
-
-        async function deletarRelatorioVisita(id) {
-            if (!canEditVisit) {
-                alert("Você não tem permissão para excluir relatórios. Apenas editores ou administradores podem realizar esta ação.");
-                return;
-            }
-
-            if (confirm("Tem certeza que deseja excluir este relatório permanentemente do banco de dados?")) {
-                try {
-                    // CORREÇÃO: Apagando da coleção correta "visit_reports"
-                    await db.collection("visit_reports").doc(id).delete();
-                    alert("Relatório excluído com sucesso!");
-                    loadVisitHistory(); // Atualiza a tabela na tela imediatamente
-                } catch (erro) {
-                    console.error("Erro ao apagar:", erro);
-                    alert("Erro ao excluir. Tente novamente.");
-                }
-            }
-        }
     </script>
 </body>
 </html>
