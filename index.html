@@ -6442,24 +6442,28 @@
                 if (el) el.checked = false;
             });           
         });
+        
         // =========================================================================
-        // CORREÇÃO DEFINITIVA DO MENU, ABAS E FILTROS VAZANDO
+        // CAÇA-FANTASMAS: TROCA DE ABAS E LIMPEZA DE TELAS DUPLICADAS
         // =========================================================================
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
             
-            // 1. Esconde TODAS as telas (usa querySelectorAll para matar as telas duplicadas fantasmas)
+            // 1. O SEGREDO ESTÁ AQUI: Pega TODAS as caixas cujo ID comece com "content-"
+            // Isso mata as "caixas fantasmas" mesmo se o nome delas estiver com erro de digitação no HTML!
+            const allModules = document.querySelectorAll('[id^="content-"]');
+            
+            allModules.forEach(mod => {
+                // Se for a aba exata que clicamos, mostra. Qualquer outra coisa, esconde à força.
+                if (mod.id === 'content-' + tabId) {
+                    mod.classList.remove('hidden');
+                } else {
+                    mod.classList.add('hidden');
+                }
+            });
+            
+            // 2. Atualiza a cor verde/cinza do botão no menu lateral
             tabs.forEach(id => {
-                const elements = document.querySelectorAll('#content-' + id);
-                elements.forEach(el => {
-                    if (id === tabId) {
-                        el.classList.remove('hidden');
-                    } else {
-                        el.classList.add('hidden');
-                    }
-                });
-                
-                // 2. Atualiza a cor verde/cinza do botão no menu lateral
                 const btn = document.getElementById('tab-' + id);
                 if (btn) {
                     if (id === tabId) {
@@ -6472,7 +6476,7 @@
                 }
             });
 
-            // 3. Reseta a tela para o Formulário (Evita que o histórico vaze de uma aba para outra)
+            // 3. Reseta a aba interna sempre para o "Formulário" (Evita que a tabela de Histórico vaze)
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
             if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
         };
