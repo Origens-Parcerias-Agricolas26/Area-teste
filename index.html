@@ -5266,9 +5266,17 @@
             window.open(url, '_blank');
         }
 
+        function toggleRecView(view) {
+            if (view === 'form') {
+                document.getElementById('rec-form-view').classList.remove('hidden');
+                document.getElementById('rec-history-view').classList.add('hidden');
+            } else {
+                document.getElementById('rec-form-view').classList.add('hidden');
+                document.getElementById('rec-history-view').classList.remove('hidden');
+            }
+        }
         async function gerarPDFRecomendacao() {
-            salvarMemoriaRecomendacao();
-            
+                       
             // 1. Puxar Dados do Formulário
             const produtor = document.getElementById('rec-sel-producer').value || 'Não informado';
             const farmKey = document.getElementById('rec-sel-farm').value;
@@ -6391,8 +6399,7 @@
             ['chk-labels', 'chk-values', 'vrate-chk-labels', 'vrate-chk-values', 'seeds-chk-labels', 'seeds-chk-values'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.checked = false;
-            });
-            setTimeout(atualizarDatalistProdutores, 500);
+            });           
         });
     </script>
 </body>
