@@ -176,7 +176,7 @@
             <main class="flex-1 bg-slate-100 overflow-hidden p-6 flex flex-col">
                 
                 <!-- MÓDULO 1: FERTILIDADE DO SOLO -->
-                <div id="content-maps" class="h-full flex gap-6">
+                <div id="content-maps" class="hidden h-full flex flex-col gap-6">
                     <div class="w-80 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto">
                         <div class="space-y-5">
                             <h3 class="text-sm font-extrabold text-slate-900 uppercase border-b pb-2"><i class="fa-solid fa-sliders mr-2"></i>Controle do WebGIS</h3>
@@ -386,7 +386,7 @@
                 </div> <!-- ESSA É A DIV FALTANTE QUE FECHA O MÓDULO GIS INTEIRO! -->
 
                 <!-- MÓDULO 2: TAXA VARIÁVEL & PRESCRIÇÃO -->
-                <div id="content-vrate" class="hidden h-full flex gap-6">
+                <div id="content-vrate" class="hidden h-full flex flex-col gap-6">
                     <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
                         <div class="space-y-4">
                             <h3 class="text-sm font-extrabold text-amber-700 uppercase border-b pb-2"><i class="fa-solid fa-tractor mr-2"></i>Prescrição de Taxa Variável</h3>
@@ -507,7 +507,7 @@
                 </div>
 
                 <!-- MÓDULO 3: SEMENTES & PLANTIO TAXA VARIÁVEL -->
-                <div id="content-seeds" class="hidden h-full flex gap-6">
+                <div id="content-seeds" class="hidden h-full flex flex-col gap-6">
                     <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
                         <div class="space-y-4">
                             <h3 class="text-sm font-extrabold text-emerald-700 uppercase border-b pb-2"><i class="fa-solid fa-wheat-awn mr-2"></i>Prescrição de Sementes & Plantio</h3>
@@ -6449,15 +6449,17 @@
         });
         
         // =========================================================================
-        // TROCA DE ABAS RESTAURADA (COM RE-RENDER DOS MAPAS E SCROLL FIXO)
+        // TROCA DE ABAS E ATUALIZAÇÃO DE FILTROS E HISTÓRICOS (VERSÃO ESTÁVEL)
         // =========================================================================
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
             
             tabs.forEach(id => {
-                const elements = document.querySelectorAll('#content-' + id);
-                elements.forEach(el => {
-                    // LIMPEZA: Remove o display='none' forçado que estava matando o mapa
+                const el = document.getElementById('content-' + id);
+                const btn = document.getElementById('tab-' + id);
+                
+                // Remove propriedades de display forçadas que quebram o mapa
+                if (el) {
                     el.style.display = ''; 
                     
                     if (id === tabId) {
@@ -6465,9 +6467,8 @@
                     } else {
                         el.classList.add('hidden');
                     }
-                });
+                }
                 
-                const btn = document.getElementById('tab-' + id);
                 if (btn) {
                     if (id === tabId) {
                         btn.classList.add('bg-slate-800', 'text-white');
@@ -6482,20 +6483,22 @@
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
             if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
             
-            // Mantém a Visita Técnica e as outras abas firmes no topo
+            // Joga o scroll pro topo ao trocar de aba (Evita "Caixa Fantasma")
             const mainContainer = document.querySelector('main');
             if (mainContainer) mainContainer.scrollTo(0, 0);
 
-            // Avisa o navegador para reajustar os mapas perfeitamente
+            // Avisa o navegador e o Leaflet para re-renderizar os mapas
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
+                if (tabId === 'maps' && typeof map !== 'undefined' && map !== null) map.invalidateSize();
+                if (tabId === 'vrate' && typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
+                if (tabId === 'seeds' && typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
             }, 100);
         };
 
         window.changeActiveFarm = function(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
             
-            // Sincroniza todas as caixas de seleção
             ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.value !== selectedVal) el.value = selectedVal;
@@ -6509,7 +6512,7 @@
                 return el && !el.classList.contains('hidden');
             };
 
-            // Dispara as atualizações dependendo da tela visível
+            // Atualiza os dados apenas do módulo que está aberto
             if (isVisible('seeds') && typeof seedsChangeFarm === 'function') seedsChangeFarm();
             else if (isVisible('vrate') && typeof vrateChangeFarm === 'function') vrateChangeFarm();
             else if (isVisible('maps') && typeof updateGISMap === 'function') updateGISMap();
