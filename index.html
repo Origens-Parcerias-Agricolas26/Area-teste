@@ -6531,6 +6531,7 @@
                         </button>
                     `;
 
+                    // Lixeira protegida: Só aparece se canEditVisit for true
                     if (typeof canEditVisit !== 'undefined' && canEditVisit) {
                         acoesHtml += `
                             <button onclick="deletarRelatorioVisita('${data.id}')" class="text-red-500 hover:text-red-700 font-bold p-2 bg-red-50 rounded-lg transition-all" title="Excluir Relatório">
@@ -6558,7 +6559,7 @@
         }
 
         async function deletarRelatorioVisita(id) {
-            // Dupla checagem de segurança (caso alguém tente burlar o HTML)
+            // Dupla checagem de segurança
             if (!canEditVisit) {
                 alert("Você não tem permissão para excluir relatórios. Apenas editores ou administradores podem realizar esta ação.");
                 return;
