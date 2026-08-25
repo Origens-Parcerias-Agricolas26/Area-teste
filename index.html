@@ -6449,7 +6449,7 @@
         });
         
         // =========================================================================
-        // TROCA DE ABAS COM REDESENHO UNIVERSAL DE MAPAS (LEAFLET)
+        // TROCA DE ABAS COM DESPERTADOR UNIVERSAL DE MAPAS (LEAFLET)
         // =========================================================================
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
@@ -6459,17 +6459,17 @@
                 const btn = document.getElementById('tab-' + id);
                 
                 if (el) {
-                    // Garante que não tem nenhum estilo inline bloqueando a tela
+                    // Limpa estilos travados 
                     el.style.display = ''; 
                     
                     if (id === tabId) {
                         el.classList.remove('hidden');
                     } else {
                         el.classList.add('hidden');
+                        el.style.display = 'none'; // Esconde à força (Remove a Caixa Fantasma)
                     }
                 }
                 
-                // Atualiza as cores do botão no menu lateral
                 if (btn) {
                     if (id === tabId) {
                         btn.classList.add('bg-slate-800', 'text-white');
@@ -6485,27 +6485,30 @@
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
             if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
             
-            // Joga o scroll para o topo para a tela da Visita começar certinha
+            // Joga o scroll para o topo para a tela começar certinha
             const mainContainer = document.querySelector('main');
             if (mainContainer) mainContainer.scrollTo(0, 0);
 
-            // MÁGICA UNIVERSAL DOS MAPAS: 
-            // Em vez de adivinhar o nome das variáveis, pegamos os mapas direto pelo HTML!
-            // Disparamos isso 2 vezes (100ms e 400ms) para garantir que funcione em qualquer PC.
-            [100, 400].forEach(tempo => {
-                setTimeout(() => {
-                    window.dispatchEvent(new Event('resize'));
-                    
-                    // Varre as IDs das caixas de mapa da sua plataforma
-                    ['map-left', 'map-right', 'vrate-map', 'seeds-map'].forEach(id => {
-                        const mapDiv = document.getElementById(id);
-                        // Se a div existe e tem um mapa Leaflet dentro, força a renderização!
-                        if (mapDiv && mapDiv._leaflet_map) {
-                            mapDiv._leaflet_map.invalidateSize();
+            // 🌟 MÁGICA UNIVERSAL DOS MAPAS: 
+            setTimeout(() => {
+                // 1. Simula que a tela do computador mudou de tamanho
+                window.dispatchEvent(new Event('resize'));
+                
+                // 2. Varre a memória do navegador procurando QUALQUER mapa Leaflet e acorda ele
+                for (let variavel in window) {
+                    try {
+                        if (window[variavel] && typeof window[variavel].invalidateSize === 'function') {
+                            window[variavel].invalidateSize();
                         }
-                    });
-                }, tempo);
-            });
+                    } catch(e) {}
+                }
+
+                // 3. Plano B: Procura o mapa direto pela ID do HTML e força a barra
+                ['map-left', 'map-right', 'vrate-map', 'seeds-map'].forEach(mapId => {
+                    const m = document.getElementById(mapId);
+                    if(m && m._leaflet_map) m._leaflet_map.invalidateSize();
+                });
+            }, 150);
         };
 
         // =========================================================================
