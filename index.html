@@ -3782,7 +3782,10 @@
         }
 
         async function exportSeedsForMonitor() {
-            if (!seedsProcessedData.length) { alert('Processe primeiro a planilha de prescrição de sementes!'); return; }
+            if (!seedsProcessedData.length) { 
+                alert('Processe primeiro a planilha de prescrição de sementes!'); 
+                return; 
+            }
 
             const brand = document.getElementById('seeds-monitor-brand').value;
             const crop = document.getElementById('seeds-crop').value;
@@ -3795,7 +3798,7 @@
                 return;
             }
 
-            // HIGIENIZAÇÃO DOS DADOS: Deixa APENAS a coluna de DOSE para a plantadeira ler corretamente
+            // HIGIENIZAÇÃO EXTREMA: APENAS A COLUNA DOSE PARA PLANTADEIRAS
             const safeFeatures = targetGeoJSON.features.map(f => {
                 let rawSub = f.properties.Subs || f.properties.SUBS || f.properties.subs || f.properties.Subdivisao || f.properties.Gleba || f.properties.Talhao;
                 let subClean = cleanString(rawSub);
@@ -3803,15 +3806,19 @@
                 let doseVal = (doseObj && doseObj.hasValue) ? doseObj.dose : 0;
 
                 let safeProps = {
-                    "DOSE": typeof doseVal === 'number' ? doseVal : 0
+                    DOSE: typeof doseVal === 'number' ? doseVal : 0
                 };
                 
                 let geom = f.geometry;
-                if (geom.type === 'MultiPolygon' && geom.coordinates.length === 1) {
+                if (geom && geom.type === 'MultiPolygon' && geom.coordinates.length === 1) {
                     geom = { type: 'Polygon', coordinates: geom.coordinates[0] };
                 }
 
-                return { type: "Feature", geometry: geom, properties: safeProps };
+                return { 
+                    type: "Feature", 
+                    geometry: geom, 
+                    properties: safeProps 
+                };
             });
 
             const safeGeoJSON = { type: "FeatureCollection", features: safeFeatures };
@@ -4499,25 +4506,29 @@
                 return;
             }
 
-            // HIGIENIZAÇÃO: Limpa atributos e deixa APENAS a coluna de DOSE para a máquina não travar
+            // HIGIENIZAÇÃO EXTREMA: Força a criação de um objeto 100% novo contendo APENAS a coluna DOSE
             const safeFeatures = targetGeoJSON.features.map(f => {
                 let rawSub = f.properties.Subs || f.properties.SUBS || f.properties.subs || f.properties.Subdivisao || f.properties.Gleba || f.properties.Talhao;
                 let subClean = cleanString(rawSub);
                 let doseObj = vrateDoseMap[subClean];
                 let doseVal = (doseObj && doseObj.hasValue) ? doseObj.dose : 0;
 
-                // Aqui criamos a propriedade única que vai para o arquivo DBF
+                // Cria as propriedades do zero, apenas com a Dose
                 let safeProps = {
-                    "DOSE": typeof doseVal === 'number' ? doseVal : 0
+                    DOSE: typeof doseVal === 'number' ? doseVal : 0
                 };
                 
-                // Converte MultiPolygon para Polygon simples (maior compatibilidade com monitores)
+                // Limpa a geometria
                 let geom = f.geometry;
-                if (geom.type === 'MultiPolygon' && geom.coordinates.length === 1) {
+                if (geom && geom.type === 'MultiPolygon' && geom.coordinates.length === 1) {
                     geom = { type: 'Polygon', coordinates: geom.coordinates[0] };
                 }
 
-                return { type: "Feature", geometry: geom, properties: safeProps };
+                return { 
+                    type: "Feature", 
+                    geometry: geom, 
+                    properties: safeProps 
+                };
             });
 
             const safeGeoJSON = { type: "FeatureCollection", features: safeFeatures };
@@ -4545,7 +4556,6 @@
 
                 const fileNameBase = `${product}_Prescricao`;
 
-                // Copia os arquivos gerados (polygon.shp, polygon.dbf, etc) para a pasta da máquina com o nome correto
                 for (let fileName of Object.keys(tempZip.files)) {
                     if (!tempZip.files[fileName].dir) {
                         const fileData = await tempZip.file(fileName).async("arraybuffer");
@@ -4554,7 +4564,6 @@
                     }
                 }
 
-                // Adiciona o arquivo .prj original que é exigido pelas máquinas BR (WGS84)
                 const prjContent = `GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]`;
                 zip.file(`${pathPrefix}${fileNameBase}.prj`, prjContent);
 
