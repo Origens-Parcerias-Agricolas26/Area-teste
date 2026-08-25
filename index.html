@@ -2237,6 +2237,9 @@
             renderExtraExcelList();
         }
 
+        // =========================================================================
+        // CONTROLE DOS TALHÕES E MEMÓRIA DE FILTRO (GIS)
+        // =========================================================================
         function populateTalhaoSelector() {
             const selectedFarmKey = document.getElementById('sel-farm').value;
             const container = document.getElementById('container-talhao-checkboxes');
@@ -2288,7 +2291,7 @@
             `;
 
             html += sortedTalhoes.map(t => {
-                // Se for nova fazenda, marca todos. Se for troca de safra, mantém a marcar se já estava marcado antes.
+                // Se for nova fazenda, marca todos. Se for troca de safra, mantém a marca se já estava marcado antes.
                 const shouldBeChecked = isNewFarm || previouslyCheckedTalhoes.includes(t);
                 return `
                     <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700 px-1">
@@ -2304,6 +2307,22 @@
             syncMasterTalhaoCheck();
         }
 
+        // Função que aciona a caixinha "Selecionar Todos" e marca/desmarca os talhões
+        function toggleMasterTalhao(masterChk) {
+            document.querySelectorAll('.chk-talhao-item').forEach(i => i.checked = masterChk.checked);
+            updateGISMap();
+        }
+
+        // Função do texto verde "Todos/Nenhum" no topo da seção
+        function toggleAllTalhoesBtn() {
+            const master = document.getElementById('chk-master-talhao');
+            if (master) {
+                master.checked = !master.checked;
+                toggleMasterTalhao(master);
+            }
+        }
+
+        // Verifica sempre se todos os itens estão marcados para ativar ou não a caixinha "Selecionar Todos"
         function syncMasterTalhaoCheck() {
             const items = document.querySelectorAll('.chk-talhao-item');
             const master = document.getElementById('chk-master-talhao');
@@ -2312,6 +2331,7 @@
             }
             updateGISMap();
         }
+            
         function toggleAllSafras() {
             const items = document.querySelectorAll('.chk-safra-item');
             if (!items.length) return;
