@@ -6490,6 +6490,83 @@
                 if (el) el.checked = false;
             });
         });
+        // =========================================================================
+        // HISTÓRICO E EXCLUSÃO DE RELATÓRIOS DE VISITA TÉCNICA
+        // =========================================================================
+        
+        async function loadVisitHistory() {
+            const tbody = document.getElementById('visit-table-body');
+            if (!tbody) return;
+
+            tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico na nuvem...</td></tr>`;
+
+            try {
+                // Busca no Firebase todos os registros salvos do tipo "visit"
+                const snapshot = await db.collection("prescriptions").where("type", "==", "visit").orderBy("createdAt", "desc").get();
+                let html = '';
+
+                if (snapshot.empty) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum relatório de visita encontrado.</td></tr>`;
+                    return;
+                }
+
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const dataFormatada = new Date(data.createdAt).toLocaleDateString('pt-BR');
+
+                    // BOTÃO DE BAIXAR O PDF SEMPRE APARECE
+                    let acoesHtml = `
+                        <button onclick="downloadSavedPDF('${doc.id}')" class="text-cyan-600 hover:text-cyan-800 font-bold p-2 mr-2 bg-cyan-50 rounded-lg transition-all" title="Baixar Laudo PDF">
+                            <i class="fa-solid fa-file-pdf"></i> Baixar
+                        </button>
+                    `;
+
+                    // TRAVA DE SEGURANÇA: A lixeira só é criada na tela se a pessoa tiver a permissão canEditVisit
+                    if (canEditVisit) {
+                        acoesHtml += `
+                            <button onclick="deletarRelatorioVisita('${doc.id}')" class="text-red-500 hover:text-red-700 font-bold p-2 bg-red-50 rounded-lg transition-all" title="Excluir Relatório">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        `;
+                    }
+
+                    html += `
+                        <tr class="hover:bg-slate-50 border-b border-slate-200">
+                            <td class="p-3 font-semibold text-slate-800">${dataFormatada}</td>
+                            <td class="p-3 font-bold text-slate-700">${data.farmName || '-'} <br> <span class="text-[10px] font-medium text-slate-500">Produtor: ${data.producer || 'Não informado'}</span></td>
+                            <td class="p-3 text-slate-600 font-medium">${data.safra || '-'} <br> <span class="text-[10px] text-emerald-700 font-bold">Talhão: ${data.talhao || '-'}</span></td>
+                            <td class="p-3 text-right">${acoesHtml}</td>
+                        </tr>
+                    `;
+                });
+
+                tbody.innerHTML = html;
+
+            } catch (error) {
+                console.error("Erro ao carregar histórico de visitas:", error);
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico.</td></tr>`;
+            }
+        }
+
+        async function deletarRelatorioVisita(id) {
+            // Dupla checagem de segurança (caso alguém tente burlar o HTML)
+            if (!canEditVisit) {
+                alert("Você não tem permissão para excluir relatórios. Apenas editores ou administradores podem realizar esta ação.");
+                return;
+            }
+
+            if (confirm("Tem certeza que deseja excluir este relatório permanentemente do banco de dados?")) {
+                try {
+                    await db.collection("prescriptions").doc(id).delete();
+                    alert("Relatório excluído com sucesso!");
+                    loadVisitHistory(); // Atualiza a tabela na tela imediatamente
+                    await loadCloudData(); // Sincroniza a memória da plataforma
+                } catch (erro) {
+                    console.error("Erro ao apagar:", erro);
+                    alert("Erro ao excluir. Tente novamente.");
+                }
+            }
+        }
     </script>
 </body>
 </html>
