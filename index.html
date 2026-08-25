@@ -6470,36 +6470,44 @@
             tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico na nuvem...</td></tr>`;
 
             try {
-                // Busca no Firebase apenas filtrando, sem o orderBy para evitar erro de Index
-                const snapshot = await db.collection("prescriptions").where("type", "==", "visit").get();
+                // CORREÇÃO: Buscando na coleção correta "visit_reports"
+                const snapshot = await db.collection("visit_reports").get();
                 let relatorios = [];
 
-                if (snapshot.empty) {
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    
+                    // FILTRO DE SEGURANÇA: Só exibe a fazenda se o usuário for admin ou tiver permissão explícita nela
+                    if (currentUserRole !== 'admin' && !currentUserAllowedFarms.includes('all')) {
+                        if (!currentUserAllowedFarms.includes(d.farmId)) {
+                            return; // Pula este relatório e não mostra na tabela
+                        }
+                    }
+                    relatorios.push({ id: doc.id, ...d });
+                });
+
+                if (relatorios.length === 0) {
                     tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum relatório de visita encontrado.</td></tr>`;
                     return;
                 }
 
-                snapshot.forEach(doc => {
-                    relatorios.push({ id: doc.id, ...doc.data() });
-                });
-
-                // Ordena os relatórios do mais recente para o mais antigo no próprio JavaScript!
+                // Ordena os relatórios do mais recente para o mais antigo
                 relatorios.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
                 let html = '';
                 relatorios.forEach(data => {
                     const dataFormatada = data.createdAt ? new Date(data.createdAt).toLocaleDateString('pt-BR') : '-';
 
+                    // Botões Padrões (Sempre aparecem)
                     let acoesHtml = `
-                        <button onclick="downloadSavedPDF('${data.id}')" class="text-cyan-600 hover:text-cyan-800 font-bold p-2 mr-2 bg-cyan-50 rounded-lg transition-all" title="Baixar Laudo PDF">
-                            <i class="fa-solid fa-file-pdf"></i> Baixar
-                        </button>
+                        <button onclick="viewVisitReport('${data.id}')" class="bg-cyan-100 text-cyan-700 hover:bg-cyan-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-eye mr-1"></i> Ler</button>
+                        <button onclick="baixarPdfHistoricoVisita('${data.id}')" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-file-pdf mr-1"></i> PDF</button>
                     `;
 
                     // Lixeira protegida: Só aparece se canEditVisit for true
                     if (typeof canEditVisit !== 'undefined' && canEditVisit) {
                         acoesHtml += `
-                            <button onclick="deletarRelatorioVisita('${data.id}')" class="text-red-500 hover:text-red-700 font-bold p-2 bg-red-50 rounded-lg transition-all" title="Excluir Relatório">
+                            <button onclick="deletarRelatorioVisita('${data.id}')" class="text-red-500 hover:text-red-700 px-3 py-1.5 bg-red-50 rounded-lg font-bold transition-all" title="Excluir Relatório">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         `;
@@ -6509,7 +6517,7 @@
                         <tr class="hover:bg-slate-50 border-b border-slate-200">
                             <td class="p-3 font-semibold text-slate-800">${dataFormatada}</td>
                             <td class="p-3 font-bold text-slate-700">${data.farmName || '-'} <br> <span class="text-[10px] font-medium text-slate-500">Produtor: ${data.producer || 'Não informado'}</span></td>
-                            <td class="p-3 text-slate-600 font-medium">${data.safra || '-'} <br> <span class="text-[10px] text-emerald-700 font-bold">Talhão: ${data.talhao || '-'}</span></td>
+                            <td class="p-3 text-slate-600 font-medium">Safra ${data.safra || '-'} <br> <span class="text-[10px] text-emerald-700 font-bold">Local: ${data.talhao !== 'Geral' && data.talhao ? 'T. ' + data.talhao : (data.talhao || '-')}</span></td>
                             <td class="p-3 text-right">${acoesHtml}</td>
                         </tr>
                     `;
@@ -6519,12 +6527,11 @@
 
             } catch (error) {
                 console.error("Erro ao carregar histórico de visitas:", error);
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico. Lembre-se de fazer login!</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico.</td></tr>`;
             }
         }
 
         async function deletarRelatorioVisita(id) {
-            // Dupla checagem de segurança
             if (!canEditVisit) {
                 alert("Você não tem permissão para excluir relatórios. Apenas editores ou administradores podem realizar esta ação.");
                 return;
@@ -6532,10 +6539,10 @@
 
             if (confirm("Tem certeza que deseja excluir este relatório permanentemente do banco de dados?")) {
                 try {
-                    await db.collection("prescriptions").doc(id).delete();
+                    // CORREÇÃO: Apagando da coleção correta "visit_reports"
+                    await db.collection("visit_reports").doc(id).delete();
                     alert("Relatório excluído com sucesso!");
                     loadVisitHistory(); // Atualiza a tabela na tela imediatamente
-                    await loadCloudData(); // Sincroniza a memória da plataforma
                 } catch (erro) {
                     console.error("Erro ao apagar:", erro);
                     alert("Erro ao excluir. Tente novamente.");
