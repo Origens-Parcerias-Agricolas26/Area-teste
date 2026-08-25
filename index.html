@@ -1101,7 +1101,7 @@
                 
                 <!-- CONTAINER OCULTO PARA GERAR O PDF DO RELATÓRIO -->
                 <div id="pdf-visit-template" style="display:none;"></div>
-                <div id="content-users" class="hidden space-y-6 overflow-y-auto h-full pr-2">
+                <div id="content-users" class="hidden h-full flex flex-col space-y-6 overflow-y-auto pr-2">
                     <div class="flex justify-between items-center border-b pb-4">
                         <div>
                             <h2 class="text-2xl font-black text-slate-900">Gestão de Fazendas e Clientes</h2>
@@ -6444,26 +6444,29 @@
         });
         
         // =========================================================================
-        // CAÇA-FANTASMAS DEFINITIVO: TROCA DE ABAS E CORREÇÃO DOS MAPAS
+        // CAÇA-FANTASMAS: TROCA DE ABAS E CORREÇÃO DOS MAPAS
         // =========================================================================
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
             
-            tabs.forEach(id => {
-                const el = document.getElementById('content-' + id);
-                const btn = document.getElementById('tab-' + id);
-                
-                if (el) {
-                    if (id === tabId) {
-                        el.classList.remove('hidden');
-                        el.style.display = ''; // Devolve o controle do layout para o HTML
-                    } else {
-                        el.classList.add('hidden');
-                        el.style.display = 'none'; // Esconde à força! Mata o espaço fantasma na hora.
-                    }
+            // 1. Pega todas as caixas de módulos
+            const allModules = document.querySelectorAll('[id^="content-"]');
+            
+            allModules.forEach(mod => {
+                if (mod.id === 'content-' + tabId) {
+                    // Aba ativa: Remove o hidden e limpa estilos forçados
+                    mod.classList.remove('hidden');
+                    mod.style.display = ''; 
+                } else {
+                    // Abas inativas: Adiciona hidden e ESCONDE À FORÇA para não deixar buracos
+                    mod.classList.add('hidden');
+                    mod.style.display = 'none'; 
                 }
-                
-                // Muda a cor dos botões do menu
+            });
+            
+            // 2. Atualiza a cor dos botões do menu lateral
+            tabs.forEach(id => {
+                const btn = document.getElementById('tab-' + id);
                 if (btn) {
                     if (id === tabId) {
                         btn.classList.add('bg-slate-800', 'text-white');
@@ -6475,57 +6478,22 @@
                 }
             });
 
-            // Reseta sub-telas para não vazar o histórico
+            // 3. Reseta a aba interna para "Formulário" para não vazar o Histórico
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
             if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
             
-            // Joga o scroll da página para o topo, corrigindo se estava lá em baixo
+            // 4. Joga a tela pro topo automaticamente
             const mainContainer = document.querySelector('main');
-            if (mainContainer) mainContainer.scrollTop = 0;
-            document.querySelectorAll('.overflow-y-auto').forEach(el => el.scrollTop = 0);
+            if (mainContainer) mainContainer.scrollTo(0, 0);
 
-            // MÁGICA PARA OS MAPAS VOLTAREM A APARECER: 
-            // Força o navegador e o Leaflet a se reajustarem na tela nova
+            // 5. MÁGICA DOS MAPAS: Força o navegador a recalcular o tamanho da tela
+            // Isso evita que os mapas de Taxa Variável e Sementes fiquem brancos!
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
-                if (tabId === 'maps' && typeof map !== 'undefined') map.invalidateSize();
-                if (tabId === 'vrate' && typeof vrateMap !== 'undefined') vrateMap.invalidateSize();
-                if (tabId === 'seeds' && typeof seedsMap !== 'undefined') seedsMap.invalidateSize();
-            }, 100);
-        };
-
-        window.changeActiveFarm = function(sourceSelectId) {
-            const selectedVal = document.getElementById(sourceSelectId).value;
-            
-            // 1. Sincroniza todos os filtros de fazenda da plataforma
-            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.value !== selectedVal) el.value = selectedVal;
-            });
-
-            if(typeof populateSafraSelector === 'function') populateSafraSelector();
-            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
-
-            // 2. Atualiza os dados APENAS da aba que o usuário está vendo agora
-            const isVisible = (id) => {
-                const el = document.querySelector('#content-' + id);
-                return el && !el.classList.contains('hidden');
-            };
-
-            if (isVisible('seeds') && typeof seedsChangeFarm === 'function') seedsChangeFarm();
-            else if (isVisible('vrate') && typeof vrateChangeFarm === 'function') vrateChangeFarm();
-            else if (isVisible('maps') && typeof updateGISMap === 'function') updateGISMap();
-            else if (isVisible('recommendation')) {
-                if (typeof recChangeFarm === 'function') recChangeFarm();
-                // Se o histórico estiver aberto e o filtro mudar, recarrega a tabela na mesma hora:
-                const hist = document.getElementById('rec-history-view');
-                if (hist && !hist.classList.contains('hidden') && typeof loadRecHistory === 'function') loadRecHistory();
-            }
-            else if (isVisible('visit')) {
-                // Se o histórico de visitas estiver aberto e o filtro mudar, recarrega a tabela:
-                const hist = document.getElementById('visit-history-view');
-                if (hist && !hist.classList.contains('hidden') && typeof loadVisitHistory === 'function') loadVisitHistory();
-            }
+                if (tabId === 'maps' && typeof map !== 'undefined' && map !== null) map.invalidateSize();
+                if (tabId === 'vrate' && typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
+                if (tabId === 'seeds' && typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
+            }, 150);
         };
     </script>
 </body>
