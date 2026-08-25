@@ -176,7 +176,7 @@
             <main class="flex-1 bg-slate-100 overflow-hidden p-6 flex flex-col">
                 
                 <!-- MÓDULO 1: FERTILIDADE DO SOLO -->
-                <div id="content-maps" class="h-full flex gap-6">
+                <div id="content-maps" class="flex h-full gap-6">
                     <div class="w-80 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto">
                         <div class="space-y-5">
                             <h3 class="text-sm font-extrabold text-slate-900 uppercase border-b pb-2"><i class="fa-solid fa-sliders mr-2"></i>Controle do WebGIS</h3>
@@ -386,7 +386,7 @@
                 </div> <!-- ESSA É A DIV FALTANTE QUE FECHA O MÓDULO GIS INTEIRO! -->
 
                 <!-- MÓDULO 2: TAXA VARIÁVEL & PRESCRIÇÃO -->
-                <div id="content-vrate" class="hidden h-full flex gap-6">
+                <div id="content-vrate" class="hidden h-full gap-6">
                     <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
                         <div class="space-y-4">
                             <h3 class="text-sm font-extrabold text-amber-700 uppercase border-b pb-2"><i class="fa-solid fa-tractor mr-2"></i>Prescrição de Taxa Variável</h3>
@@ -507,7 +507,7 @@
                 </div>
 
                 <!-- MÓDULO 3: SEMENTES & PLANTIO TAXA VARIÁVEL -->
-                <div id="content-seeds" class="hidden h-full flex gap-6">
+                <div id="content-seeds" class="hidden h-full gap-6">
                     <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
                         <div class="space-y-4">
                             <h3 class="text-sm font-extrabold text-emerald-700 uppercase border-b pb-2"><i class="fa-solid fa-wheat-awn mr-2"></i>Prescrição de Sementes & Plantio</h3>
@@ -644,7 +644,7 @@
                 </div>
                 
                 <!-- MÓDULO 4: ACOMPANHAMENTO DE AMOSTRAGEM DE SOLO -->
-                <div id="content-sampling" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                <div id="content-sampling" class="hidden h-full flex-col space-y-4 overflow-y-auto pr-2">
                     
                     <!-- Cabeçalho Módulo com Abas -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
@@ -851,7 +851,7 @@
                 <!-- GESTÃO DE ACESSOS -->
 
                 <!-- MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE -->
-                <div id="content-recommendation" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                <div id="content-recommendation" class="hidden h-full flex-col space-y-4 overflow-y-auto pr-2">
                     
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
                         <div>
@@ -1004,7 +1004,7 @@
                 <div id="pdf-recomendacao-template" style="display:none;"></div>
 
                 <!-- MÓDULO 6: RELATÓRIO DE VISITA TÉCNICA -->
-                <div id="content-visit" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                <div id="content-visit" class="hidden h-full flex-col space-y-4 overflow-y-auto pr-2">
                     
                     <!-- Cabeçalho do Módulo -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
@@ -1101,7 +1101,7 @@
                 
                 <!-- CONTAINER OCULTO PARA GERAR O PDF DO RELATÓRIO -->
                 <div id="pdf-visit-template" style="display:none;"></div>
-                <div id="content-users" class="hidden space-y-6 overflow-y-auto h-full pr-2">
+                <div id="content-users" class="hidden h-full flex-col space-y-6 overflow-y-auto pr-2">
                     <div class="flex justify-between items-center border-b pb-4">
                         <div>
                             <h2 class="text-2xl font-black text-slate-900">Gestão de Fazendas e Clientes</h2>
@@ -6449,16 +6449,18 @@
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
             
-            // 1. O SEGREDO ESTÁ AQUI: Pega TODAS as caixas cujo ID comece com "content-"
-            // Isso mata as "caixas fantasmas" mesmo se o nome delas estiver com erro de digitação no HTML!
+            // 1. Pega TODAS as caixas cujo ID comece com "content-"
             const allModules = document.querySelectorAll('[id^="content-"]');
             
             allModules.forEach(mod => {
-                // Se for a aba exata que clicamos, mostra. Qualquer outra coisa, esconde à força.
+                // Remove TODAS as classes de layout que podem travar o estilo
+                mod.classList.remove('hidden', 'flex');
+                
+                // Se for a aba exata que clicamos, mostra do jeito certo dependendo de qual é.
                 if (mod.id === 'content-' + tabId) {
-                    mod.classList.remove('hidden');
+                    mod.classList.add('flex'); // Adiciona o flex APENAS quando estiver vísivel
                 } else {
-                    mod.classList.add('hidden');
+                    mod.classList.add('hidden'); // Esconde todas as outras
                 }
             });
             
@@ -6476,9 +6478,12 @@
                 }
             });
 
-            // 3. Reseta a aba interna sempre para o "Formulário" (Evita que a tabela de Histórico vaze)
+            // 3. Reseta a aba interna sempre para o "Formulário" 
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
             if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
+            
+            // 4. Força o scroll voltar para o topo ao trocar de aba! (Resolve o erro da tela pra baixo)
+            document.querySelector('main').scrollTo(0, 0);
         };
 
         window.changeActiveFarm = function(sourceSelectId) {
