@@ -3795,19 +3795,16 @@
                 return;
             }
 
-            // HIGIENIZAÇÃO DOS DADOS
+            // HIGIENIZAÇÃO DOS DADOS: Deixa APENAS a coluna de DOSE para a plantadeira ler corretamente
             const safeFeatures = targetGeoJSON.features.map(f => {
-                let safeProps = {};
-                for (let key in f.properties) {
-                    let val = f.properties[key];
-                    if (val === null || val === undefined || val === "") {
-                        safeProps[key] = 0;
-                    } else if (typeof val === 'number') {
-                        safeProps[key] = val;
-                    } else {
-                        safeProps[key] = String(val).substring(0, 50);
-                    }
-                }
+                let rawSub = f.properties.Subs || f.properties.SUBS || f.properties.subs || f.properties.Subdivisao || f.properties.Gleba || f.properties.Talhao;
+                let subClean = cleanString(rawSub);
+                let doseObj = seedsDoseMap[subClean];
+                let doseVal = (doseObj && doseObj.hasValue) ? doseObj.dose : 0;
+
+                let safeProps = {
+                    "DOSE": typeof doseVal === 'number' ? doseVal : 0
+                };
                 
                 let geom = f.geometry;
                 if (geom.type === 'MultiPolygon' && geom.coordinates.length === 1) {
@@ -3833,6 +3830,7 @@
                     case 'stara': pathPrefix = `Dados/Mapas/`; break;
                     case 'precision_planting': pathPrefix = `2020/Rx/`; break;
                     case 'caseih': pathPrefix = `Shapefile/`; break;
+                    case 'isobus': pathPrefix = `TASKDATA/`; break;
                     default: pathPrefix = `TASKDATA/`; break;
                 }
 
@@ -4501,19 +4499,17 @@
                 return;
             }
 
-            // HIGIENIZAÇÃO: Limpa atributos nulos e formata geometria para o gerador de Shapefile não travar
+            // HIGIENIZAÇÃO: Limpa atributos e deixa APENAS a coluna de DOSE para a máquina não travar
             const safeFeatures = targetGeoJSON.features.map(f => {
-                let safeProps = {};
-                for (let key in f.properties) {
-                    let val = f.properties[key];
-                    if (val === null || val === undefined || val === "") {
-                        safeProps[key] = 0; // Evita nulos que quebram o DBF
-                    } else if (typeof val === 'number') {
-                        safeProps[key] = val;
-                    } else {
-                        safeProps[key] = String(val).substring(0, 50); // Limita o texto
-                    }
-                }
+                let rawSub = f.properties.Subs || f.properties.SUBS || f.properties.subs || f.properties.Subdivisao || f.properties.Gleba || f.properties.Talhao;
+                let subClean = cleanString(rawSub);
+                let doseObj = vrateDoseMap[subClean];
+                let doseVal = (doseObj && doseObj.hasValue) ? doseObj.dose : 0;
+
+                // Aqui criamos a propriedade única que vai para o arquivo DBF
+                let safeProps = {
+                    "DOSE": typeof doseVal === 'number' ? doseVal : 0
+                };
                 
                 // Converte MultiPolygon para Polygon simples (maior compatibilidade com monitores)
                 let geom = f.geometry;
@@ -4543,6 +4539,7 @@
                     case 'caseih': pathPrefix = `Shapefile/`; break;
                     case 'jacto': pathPrefix = `OtMIS/Maps/`; break;
                     case 'agres': pathPrefix = `Agres/Prescricao/`; break;
+                    case 'isobus': pathPrefix = `TASKDATA/`; break;
                     default: pathPrefix = `TASKDATA/`; break;
                 }
 
