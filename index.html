@@ -24,6 +24,8 @@
     <!-- Leaflet GIS CSS & JS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Turf.js para cálculos geográficos (Área exata de Talhões) -->
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <!-- JSZip, Shapefile Parser & XLSX Reader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
@@ -887,18 +889,15 @@
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <div class="space-y-3">
                                         <div class="grid grid-cols-2 gap-2">
-                                            <div>
-                                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Produtor / Cliente</label>
-                                                <input type="text" id="rec_produtor" list="lista-produtores" onchange="carregarFazendasMemoria()" placeholder="Ex: João Silva" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
-                                                <datalist id="lista-produtores"></datalist>
-                                            </div>
-                                            <div>
-                                                <label class="block text-[10px] font-bold text-slate-500 mb-1">Nome da Fazenda</label>
-                                                <input type="text" id="rec_fazenda" list="lista-fazendas" onchange="carregarTalhoesMemoria()" placeholder="Ex: Boa Vista" class="w-full text-xs font-bold p-2 border rounded-lg bg-white">
-                                                <datalist id="lista-fazendas"></datalist>
-                                            </div>
-                                        </div>
-                                        <div>
+    <div>
+        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Produtor / Cliente</label>
+        <select id="rec-sel-producer" onchange="changeActiveProducer('rec-sel-producer')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
+    </div>
+    <div>
+        <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Nome da Fazenda</label>
+        <select id="rec-sel-farm" onchange="changeActiveFarm('rec-sel-farm')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
+    </div>
+</div>
                                             <div class="flex justify-between items-center mb-1">
                                                 <label class="block text-[10px] font-bold text-slate-500">Talhões (Segure Ctrl para vários)</label>
                                                 <button onclick="document.getElementById('input-talhoes-excel').click()" class="text-[9px] bg-blue-100 hover:bg-blue-200 text-blue-700 font-bold px-2 py-0.5 rounded transition-all border border-blue-200"><i class="fa-solid fa-upload mr-1"></i>Importar Excel</button>
@@ -2074,21 +2073,24 @@
 
         function changeActiveFarm(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
-            // <- Adicionamos o ID da Visita na sincronização abaixo
-            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm'].forEach(id => {
+            // Adicionado o rec-sel-farm para sincronizar a aba de Recomendação
+            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.value !== selectedVal) el.value = selectedVal;
             });
 
-            populateSafraSelector();
-            populateTalhaoSelector();
+            if(typeof populateSafraSelector === 'function') populateSafraSelector();
+            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
 
             if (document.getElementById('content-seeds') && !document.getElementById('content-seeds').classList.contains('hidden')) {
-                seedsChangeFarm();
+                if(typeof seedsChangeFarm === 'function') seedsChangeFarm();
             } else if (document.getElementById('content-vrate') && !document.getElementById('content-vrate').classList.contains('hidden')) {
-                vrateChangeFarm();
-            } else {
-                updateGISMap();
+                if(typeof vrateChangeFarm === 'function') vrateChangeFarm();
+            } else if (document.getElementById('content-maps') && !document.getElementById('content-maps').classList.contains('hidden')) {
+                if(typeof updateGISMap === 'function') updateGISMap();
+            } else if (document.getElementById('content-recommendation') && !document.getElementById('content-recommendation').classList.contains('hidden')) {
+                // Atualiza os talhões automaticamente
+                if(typeof recChangeFarm === 'function') recChangeFarm();
             }
         }
 
@@ -5247,8 +5249,11 @@
             salvarMemoriaRecomendacao();
             
             // 1. Puxar Dados do Formulário
-            const produtor = document.getElementById('rec_produtor').value || 'Não informado';
-            const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
+            const produtor = document.getElementById('rec-sel-producer').value || 'Não informado';
+            const farmKey = document.getElementById('rec-sel-farm').value;
+            const farmInfo = farmsDatabase[farmKey];
+            if (!farmInfo) { alert("Selecione a Fazenda!"); return; }
+            const fazenda = farmInfo.name;
             const clienteFinal = `${produtor} - ${fazenda}`;
             
             const cultura = document.getElementById('rec_cultura').value || 'Não informada';
@@ -5766,69 +5771,48 @@
       // =========================================================================
         // MEMÓRIA INTELIGENTE DE CLIENTES E TALHÕES (LOCALSTORAGE)
         // =========================================================================
-        function salvarMemoriaRecomendacao() {
-            const produtor = document.getElementById('rec_produtor').value.trim();
-            const fazenda = document.getElementById('rec_fazenda').value.trim();
+        function recChangeFarm() {
+            const farmKey = document.getElementById('rec-sel-farm').value;
             const selectTalhoes = document.getElementById('rec_talhoes');
+            if(!selectTalhoes) return;
             
-            // Só salva se tiver produtor, fazenda e se tiver talhões de verdade importados
-            if (!produtor || !fazenda || selectTalhoes.options.length === 0 || selectTalhoes.options[0].disabled) return;
+            selectTalhoes.innerHTML = '<option value="" disabled>-- Selecione os Talhões --</option>';
+            document.getElementById('rec_area').value = '';
 
-            let talhoes = [];
-            for (let i = 0; i < selectTalhoes.options.length; i++) {
-                talhoes.push({
-                    nome: selectTalhoes.options[i].value,
-                    area: selectTalhoes.options[i].dataset.area,
-                    texto: selectTalhoes.options[i].text
+            const farmObj = farmsDatabase[farmKey];
+            if (farmObj && farmObj.geojson && farmObj.geojson.features) {
+                let talhoesMap = {};
+                
+                // Agrupa as áreas caso tenha múltiplos polígonos do mesmo talhão
+                farmObj.geojson.features.forEach(f => {
+                    let nomeTalhao = f.properties.Talhao || f.properties.TALHAO || f.properties.Gleba || f.properties.Nome || 'Geral';
+                    
+                    // MÁGICA DA PRECISÃO: Calcula a área real em Hectares pelas coordenadas GPS do polígono!
+                    let areaExataHa = 0;
+                    try {
+                        // turf.area devolve metros quadrados. Dividimos por 10.000 para Hectares.
+                        if (typeof turf !== 'undefined') {
+                            areaExataHa = turf.area(f) / 10000;
+                        } else {
+                            throw new Error("Turf indisponível");
+                        }
+                    } catch (e) {
+                        // Fallback de segurança: se a geometria falhar, tenta ler o que estava escrito na tabela
+                        areaExataHa = parseFloat(f.properties.Area || f.properties.AREA || f.properties.HA) || 0;
+                    }
+                    
+                    if (!talhoesMap[nomeTalhao]) talhoesMap[nomeTalhao] = 0;
+                    talhoesMap[nomeTalhao] += areaExataHa;
                 });
-            }
 
-            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
-            
-            // Remove o antigo se já existir (para atualizar com os novos talhões se você importou outro excel)
-            memoria = memoria.filter(m => !(m.produtor === produtor && m.fazenda === fazenda));
-            memoria.push({ produtor, fazenda, talhoes });
-            
-            localStorage.setItem('origens_clientes_memoria', JSON.stringify(memoria));
-            atualizarDatalistProdutores();
-        }
-
-        function atualizarDatalistProdutores() {
-            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
-            const produtoresUnicos = [...new Set(memoria.map(m => m.produtor))];
-            const datalistProd = document.getElementById('lista-produtores');
-            if(datalistProd) datalistProd.innerHTML = produtoresUnicos.map(p => `<option value="${p}">`).join('');
-        }
-
-        function carregarFazendasMemoria() {
-            const produtor = document.getElementById('rec_produtor').value;
-            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
-            const fazendas = memoria.filter(m => m.produtor === produtor).map(m => m.fazenda);
-            
-            const datalistFaz = document.getElementById('lista-fazendas');
-            if(datalistFaz) datalistFaz.innerHTML = fazendas.map(f => `<option value="${f}">`).join('');
-        }
-
-        function carregarTalhoesMemoria() {
-            const produtor = document.getElementById('rec_produtor').value;
-            const fazenda = document.getElementById('rec_fazenda').value;
-            let memoria = JSON.parse(localStorage.getItem('origens_clientes_memoria') || '[]');
-            
-            const cliente = memoria.find(m => m.produtor === produtor && m.fazenda === fazenda);
-            if (cliente && cliente.talhoes && cliente.talhoes.length > 0) {
-                const selectTalhoes = document.getElementById('rec_talhoes');
-                selectTalhoes.innerHTML = '';
-                cliente.talhoes.forEach(t => {
+                // Cria as opções no select com a área exata calculada
+                Object.keys(talhoesMap).sort((a,b) => a.localeCompare(b, undefined, {numeric: true})).forEach(t => {
                     const opt = document.createElement('option');
-                    opt.value = t.nome;
-                    opt.dataset.area = t.area;
-                    opt.text = t.texto;
+                    opt.value = t;
+                    opt.dataset.area = talhoesMap[t].toFixed(2);
+                    opt.text = `Talhão ${t} (${opt.dataset.area} ha)`;
                     selectTalhoes.appendChild(opt);
                 });
-                
-                // Prepara a área para a nova recomendação
-                document.getElementById('rec_area').value = '';
-                if(typeof recalcularTodosProdutosRec === 'function') recalcularTodosProdutosRec();
             }
         }
         // =========================================================================
