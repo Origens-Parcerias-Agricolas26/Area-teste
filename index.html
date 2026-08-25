@@ -6442,6 +6442,74 @@
                 if (el) el.checked = false;
             });           
         });
+        // =========================================================================
+        // CORREÇÃO DEFINITIVA DO MENU, ABAS E FILTROS VAZANDO
+        // =========================================================================
+        window.switchTab = function(tabId) {
+            const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
+            
+            // 1. Esconde TODAS as telas (usa querySelectorAll para matar as telas duplicadas fantasmas)
+            tabs.forEach(id => {
+                const elements = document.querySelectorAll('#content-' + id);
+                elements.forEach(el => {
+                    if (id === tabId) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                });
+                
+                // 2. Atualiza a cor verde/cinza do botão no menu lateral
+                const btn = document.getElementById('tab-' + id);
+                if (btn) {
+                    if (id === tabId) {
+                        btn.classList.add('bg-slate-800', 'text-white');
+                        btn.classList.remove('text-slate-300');
+                    } else {
+                        btn.classList.remove('bg-slate-800', 'text-white');
+                        btn.classList.add('text-slate-300');
+                    }
+                }
+            });
+
+            // 3. Reseta a tela para o Formulário (Evita que o histórico vaze de uma aba para outra)
+            if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
+            if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
+        };
+
+        window.changeActiveFarm = function(sourceSelectId) {
+            const selectedVal = document.getElementById(sourceSelectId).value;
+            
+            // 1. Sincroniza todos os filtros de fazenda da plataforma
+            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== selectedVal) el.value = selectedVal;
+            });
+
+            if(typeof populateSafraSelector === 'function') populateSafraSelector();
+            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
+
+            // 2. Atualiza os dados APENAS da aba que o usuário está vendo agora
+            const isVisible = (id) => {
+                const el = document.querySelector('#content-' + id);
+                return el && !el.classList.contains('hidden');
+            };
+
+            if (isVisible('seeds') && typeof seedsChangeFarm === 'function') seedsChangeFarm();
+            else if (isVisible('vrate') && typeof vrateChangeFarm === 'function') vrateChangeFarm();
+            else if (isVisible('maps') && typeof updateGISMap === 'function') updateGISMap();
+            else if (isVisible('recommendation')) {
+                if (typeof recChangeFarm === 'function') recChangeFarm();
+                // Se o histórico estiver aberto e o filtro mudar, recarrega a tabela na mesma hora:
+                const hist = document.getElementById('rec-history-view');
+                if (hist && !hist.classList.contains('hidden') && typeof loadRecHistory === 'function') loadRecHistory();
+            }
+            else if (isVisible('visit')) {
+                // Se o histórico de visitas estiver aberto e o filtro mudar, recarrega a tabela:
+                const hist = document.getElementById('visit-history-view');
+                if (hist && !hist.classList.contains('hidden') && typeof loadVisitHistory === 'function') loadVisitHistory();
+            }
+        };
     </script>
 </body>
 </html>
