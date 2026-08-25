@@ -850,6 +850,9 @@
 
                 <div id="content-recommendation" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
                     
+                    <!-- MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE -->
+                <div id="content-recommendation" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                    
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
                         <div>
                             <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
@@ -861,24 +864,29 @@
                         <div class="flex items-center gap-3">
                             <input type="file" id="input-estoque-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="importarEstoqueExcel(this)">
                             <button onclick="document.getElementById('input-estoque-excel').click()" class="bg-purple-100 hover:bg-purple-200 text-purple-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
-                                <i class="fa-solid fa-file-import"></i><span id="txt-btn-estoque">1. Importar Estoque</span>
+                                <i class="fa-solid fa-file-import"></i><span id="txt-btn-estoque">Importar Estoque</span>
                             </button>
                             <button onclick="baixarEstoqueAtualizado()" class="bg-emerald-100 hover:bg-emerald-200 text-emerald-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
-                                <i class="fa-solid fa-file-export"></i><span>2. Baixar Estoque Atualizado</span>
+                                <i class="fa-solid fa-file-export"></i><span>Baixar Estoque</span>
+                            </button>
+                            
+                            <!-- NOVOS BOTÕES DO HISTÓRICO -->
+                            <button onclick="toggleRecView('history'); loadRecHistory();" class="bg-cyan-100 hover:bg-cyan-200 text-cyan-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-folder-open"></i><span>Histórico</span>
+                            </button>
+                            <button onclick="toggleRecView('form')" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-4 py-2 rounded-xl text-xs shadow-sm flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-pen"></i><span>Nova Rec.</span>
                             </button>
                         </div>
                     </div>
 
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
-                        
+                    <!-- TELA 1: FORMULÁRIO DE RECOMENDAÇÃO -->
+                    <div id="rec-form-view" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
                         <div class="grid grid-cols-1 xl:grid-cols-2 gap-6">
                             
-                            <!-- Info Básica (Dados da Aplicação) -->
                             <div class="space-y-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
                                 <span class="text-xs font-black text-slate-700 uppercase block border-b pb-1">Dados da Aplicação</span>
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    
-                                    <!-- Coluna Esquerda: Produtor, Fazenda e Importação de Talhões -->
                                     <div class="space-y-3">
                                         <div class="grid grid-cols-2 gap-2">
                                             <div>
@@ -903,8 +911,6 @@
                                             </select>
                                         </div>
                                     </div>
-                                    
-                                    <!-- Coluna Direita: Cultura, Área e Calda -->
                                     <div class="space-y-3">
                                         <div>
                                             <label class="block text-[10px] font-bold text-slate-500 mb-1">Cultura / Safra</label>
@@ -921,6 +927,7 @@
                                     </div>
                                 </div>
                             </div>
+
                             <div class="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
                                 <span class="text-xs font-black text-blue-800 uppercase block border-b border-blue-200 pb-1">Datas e Clima</span>
                                 <div class="grid grid-cols-2 gap-3 mb-2">
@@ -933,7 +940,6 @@
                                     <div><label class="block text-[10px] font-bold text-slate-500 mb-1">Vento (km/h)</label><input type="text" id="rec_vento" placeholder="3 - 10" class="w-full text-xs font-bold p-2 border rounded-lg"></div>
                                 </div>
                             </div>
-                            
                         </div>
 
                         <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
@@ -973,14 +979,32 @@
                         </div>
 
                         <div class="flex gap-4 pt-4 border-t border-slate-200">
-                            <button onclick="gerarPDFRecomendacao()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i><span>Gerar Laudo PDF</span></button>
+                            <button onclick="gerarPDFRecomendacao()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-file-pdf"></i><span>Salvar e Gerar Laudo PDF</span></button>
                             <button onclick="enviarWhatsAppRecomendacao()" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded-xl text-sm shadow transition-all flex items-center justify-center gap-2"><i class="fa-brands fa-whatsapp text-lg"></i><span>Enviar no WhatsApp</span></button>
                         </div>
                     </div>
-                </div>
-                
-                <div id="pdf-recomendacao-template" style="display:none;"></div>
 
+                    <!-- TELA 2: HISTÓRICO DE RECOMENDAÇÕES -->
+                    <div id="rec-history-view" class="hidden bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-4">
+                        <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                            <table class="w-full text-left border-collapse text-xs">
+                                <thead>
+                                    <tr class="bg-slate-100 text-slate-700 uppercase text-[10px] font-black tracking-wider">
+                                        <th class="p-3">Data</th>
+                                        <th class="p-3">Fazenda / Cliente</th>
+                                        <th class="p-3">Cultura / Área</th>
+                                        <th class="p-3 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rec-table-body" class="divide-y divide-slate-200 font-medium">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                </div>
+                <div id="pdf-recomendacao-template" style="display:none;"></div>
+                    
                 <!-- MÓDULO 6: RELATÓRIO DE VISITA TÉCNICA -->
                 <div id="content-visit" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
                     
@@ -5039,10 +5063,7 @@
         // =========================================================================
         // MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE
         // =========================================================================
-        // =========================================================================
-        // MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE
-        // =========================================================================
-       
+               
         let estoqueFazenda = [];
         let recRowId = 0;
 
@@ -5226,223 +5247,429 @@
             window.open(url, '_blank');
         }
 
-        function gerarPDFRecomendacao() {
-    salvarMemoriaRecomendacao();
-    
-    // 1. Puxar Dados do Formulário Principal
-    const produtor = document.getElementById('rec_produtor').value || 'Não informado';
-    const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
-    const clienteFinal = `${produtor} - ${fazenda}`;
-    
-    const cultura = document.getElementById('rec_cultura').value || 'Não informada';
-    const area = parseFloat(document.getElementById('rec_area').value) || 0;
-    
-    // Datas e Clima
-    const dataVisita = document.getElementById('rec_data_visita').value || '---';
-    const dataAplicacao = document.getElementById('rec_data_aplicacao').value || '---';
-    const temp = document.getElementById('rec_temp').value || '---';
-    const ur = document.getElementById('rec_ur').value || '---';
-    const vento = document.getElementById('rec_vento').value || '---';
-    const obs = document.getElementById('rec_obs').value.trim();
+        async function gerarPDFRecomendacao() {
+            salvarMemoriaRecomendacao();
+            
+            // 1. Puxar Dados do Formulário
+            const produtor = document.getElementById('rec_produtor').value || 'Não informado';
+            const fazenda = document.getElementById('rec_fazenda').value || 'Não informada';
+            const clienteFinal = `${produtor} - ${fazenda}`;
+            
+            const cultura = document.getElementById('rec_cultura').value || 'Não informada';
+            const area = parseFloat(document.getElementById('rec_area').value) || 0;
+            
+            const dataVisita = document.getElementById('rec_data_visita').value || '---';
+            const dataAplicacao = document.getElementById('rec_data_aplicacao').value || '---';
+            const temp = document.getElementById('rec_temp').value || '---';
+            const ur = document.getElementById('rec_ur').value || '---';
+            const vento = document.getElementById('rec_vento').value || '---';
+            const obs = document.getElementById('rec_obs').value.trim();
 
-    // Calibração
-    const modeloEq = document.getElementById('rec_eq_modelo').value || '---';
-    const tanque = parseFloat(document.getElementById('rec_eq_tanque').value) || 0;
-    const vazao = parseFloat(document.getElementById('rec_eq_vazao').value) || 0;
-    const bicoEq = document.getElementById('rec_eq_bico').value || '---';
-    const gotaEq = document.getElementById('rec_eq_gota').value || '---';
-    const pressaoEq = document.getElementById('rec_eq_pressao').value || '---';
-    const haPorTanque = vazao > 0 ? (tanque / vazao) : 0;
+            const modeloEq = document.getElementById('rec_eq_modelo').value || '---';
+            const tanque = parseFloat(document.getElementById('rec_eq_tanque').value) || 0;
+            const vazao = parseFloat(document.getElementById('rec_eq_vazao').value) || 0;
+            const bicoEq = document.getElementById('rec_eq_bico').value || '---';
+            const gotaEq = document.getElementById('rec_eq_gota').value || '---';
+            const pressaoEq = document.getElementById('rec_eq_pressao').value || '---';
+            const haPorTanque = vazao > 0 ? (tanque / vazao) : 0;
 
-    // Pegar os talhões selecionados da lista múltipla
-    const selectTalhoes = document.getElementById('rec_talhoes');
-    const talhoesSelecionados = Array.from(selectTalhoes.selectedOptions).map(opt => opt.value).join(', ') || 'Nenhum';
+            const selectTalhoes = document.getElementById('rec_talhoes');
+            const talhoesSelecionados = Array.from(selectTalhoes.selectedOptions).map(opt => opt.value).join(', ') || 'Nenhum';
 
-    // Puxar a Logo Base64
-    const logoImg = document.getElementById('pdf-logo-origens');
-    const logoSrc = (logoImg && logoImg.src && logoImg.src.length > 100) ? logoImg.src : '';
-    const logoHtml = logoSrc ? `<img src="${logoSrc}" style="height: 55px; object-fit: contain;">` : '<h2 style="font-weight:900; font-size:24px; color:#0f172a;">ORIGENS</h2>';
+            const logoImg = document.getElementById('pdf-logo-origens');
+            const logoSrc = (logoImg && logoImg.src && logoImg.src.length > 100) ? logoImg.src : '';
+            const logoHtml = logoSrc ? `<img src="${logoSrc}" style="height: 55px; object-fit: contain;">` : '<h2 style="font-weight:900; font-size:24px; color:#0f172a;">ORIGENS</h2>';
 
-    // 2. Montar a Tabela de Produtos e Abater do Estoque
-    let linhasHtml = '';
-    let numItens = 0;
-    
-    document.querySelectorAll('[id^="rec-linha-"]').forEach((linha, idx) => {
-        const id = linha.id.replace('rec-linha-', '');
-        const prodBusca = document.getElementById(`rec_prod_${id}`).value || '-';
-        const dose = parseFloat(document.getElementById(`rec_dose_${id}`).value) || 0;
-        const unid = document.getElementById(`rec_unid_${id}`).value || '-';
-        const totalTanque = document.getElementById(`rec_total_${id}`).value || '-';
-        const totalArea = dose * area;
+            let produtosSalvos = [];
+            let linhasHtml = '';
+            let numItens = 0;
+            
+            document.querySelectorAll('[id^="rec-linha-"]').forEach((linha, idx) => {
+                const id = linha.id.replace('rec-linha-', '');
+                const prodBusca = document.getElementById(`rec_prod_${id}`).value || '-';
+                const dose = parseFloat(document.getElementById(`rec_dose_${id}`).value) || 0;
+                const unid = document.getElementById(`rec_unid_${id}`).value || '-';
+                const totalTanque = document.getElementById(`rec_total_${id}`).value || '-';
+                const totalArea = dose * area;
 
-        let nomeFinal = prodBusca;
-        let lote = '-';
-        let validade = '-';
-        
-        // Abater do estoque e pegar os dados reais
-        if (typeof estoqueFazenda !== 'undefined' && estoqueFazenda.length > 0) {
-            const prodEstoque = estoqueFazenda.find(p => {
-                const buscaSemEst = prodBusca.split(' | Est:')[0].trim().toLowerCase();
-                const estoqueSemEst = (p.nomeExibicao || '').split(' | Est:')[0].trim().toLowerCase();
-                if (buscaSemEst === estoqueSemEst && estoqueSemEst !== '') return true;
+                let nomeFinal = prodBusca;
+                let lote = '-';
+                let validade = '-';
                 
-                const buscaSoNome = prodBusca.split(' | ')[0].trim().toLowerCase();
-                const ingredienteLimpo = p.ingrediente.trim().toLowerCase();
-                return buscaSoNome === ingredienteLimpo || ingredienteLimpo.includes(buscaSoNome);
+                // Abater do estoque
+                if (typeof estoqueFazenda !== 'undefined' && estoqueFazenda.length > 0) {
+                    const prodEstoque = estoqueFazenda.find(p => {
+                        const buscaSemEst = prodBusca.split(' | Est:')[0].trim().toLowerCase();
+                        const estoqueSemEst = (p.nomeExibicao || '').split(' | Est:')[0].trim().toLowerCase();
+                        if (buscaSemEst === estoqueSemEst && estoqueSemEst !== '') return true;
+                        const buscaSoNome = prodBusca.split(' | ')[0].trim().toLowerCase();
+                        const ingredienteLimpo = p.ingrediente.trim().toLowerCase();
+                        return buscaSoNome === ingredienteLimpo || ingredienteLimpo.includes(buscaSoNome);
+                    });
+
+                    if (prodEstoque) {
+                        nomeFinal = prodEstoque.ingrediente;
+                        lote = prodEstoque.lote;
+                        validade = prodEstoque.validade;
+                        prodEstoque.volume -= totalArea; 
+                    }
+                }
+
+                let bg = idx % 2 === 0 ? 'background-color: white;' : 'background-color: #f8fafc;';
+                
+                produtosSalvos.push({ nomeFinal, lote, validade, dose, unid, totalTanque, totalArea, bg });
+
+                linhasHtml += `
+                    <tr style="border-bottom: 1px solid #e2e8f0; font-size: 9.5px; ${bg}">
+                        <td style="padding: 6px; border-right: 1px solid #e2e8f0; font-weight: bold; color: #1e293b;">${nomeFinal}</td>
+                        <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; color: #475569;">${lote}<br>${validade}</td>
+                        <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: 500;">${dose.toFixed(2)}</td>
+                        <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: bold; color: #065f46; background-color: #ecfdf5;">${totalTanque} ${unid}</td>
+                        <td style="padding: 6px; text-align: right; font-weight: bold; color: #15803d;">${totalArea.toFixed(1)} ${unid}</td>
+                    </tr>
+                `;
+                numItens++;
             });
 
-            if (prodEstoque) {
-                nomeFinal = prodEstoque.ingrediente;
-                lote = prodEstoque.lote;
-                validade = prodEstoque.validade;
-                prodEstoque.volume -= totalArea; 
+            if (typeof atualizarDatalistEstoque === 'function') atualizarDatalistEstoque();
+            const dataHoje = new Date().toLocaleDateString('pt-BR');
+            const consNome = typeof currentUser !== 'undefined' && currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
+
+            // Template PDF Original
+            let template = `
+                <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white; color: #0f172a; line-height: 1.2;">
+                    <div style="border: 2px solid #1e293b; padding: 12px; margin-bottom: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
+                        <div style="width: 33%; text-align: left;">${logoHtml}</div>
+                        <div style="width: 66%; text-align: right;">
+                            <h2 style="font-size: 16px; font-weight: 900; color: #0f172a; letter-spacing: 0.05em; margin: 0;">RELATÓRIO DE VISITA TÉCNICA</h2>
+                            <p style="font-size: 10px; color: #475569; font-weight: bold; margin: 4px 0 0 0;">RECOMENDAÇÃO DE APLICAÇÃO DE DEFENSIVOS</p>
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 6px; margin-bottom: 8px; font-weight: bold; font-size: 11px;">
+                        <span>FAZENDA/CLIENTE: <span style="color: #15803d; text-transform: uppercase;">${clienteFinal}</span></span>
+                        <span>DATA DA EMISSÃO: <span style="color: #dc2626;">${dataHoje}</span></span>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; font-size: 10px; background: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                        <div style="grid-column: span 2;"><strong>TALHÃO(ÕES):</strong> ${talhoesSelecionados}</div>
+                        <div><strong>ÁREA TOTAL (ha):</strong> ${area}</div>
+                        <div><strong>CULTURA:</strong> ${cultura}</div>
+                        <div><strong>DATA VISITA:</strong> ${dataVisita}</div>
+                        <div><strong>DATA APLICAÇÃO:</strong> ${dataAplicacao}</div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">ESPECIFICAÇÕES DA CALIBRAÇÃO DO EQUIPAMENTO</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
+                            <div><strong>MODELO:</strong> ${modeloEq}</div>
+                            <div><strong>CAP. TANQUE:</strong> ${tanque} L</div>
+                            <div><strong>VAZÃO:</strong> ${vazao} L/ha</div>
+                            <div><strong>BICO:</strong> ${bicoEq}</div>
+                            <div><strong>TIPO GOTA:</strong> ${gotaEq}</div>
+                            <div><strong>PRESSÃO:</strong> ${pressaoEq} PSI</div>
+                            <div style="grid-column: span 3; background: #fffbeb; padding: 4px; font-weight: bold; color: #78350f; border-top: 1px solid #e2e8f0; text-align: center; margin-top: 4px;">RENDIMENTO CALCULADO: ${haPorTanque.toFixed(1)} HA / TANQUE</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">CONDIÇÕES AMBIENTAIS MÍNIMAS PARA APLICAÇÃO</div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
+                            <div><strong>UMIDADE:</strong> ${ur}</div>
+                            <div><strong>VENTO:</strong> ${vento}</div>
+                            <div><strong>TEMP.:</strong> ${temp}</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                            <span>PRODUTOS RECOMENDADOS</span><span style="font-size: 8px; color: #6ee7b7; font-family: monospace;">${numItens} ITENS</span>
+                        </div>
+                        <table style="width: 100%; text-align: left; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 8.5px;">
+                            <thead>
+                                <tr style="background: #e2e8f0; color: #1e293b; font-weight: bold; border-bottom: 1px solid #cbd5e1;">
+                                    <th style="padding: 6px; border-right: 1px solid #cbd5e1;">PRODUTO</th>
+                                    <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">LOTE / VAL.</th>
+                                    <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">DOSE (/ha)</th>
+                                    <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center; background: #d1fae5;">TOTAL / TANQUE</th>
+                                    <th style="padding: 6px; text-align: right;">TOTAL P/ ÁREA</th>
+                                </tr>
+                            </thead>
+                            <tbody>${linhasHtml}</tbody>
+                        </table>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">OBSERVAÇÕES TÉCNICAS</div>
+                        <div style="border: 1px solid #e2e8f0; padding: 8px; background: #f8fafc; font-size: 9.5px; color: #334155; min-height: 40px; white-space: pre-line;">${obs || 'Nenhuma observação inserida.'}</div>
+                    </div>
+                    <div style="margin-bottom: 12px;">
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 8.5px; letter-spacing: 0.05em; margin-bottom: 4px;">PRECAUÇÕES DE USO E SEGURANÇA</div>
+                        <ol style="padding-left: 14px; font-size: 7.5px; color: #334155; margin: 4px 0; font-weight: 500;">
+                            <li style="margin-bottom: 2px;">Antes de iniciar o manuseio dos produtos, leia atenciosamente as instruções do rótulo e/ou bula.</li>
+                            <li style="margin-bottom: 2px;">Use os equipamentos de proteção individual (EPI) recomendados.</li>
+                            <li style="margin-bottom: 2px;">Ao fazer a aferição do equipamento de aplicação, utilize água limpa e verifique se há vazamentos.</li>
+                            <li style="margin-bottom: 2px;">Faça a tríplice lavagem ou lavagem sob pressão das embalagens vazias e descarte corretamente.</li>
+                            <li style="margin-bottom: 2px;">Não reutilize a embalagem vazia. Mantenha sobras nas embalagens originais fechadas em local trancado.</li>
+                            <li style="margin-bottom: 2px;">Não coma, não beba e não fume durante o manuseio do produto. Não manuseie com mãos desprotegidas.</li>
+                            <li style="margin-bottom: 2px;">Após o manuseio/aplicação dos produtos tome banho, troque e lave as suas roupas.</li>
+                        </ol>
+                    </div>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 16px; font-size: 9px;">
+                        <div style="text-align: center;">
+                            <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">${consNome}</div>
+                            <div style="font-size: 8px; color: #64748b;">Responsável Técnico / CREA</div>
+                        </div>
+                        <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end;">
+                            <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">PRODUTOR / CLIENTE</div>
+                            <div style="font-size: 8px; color: #64748b;">Responsável Operacional</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Encontrar farmId real para segurança do banco (só quem tem permissão enxerga depois)
+            let farmIdReal = 'all';
+            if (typeof farmsDatabase !== 'undefined') {
+                for (let key in farmsDatabase) {
+                    if (farmsDatabase[key].name.toLowerCase() === fazenda.toLowerCase()) { farmIdReal = key; break; }
+                }
+            }
+
+            const record = {
+                farmId: farmIdReal,
+                farmName: fazenda,
+                producer: produtor,
+                cultura: cultura,
+                area: area,
+                dataVisita, dataAplicacao, temp, ur, vento, obs,
+                modeloEq, tanque, vazao, bicoEq, gotaEq, pressaoEq, haPorTanque,
+                talhoesSelecionados,
+                produtos: produtosSalvos,
+                consultor: consNome,
+                numItens: numItens,
+                createdAt: new Date().toISOString()
+            };
+
+            try {
+                await db.collection("agronomic_recommendations").add(record);
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = template;
+
+                const nomeFazendaLimpo = fazenda.split(' ').join('_');
+                const dataLimpa = dataHoje.split('/').join('-');
+                const opt = { margin: 0, filename: `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+
+                html2pdf().set(opt).from(tempDiv).save();
+
+                alert("Recomendação salva no histórico e PDF gerado com sucesso!");
+                toggleRecView('history');
+                loadRecHistory();
+
+            } catch(e) {
+                console.error(e);
+                alert("Erro ao salvar recomendação na nuvem: " + e.message);
             }
         }
 
-        // Estilo Inline na Tabela para garantir renderização no HTML2PDF
-        let bg = idx % 2 === 0 ? 'background-color: white;' : 'background-color: #f8fafc;';
-        linhasHtml += `
-            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 9.5px; ${bg}">
-                <td style="padding: 6px; border-right: 1px solid #e2e8f0; font-weight: bold; color: #1e293b;">${nomeFinal}</td>
-                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; color: #475569;">${lote}<br>${validade}</td>
-                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: 500;">${dose.toFixed(2)}</td>
-                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: bold; color: #065f46; background-color: #ecfdf5;">${totalTanque} ${unid}</td>
-                <td style="padding: 6px; text-align: right; font-weight: bold; color: #15803d;">${totalArea.toFixed(1)} ${unid}</td>
-            </tr>
-        `;
-        numItens++;
-    });
+        async function loadRecHistory() {
+            const tbody = document.getElementById('rec-table-body');
+            if (!tbody) return;
 
-    if (typeof atualizarDatalistEstoque === 'function') atualizarDatalistEstoque();
-    const dataHoje = new Date().toLocaleDateString('pt-BR');
-    const consNome = typeof currentUser !== 'undefined' && currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
+            tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico na nuvem...</td></tr>`;
 
-    // 3. NOVO TEMPLATE DO PDF COM ESTILOS INLINE (Resolve a tela em branco!)
-    let template = `
-        <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white; color: #0f172a; line-height: 1.2;">
-            
-            <div style="border: 2px solid #1e293b; padding: 12px; margin-bottom: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
-                <div style="width: 33%; text-align: left;">
-                    ${logoHtml}
-                </div>
-                <div style="width: 66%; text-align: right;">
-                    <h2 style="font-size: 16px; font-weight: 900; color: #0f172a; letter-spacing: 0.05em; margin: 0;">RELATÓRIO DE VISITA TÉCNICA</h2>
-                    <p style="font-size: 10px; color: #475569; font-weight: bold; margin: 4px 0 0 0;">RECOMENDAÇÃO DE APLICAÇÃO DE DEFENSIVOS</p>
-                </div>
-            </div>
+            try {
+                const snapshot = await db.collection("agronomic_recommendations").get();
+                let relatorios = [];
 
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 6px; margin-bottom: 8px; font-weight: bold; font-size: 11px;">
-                <span>FAZENDA/CLIENTE: <span style="color: #15803d; text-transform: uppercase;">${clienteFinal}</span></span>
-                <span>DATA DA EMISSÃO: <span style="color: #dc2626;">${dataHoje}</span></span>
-            </div>
+                snapshot.forEach(doc => {
+                    const d = doc.data();
+                    if (currentUserRole !== 'admin' && !currentUserAllowedFarms.includes('all')) {
+                        if (!currentUserAllowedFarms.includes(d.farmId)) return;
+                    }
+                    relatorios.push({ id: doc.id, ...d });
+                });
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; font-size: 10px; background: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px;">
-                <div style="grid-column: span 2;"><strong>TALHÃO(ÕES):</strong> ${talhoesSelecionados}</div>
-                <div><strong>ÁREA TOTAL (ha):</strong> ${area}</div>
-                <div><strong>CULTURA:</strong> ${cultura}</div>
-                <div><strong>DATA VISITA:</strong> ${dataVisita}</div>
-                <div><strong>DATA APLICAÇÃO:</strong> ${dataAplicacao}</div>
-            </div>
+                if (relatorios.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum histórico encontrado para as suas fazendas.</td></tr>`;
+                    return;
+                }
 
-            <div style="margin-bottom: 12px;">
-                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
-                    ESPECIFICAÇÕES DA CALIBRAÇÃO DO EQUIPAMENTO
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
-                    <div><strong>MODELO:</strong> ${modeloEq}</div>
-                    <div><strong>CAP. TANQUE:</strong> ${tanque} L</div>
-                    <div><strong>VAZÃO:</strong> ${vazao} L/ha</div>
-                    <div><strong>BICO:</strong> ${bicoEq}</div>
-                    <div><strong>TIPO GOTA:</strong> ${gotaEq}</div>
-                    <div><strong>PRESSÃO:</strong> ${pressaoEq} PSI</div>
-                    <div style="grid-column: span 3; background: #fffbeb; padding: 4px; font-weight: bold; color: #78350f; border-top: 1px solid #e2e8f0; text-align: center; margin-top: 4px;">
-                        RENDIMENTO CALCULADO: ${haPorTanque.toFixed(1)} HA / TANQUE
-                    </div>
-                </div>
-            </div>
+                relatorios.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-            <div style="margin-bottom: 12px;">
-                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
-                    CONDIÇÕES AMBIENTAIS MÍNIMAS PARA APLICAÇÃO
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
-                    <div><strong>UMIDADE:</strong> ${ur}</div>
-                    <div><strong>VENTO:</strong> ${vento}</div>
-                    <div><strong>TEMP.:</strong> ${temp}</div>
-                </div>
-            </div>
+                let html = '';
+                relatorios.forEach(data => {
+                    const dataFormatada = data.createdAt ? new Date(data.createdAt).toLocaleDateString('pt-BR') : '-';
 
-            <div style="margin-bottom: 12px;">
-                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                    <span>PRODUTOS RECOMENDADOS</span>
-                    <span style="font-size: 8px; color: #6ee7b7; font-family: monospace;">${numItens} ITENS</span>
-                </div>
-                <table style="width: 100%; text-align: left; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 8.5px;">
-                    <thead>
-                        <tr style="background: #e2e8f0; color: #1e293b; font-weight: bold; border-bottom: 1px solid #cbd5e1;">
-                            <th style="padding: 6px; border-right: 1px solid #cbd5e1;">PRODUTO</th>
-                            <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">LOTE / VAL.</th>
-                            <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">DOSE (/ha)</th>
-                            <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center; background: #d1fae5;">TOTAL / TANQUE</th>
-                            <th style="padding: 6px; text-align: right;">TOTAL P/ ÁREA</th>
+                    let acoesHtml = `<button onclick="baixarPdfHistoricoRecomendacao('${data.id}')" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-file-pdf mr-1"></i> PDF</button>`;
+
+                    if (currentUserRole === 'admin') {
+                        acoesHtml += `<button onclick="deletarRecomendacao('${data.id}')" class="text-red-500 hover:text-red-700 px-3 py-1.5 bg-red-50 rounded-lg font-bold transition-all" title="Excluir"><i class="fa-solid fa-trash"></i></button>`;
+                    }
+
+                    html += `
+                        <tr class="hover:bg-slate-50 border-b border-slate-200">
+                            <td class="p-3 font-semibold text-slate-800">${dataFormatada}</td>
+                            <td class="p-3 font-bold text-slate-700">${data.farmName || '-'} <br> <span class="text-[10px] font-medium text-slate-500">Produtor: ${data.producer || '-'}</span></td>
+                            <td class="p-3 text-slate-600 font-medium">${data.cultura || '-'} <br> <span class="text-[10px] text-emerald-700 font-bold">Área: ${data.area || 0} ha</span></td>
+                            <td class="p-3 text-right">${acoesHtml}</td>
                         </tr>
-                    </thead>
-                    <tbody>${linhasHtml}</tbody>
-                </table>
-            </div>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } catch (error) {
+                console.error(error);
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico.</td></tr>`;
+            }
+        }
 
-            <div style="margin-bottom: 12px;">
-                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
-                    OBSERVAÇÕES TÉCNICAS
-                </div>
-                <div style="border: 1px solid #e2e8f0; padding: 8px; background: #f8fafc; font-size: 9.5px; color: #334155; min-height: 40px; white-space: pre-line;">
-                    ${obs || 'Nenhuma observação inserida.'}
-                </div>
-            </div>
+        async function baixarPdfHistoricoRecomendacao(docId) {
+            try {
+                const doc = await db.collection("agronomic_recommendations").doc(docId).get();
+                if(!doc.exists) { alert("Não encontrado no banco de dados."); return; }
+                const d = doc.data();
 
-            <div style="margin-bottom: 12px;">
-                <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 8.5px; letter-spacing: 0.05em; margin-bottom: 4px;">
-                    PRECAUÇÕES DE USO E SEGURANÇA
-                </div>
-                <ol style="padding-left: 14px; font-size: 7.5px; color: #334155; margin: 4px 0; font-weight: 500;">
-                    <li style="margin-bottom: 2px;">Antes de iniciar o manuseio dos produtos, leia atenciosamente as instruções do rótulo e/ou bula.</li>
-                    <li style="margin-bottom: 2px;">Use os equipamentos de proteção individual (EPI) recomendados.</li>
-                    <li style="margin-bottom: 2px;">Ao fazer a aferição do equipamento de aplicação, utilize água limpa e verifique se há vazamentos.</li>
-                    <li style="margin-bottom: 2px;">Faça a tríplice lavagem ou lavagem sob pressão das embalagens vazias e descarte corretamente.</li>
-                    <li style="margin-bottom: 2px;">Não reutilize a embalagem vazia. Mantenha sobras nas embalagens originais fechadas em local trancado.</li>
-                    <li style="margin-bottom: 2px;">Não coma, não beba e não fume durante o manuseio do produto. Não manuseie com mãos desprotegidas.</li>
-                    <li style="margin-bottom: 2px;">Após o manuseio/aplicação dos produtos tome banho, troque e lave as suas roupas.</li>
-                </ol>
-            </div>
+                const dataHoje = new Date(d.createdAt).toLocaleDateString('pt-BR');
+                const clienteFinal = `${d.producer} - ${d.farmName}`;
+                
+                const logoImg = document.getElementById('pdf-logo-origens');
+                const logoSrc = (logoImg && logoImg.src && logoImg.src.length > 100) ? logoImg.src : '';
+                const logoHtml = logoSrc ? `<img src="${logoSrc}" style="height: 55px; object-fit: contain;">` : '<h2 style="font-weight:900; font-size:24px; color:#0f172a;">ORIGENS</h2>';
 
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 16px; font-size: 9px;">
-                <div style="text-align: center;">
-                    <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">${consNome}</div>
-                    <div style="font-size: 8px; color: #64748b;">Responsável Técnico / CREA</div>
-                </div>
-                <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end;">
-                    <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">PRODUTOR / CLIENTE</div>
-                    <div style="font-size: 8px; color: #64748b;">Responsável Operacional</div>
-                </div>
-            </div>
-        </div>
-    `;
+                let linhasHtml = '';
+                if(d.produtos) {
+                    d.produtos.forEach(p => {
+                        linhasHtml += `
+                            <tr style="border-bottom: 1px solid #e2e8f0; font-size: 9.5px; ${p.bg}">
+                                <td style="padding: 6px; border-right: 1px solid #e2e8f0; font-weight: bold; color: #1e293b;">${p.nomeFinal}</td>
+                                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; color: #475569;">${p.lote}<br>${p.validade}</td>
+                                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: 500;">${Number(p.dose).toFixed(2)}</td>
+                                <td style="padding: 6px; border-right: 1px solid #e2e8f0; text-align: center; font-weight: bold; color: #065f46; background-color: #ecfdf5;">${p.totalTanque} ${p.unid}</td>
+                                <td style="padding: 6px; text-align: right; font-weight: bold; color: #15803d;">${Number(p.totalArea).toFixed(1)} ${p.unid}</td>
+                            </tr>
+                        `;
+                    });
+                }
 
-    // 4. Configurar e Gerar PDF
-    const nomeFazendaLimpo = fazenda.split(' ').join('_');
-    const dataLimpa = dataHoje.split('/').join('-');
-    
-    const opt = {
-        margin: 0,
-        filename: `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+                let template = `
+                    <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white; color: #0f172a; line-height: 1.2;">
+                        <div style="border: 2px solid #1e293b; padding: 12px; margin-bottom: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
+                            <div style="width: 33%; text-align: left;">${logoHtml}</div>
+                            <div style="width: 66%; text-align: right;">
+                                <h2 style="font-size: 16px; font-weight: 900; color: #0f172a; letter-spacing: 0.05em; margin: 0;">RELATÓRIO DE VISITA TÉCNICA</h2>
+                                <p style="font-size: 10px; color: #475569; font-weight: bold; margin: 4px 0 0 0;">RECOMENDAÇÃO DE APLICAÇÃO DE DEFENSIVOS</p>
+                            </div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 6px; margin-bottom: 8px; font-weight: bold; font-size: 11px;">
+                            <span>FAZENDA/CLIENTE: <span style="color: #15803d; text-transform: uppercase;">${clienteFinal}</span></span>
+                            <span>DATA DA EMISSÃO: <span style="color: #dc2626;">${dataHoje}</span></span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; font-size: 10px; background: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px;">
+                            <div style="grid-column: span 2;"><strong>TALHÃO(ÕES):</strong> ${d.talhoesSelecionados}</div>
+                            <div><strong>ÁREA TOTAL (ha):</strong> ${d.area}</div>
+                            <div><strong>CULTURA:</strong> ${d.cultura}</div>
+                            <div><strong>DATA VISITA:</strong> ${d.dataVisita}</div>
+                            <div><strong>DATA APLICAÇÃO:</strong> ${d.dataAplicacao}</div>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">ESPECIFICAÇÕES DA CALIBRAÇÃO DO EQUIPAMENTO</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
+                                <div><strong>MODELO:</strong> ${d.modeloEq}</div>
+                                <div><strong>CAP. TANQUE:</strong> ${d.tanque} L</div>
+                                <div><strong>VAZÃO:</strong> ${d.vazao} L/ha</div>
+                                <div><strong>BICO:</strong> ${d.bicoEq}</div>
+                                <div><strong>TIPO GOTA:</strong> ${d.gotaEq}</div>
+                                <div><strong>PRESSÃO:</strong> ${d.pressaoEq} PSI</div>
+                                <div style="grid-column: span 3; background: #fffbeb; padding: 4px; font-weight: bold; color: #78350f; border-top: 1px solid #e2e8f0; text-align: center; margin-top: 4px;">RENDIMENTO CALCULADO: ${Number(d.haPorTanque).toFixed(1)} HA / TANQUE</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">CONDIÇÕES AMBIENTAIS MÍNIMAS PARA APLICAÇÃO</div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
+                                <div><strong>UMIDADE:</strong> ${d.ur}</div>
+                                <div><strong>VENTO:</strong> ${d.vento}</div>
+                                <div><strong>TEMP.:</strong> ${d.temp}</div>
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+                                <span>PRODUTOS RECOMENDADOS</span><span style="font-size: 8px; color: #6ee7b7; font-family: monospace;">${d.numItens} ITENS</span>
+                            </div>
+                            <table style="width: 100%; text-align: left; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 8.5px;">
+                                <thead>
+                                    <tr style="background: #e2e8f0; color: #1e293b; font-weight: bold; border-bottom: 1px solid #cbd5e1;">
+                                        <th style="padding: 6px; border-right: 1px solid #cbd5e1;">PRODUTO</th>
+                                        <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">LOTE / VAL.</th>
+                                        <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center;">DOSE (/ha)</th>
+                                        <th style="padding: 6px; border-right: 1px solid #cbd5e1; text-align: center; background: #d1fae5;">TOTAL / TANQUE</th>
+                                        <th style="padding: 6px; text-align: right;">TOTAL P/ ÁREA</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${linhasHtml}</tbody>
+                            </table>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">OBSERVAÇÕES TÉCNICAS</div>
+                            <div style="border: 1px solid #e2e8f0; padding: 8px; background: #f8fafc; font-size: 9.5px; color: #334155; min-height: 40px; white-space: pre-line;">${d.obs || 'Nenhuma observação inserida.'}</div>
+                        </div>
+                        <div style="margin-bottom: 12px;">
+                            <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 8.5px; letter-spacing: 0.05em; margin-bottom: 4px;">PRECAUÇÕES DE USO E SEGURANÇA</div>
+                            <ol style="padding-left: 14px; font-size: 7.5px; color: #334155; margin: 4px 0; font-weight: 500;">
+                                <li style="margin-bottom: 2px;">Antes de iniciar o manuseio dos produtos, leia atenciosamente as instruções do rótulo e/ou bula.</li>
+                                <li style="margin-bottom: 2px;">Use os equipamentos de proteção individual (EPI) recomendados.</li>
+                                <li style="margin-bottom: 2px;">Ao fazer a aferição do equipamento de aplicação, utilize água limpa e verifique se há vazamentos.</li>
+                                <li style="margin-bottom: 2px;">Faça a tríplice lavagem ou lavagem sob pressão das embalagens vazias e descarte corretamente.</li>
+                                <li style="margin-bottom: 2px;">Não reutilize a embalagem vazia. Mantenha sobras nas embalagens originais fechadas em local trancado.</li>
+                                <li style="margin-bottom: 2px;">Não coma, não beba e não fume durante o manuseio do produto. Não manuseie com mãos desprotegidas.</li>
+                                <li style="margin-bottom: 2px;">Após o manuseio/aplicação dos produtos tome banho, troque e lave as suas roupas.</li>
+                            </ol>
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 16px; font-size: 9px;">
+                            <div style="text-align: center;">
+                                <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">${d.consultor}</div>
+                                <div style="font-size: 8px; color: #64748b;">Responsável Técnico / CREA</div>
+                            </div>
+                            <div style="text-align: center; display: flex; flex-direction: column; justify-content: flex-end;">
+                                <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">PRODUTOR / CLIENTE</div>
+                                <div style="font-size: 8px; color: #64748b;">Responsável Operacional</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = template;
 
-    // A MÁGICA ESTÁ AQUI: passamos o template gigante direto para o gerador de PDF
-    html2pdf().set(opt).from(template).save();
-}
+                const nomeFazendaLimpo = d.farmName.split(' ').join('_');
+                const dataLimpa = dataHoje.split('/').join('-');
+                
+                const opt = {
+                    margin: 0,
+                    filename: `Recomendacao_${nomeFazendaLimpo}_${dataLimpa}.pdf`,
+                    image: { type: 'jpeg', quality: 0.98 },
+                    html2canvas: { scale: 2, useCORS: true },
+                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+
+                html2pdf().set(opt).from(tempDiv).save();
+
+            } catch(e) {
+                console.error(e);
+                alert("Erro ao baixar PDF do histórico.");
+            }
+        }
+
+        async function deletarRecomendacao(id) {
+            if (currentUserRole !== 'admin') {
+                alert("Apenas administradores podem excluir o histórico de recomendações.");
+                return;
+            }
+            if (confirm("Deseja realmente excluir esta recomendação permanentemente?")) {
+                try {
+                    await db.collection("agronomic_recommendations").doc(id).delete();
+                    alert("Excluído com sucesso!");
+                    loadRecHistory();
+                } catch (err) {
+                    console.error(err);
+                    alert("Erro ao excluir do banco de dados.");
+                }
+            }
+        }
         function baixarEstoqueAtualizado() {
             if (estoqueFazenda.length === 0) {
                 alert("Nenhum estoque importado na memória para ser baixado.");
