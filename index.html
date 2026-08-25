@@ -346,20 +346,19 @@
                             </div>
 
                             <div class="space-y-2 pt-2 border-t border-slate-200">
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="chk-boundary" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
-                                </label>
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="chk-labels" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
-                                </label>
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="chk-values" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Valores do Parâmetro</span>
-                                </label>
-                            </div>
-                        </div>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="chk-boundary" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+        <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
+    </label>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="chk-labels" onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+        <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
+    </label>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="chk-values" onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+        <span class="text-sm font-semibold text-slate-700">Valores do Parâmetro</span>
+    </label>
+</div>
 
                         <div class="space-y-2 mt-4">
                             <button id="btn-export-pdf" onclick="generatePerfectPDF()" class="w-full bg-origens-green hover:bg-origens-dark text-white font-bold p-3 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs">
@@ -437,20 +436,20 @@
 
                             <!-- CONTROLES DE RÓTULO DO MAPA DE TAXA VARIÁVEL -->
                             <div class="space-y-2 pt-2 border-t border-amber-200">
-                                <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">Camadas & Rótulos no Mapa/PDF</span>
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="vrate-chk-boundary" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
-                                </label>
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="vrate-chk-labels" onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
-                                </label>
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="vrate-chk-values" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Valores das Doses</span>
-                                </label>
-                            </div>
+    <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">Camadas & Rótulos no Mapa/PDF</span>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="vrate-chk-boundary" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
+        <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
+    </label>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="vrate-chk-labels" onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
+        <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
+    </label>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="vrate-chk-values" onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
+        <span class="text-sm font-semibold text-slate-700">Valores das Doses</span>
+    </label>
+</div>
 
                             <!-- RESUMO DA APLICAÇÃO -->
                             <div id="vrate-summary-box" class="bg-slate-900 text-white p-4 rounded-2xl space-y-2 hidden">
@@ -568,27 +567,26 @@
 
                             <!-- CONTROLES DO MODO DE VISUALIZAÇÃO DO MAPA -->
                             <div class="space-y-2 pt-2 border-t border-emerald-200">
-                                <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">Modo de Exibição do Mapa</span>
-                                <div>
-                                    <select id="seeds-view-mode" onchange="seedsUpdateMap()" class="w-full bg-slate-50 border border-emerald-300 rounded-xl p-2 text-xs font-bold text-slate-800">
-                                        <option value="dose" selected>Mapa por População / Doses (sem/ha)</option>
-                                        <option value="cultivar">Mapa por Cultivar / Variedade</option>
-                                    </select>
-                                </div>
-                                <label class="flex items-center space-x-3 cursor-pointer pt-1">
-                                    <input type="checkbox" id="seeds-chk-boundary" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
-                                </label>
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="seeds-chk-labels" onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
-                                    <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
-                                </label>
-                                <label class="flex items-center space-x-3 cursor-pointer">
-                                    <input type="checkbox" id="seeds-chk-values" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
-                                    <span class="text-sm font-semibold text-slate-700">População / Cultivares</span>
-                                </label>
-                            </div>
-
+    <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">Modo de Exibição do Mapa</span>
+    <div>
+        <select id="seeds-view-mode" onchange="seedsUpdateMap()" class="w-full bg-slate-50 border border-emerald-300 rounded-xl p-2 text-xs font-bold text-slate-800">
+            <option value="dose" selected>Mapa por População / Doses (sem/ha)</option>
+            <option value="cultivar">Mapa por Cultivar / Variedade</option>
+        </select>
+    </div>
+    <label class="flex items-center space-x-3 cursor-pointer pt-1">
+        <input type="checkbox" id="seeds-chk-boundary" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
+        <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
+    </label>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="seeds-chk-labels" onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
+        <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
+    </label>
+    <label class="flex items-center space-x-3 cursor-pointer">
+        <input type="checkbox" id="seeds-chk-values" onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
+        <span class="text-sm font-semibold text-slate-700">População / Cultivares</span>
+    </label>
+</div>
                             <!-- RESUMO DO PLANTIO DE SEMENTES -->
                             <div id="seeds-summary-box" class="bg-slate-900 text-white p-4 rounded-2xl space-y-2 hidden">
                                 <span class="text-xs font-black text-emerald-400 uppercase block border-b border-slate-800 pb-1">Resumo do Plantio</span>
