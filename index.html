@@ -5267,16 +5267,19 @@
         }
 
         function toggleRecView(view) {
+            const formView = document.getElementById('rec-form-view');
+            const historyView = document.getElementById('rec-history-view');
+            
             if (view === 'form') {
-                document.getElementById('rec-form-view').classList.remove('hidden');
-                document.getElementById('rec-history-view').classList.add('hidden');
+                if (formView) formView.style.display = 'flex';
+                if (historyView) historyView.style.display = 'none';
             } else {
-                document.getElementById('rec-form-view').classList.add('hidden');
-                document.getElementById('rec-history-view').classList.remove('hidden');
+                if (formView) formView.style.display = 'none';
+                if (historyView) historyView.style.display = 'flex';
             }
         }
+
         async function gerarPDFRecomendacao() {
-                       
             // 1. Puxar Dados do Formulário
             const produtor = document.getElementById('rec-sel-producer').value || 'Não informado';
             const farmKey = document.getElementById('rec-sel-farm').value;
@@ -5326,12 +5329,13 @@
                 let lote = '-';
                 let validade = '-';
                 
-                // Abater do estoque
+                // Abater do estoque e pegar os dados reais
                 if (typeof estoqueFazenda !== 'undefined' && estoqueFazenda.length > 0) {
                     const prodEstoque = estoqueFazenda.find(p => {
                         const buscaSemEst = prodBusca.split(' | Est:')[0].trim().toLowerCase();
                         const estoqueSemEst = (p.nomeExibicao || '').split(' | Est:')[0].trim().toLowerCase();
                         if (buscaSemEst === estoqueSemEst && estoqueSemEst !== '') return true;
+                        
                         const buscaSoNome = prodBusca.split(' | ')[0].trim().toLowerCase();
                         const ingredienteLimpo = p.ingrediente.trim().toLowerCase();
                         return buscaSoNome === ingredienteLimpo || ingredienteLimpo.includes(buscaSoNome);
@@ -5365,20 +5369,24 @@
             const dataHoje = new Date().toLocaleDateString('pt-BR');
             const consNome = typeof currentUser !== 'undefined' && currentUser ? (currentUser.displayName || currentUser.email) : 'Consultor Responsável';
 
-            // Template PDF Original
             let template = `
                 <div style="width: 210mm; min-height: 297mm; padding: 15mm; font-family: Helvetica, Arial, sans-serif; box-sizing: border-box; background: white; color: #0f172a; line-height: 1.2;">
+                    
                     <div style="border: 2px solid #1e293b; padding: 12px; margin-bottom: 12px; background: #f8fafc; display: flex; align-items: center; justify-content: space-between;">
-                        <div style="width: 33%; text-align: left;">${logoHtml}</div>
+                        <div style="width: 33%; text-align: left;">
+                            ${logoHtml}
+                        </div>
                         <div style="width: 66%; text-align: right;">
                             <h2 style="font-size: 16px; font-weight: 900; color: #0f172a; letter-spacing: 0.05em; margin: 0;">RELATÓRIO DE VISITA TÉCNICA</h2>
                             <p style="font-size: 10px; color: #475569; font-weight: bold; margin: 4px 0 0 0;">RECOMENDAÇÃO DE APLICAÇÃO DE DEFENSIVOS</p>
                         </div>
                     </div>
+
                     <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1e293b; padding-bottom: 6px; margin-bottom: 8px; font-weight: bold; font-size: 11px;">
                         <span>FAZENDA/CLIENTE: <span style="color: #15803d; text-transform: uppercase;">${clienteFinal}</span></span>
                         <span>DATA DA EMISSÃO: <span style="color: #dc2626;">${dataHoje}</span></span>
                     </div>
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 12px; font-size: 10px; background: #f8fafc; padding: 8px; border: 1px solid #e2e8f0; border-radius: 4px;">
                         <div style="grid-column: span 2;"><strong>TALHÃO(ÕES):</strong> ${talhoesSelecionados}</div>
                         <div><strong>ÁREA TOTAL (ha):</strong> ${area}</div>
@@ -5386,8 +5394,11 @@
                         <div><strong>DATA VISITA:</strong> ${dataVisita}</div>
                         <div><strong>DATA APLICAÇÃO:</strong> ${dataAplicacao}</div>
                     </div>
+
                     <div style="margin-bottom: 12px;">
-                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">ESPECIFICAÇÕES DA CALIBRAÇÃO DO EQUIPAMENTO</div>
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
+                            ESPECIFICAÇÕES DA CALIBRAÇÃO DO EQUIPAMENTO
+                        </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
                             <div><strong>MODELO:</strong> ${modeloEq}</div>
                             <div><strong>CAP. TANQUE:</strong> ${tanque} L</div>
@@ -5395,20 +5406,27 @@
                             <div><strong>BICO:</strong> ${bicoEq}</div>
                             <div><strong>TIPO GOTA:</strong> ${gotaEq}</div>
                             <div><strong>PRESSÃO:</strong> ${pressaoEq} PSI</div>
-                            <div style="grid-column: span 3; background: #fffbeb; padding: 4px; font-weight: bold; color: #78350f; border-top: 1px solid #e2e8f0; text-align: center; margin-top: 4px;">RENDIMENTO CALCULADO: ${haPorTanque.toFixed(1)} HA / TANQUE</div>
+                            <div style="grid-column: span 3; background: #fffbeb; padding: 4px; font-weight: bold; color: #78350f; border-top: 1px solid #e2e8f0; text-align: center; margin-top: 4px;">
+                                RENDIMENTO CALCULADO: ${haPorTanque.toFixed(1)} HA / TANQUE
+                            </div>
                         </div>
                     </div>
+
                     <div style="margin-bottom: 12px;">
-                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">CONDIÇÕES AMBIENTAIS MÍNIMAS PARA APLICAÇÃO</div>
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
+                            CONDIÇÕES AMBIENTAIS MÍNIMAS PARA APLICAÇÃO
+                        </div>
                         <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; font-size: 9.5px; border: 1px solid #e2e8f0; padding: 6px; background: #f8fafc;">
                             <div><strong>UMIDADE:</strong> ${ur}</div>
                             <div><strong>VENTO:</strong> ${vento}</div>
                             <div><strong>TEMP.:</strong> ${temp}</div>
                         </div>
                     </div>
+
                     <div style="margin-bottom: 12px;">
                         <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-                            <span>PRODUTOS RECOMENDADOS</span><span style="font-size: 8px; color: #6ee7b7; font-family: monospace;">${numItens} ITENS</span>
+                            <span>PRODUTOS RECOMENDADOS</span>
+                            <span style="font-size: 8px; color: #6ee7b7; font-family: monospace;">${numItens} ITENS</span>
                         </div>
                         <table style="width: 100%; text-align: left; border-collapse: collapse; border: 1px solid #cbd5e1; font-size: 8.5px;">
                             <thead>
@@ -5423,12 +5441,20 @@
                             <tbody>${linhasHtml}</tbody>
                         </table>
                     </div>
+
                     <div style="margin-bottom: 12px;">
-                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">OBSERVAÇÕES TÉCNICAS</div>
-                        <div style="border: 1px solid #e2e8f0; padding: 8px; background: #f8fafc; font-size: 9.5px; color: #334155; min-height: 40px; white-space: pre-line;">${obs || 'Nenhuma observação inserida.'}</div>
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 9px; letter-spacing: 0.05em; margin-bottom: 4px;">
+                            OBSERVAÇÕES TÉCNICAS
+                        </div>
+                        <div style="border: 1px solid #e2e8f0; padding: 8px; background: #f8fafc; font-size: 9.5px; color: #334155; min-height: 40px; white-space: pre-line;">
+                            ${obs || 'Nenhuma observação inserida.'}
+                        </div>
                     </div>
+
                     <div style="margin-bottom: 12px;">
-                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 8.5px; letter-spacing: 0.05em; margin-bottom: 4px;">PRECAUÇÕES DE USO E SEGURANÇA</div>
+                        <div style="background: #1e293b; color: white; font-weight: bold; padding: 2px 8px; font-size: 8.5px; letter-spacing: 0.05em; margin-bottom: 4px;">
+                            PRECAUÇÕES DE USO E SEGURANÇA
+                        </div>
                         <ol style="padding-left: 14px; font-size: 7.5px; color: #334155; margin: 4px 0; font-weight: 500;">
                             <li style="margin-bottom: 2px;">Antes de iniciar o manuseio dos produtos, leia atenciosamente as instruções do rótulo e/ou bula.</li>
                             <li style="margin-bottom: 2px;">Use os equipamentos de proteção individual (EPI) recomendados.</li>
@@ -5439,6 +5465,7 @@
                             <li style="margin-bottom: 2px;">Após o manuseio/aplicação dos produtos tome banho, troque e lave as suas roupas.</li>
                         </ol>
                     </div>
+
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 16px; font-size: 9px;">
                         <div style="text-align: center;">
                             <div style="border-top: 1px solid #94a3b8; padding-top: 2px; font-weight: bold; text-transform: uppercase;">${consNome}</div>
@@ -5452,13 +5479,7 @@
                 </div>
             `;
 
-            // Encontrar farmId real para segurança do banco (só quem tem permissão enxerga depois)
-            let farmIdReal = 'all';
-            if (typeof farmsDatabase !== 'undefined') {
-                for (let key in farmsDatabase) {
-                    if (farmsDatabase[key].name.toLowerCase() === fazenda.toLowerCase()) { farmIdReal = key; break; }
-                }
-            }
+            let farmIdReal = farmKey; 
 
             const record = {
                 farmId: farmIdReal,
@@ -5501,7 +5522,14 @@
             const tbody = document.getElementById('rec-table-body');
             if (!tbody) return;
 
-            tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico na nuvem...</td></tr>`;
+            const fazendaSelecionada = document.getElementById('rec-sel-farm').value;
+
+            if (!fazendaSelecionada) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Selecione uma fazenda no menu para ver o histórico.</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico da fazenda...</td></tr>`;
 
             try {
                 const snapshot = await db.collection("agronomic_recommendations").get();
@@ -5509,14 +5537,18 @@
 
                 snapshot.forEach(doc => {
                     const d = doc.data();
-                    if (currentUserRole !== 'admin' && !currentUserAllowedFarms.includes('all')) {
+                    
+                    if (typeof currentUserRole !== 'undefined' && currentUserRole !== 'admin' && typeof currentUserAllowedFarms !== 'undefined' && !currentUserAllowedFarms.includes('all')) {
                         if (!currentUserAllowedFarms.includes(d.farmId)) return;
                     }
-                    relatorios.push({ id: doc.id, ...d });
+
+                    if (d.farmId === fazendaSelecionada) {
+                        relatorios.push({ id: doc.id, ...d });
+                    }
                 });
 
                 if (relatorios.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum histórico encontrado para as suas fazendas.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum histórico de recomendação encontrado para esta fazenda.</td></tr>`;
                     return;
                 }
 
@@ -5528,7 +5560,7 @@
 
                     let acoesHtml = `<button onclick="baixarPdfHistoricoRecomendacao('${data.id}')" class="bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-sm mr-1"><i class="fa-solid fa-file-pdf mr-1"></i> PDF</button>`;
 
-                    if (currentUserRole === 'admin') {
+                    if (typeof currentUserRole !== 'undefined' && currentUserRole === 'admin') {
                         acoesHtml += `<button onclick="deletarRecomendacao('${data.id}')" class="text-red-500 hover:text-red-700 px-3 py-1.5 bg-red-50 rounded-lg font-bold transition-all" title="Excluir"><i class="fa-solid fa-trash"></i></button>`;
                     }
 
