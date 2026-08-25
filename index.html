@@ -983,6 +983,8 @@
 
                 <!-- MÓDULO 6: RELATÓRIO DE VISITA TÉCNICA -->
                 <div id="content-visit" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                    
+                    <!-- Cabeçalho do Módulo -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
                         <div>
                             <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
@@ -999,8 +1001,10 @@
                                 <i class="fa-solid fa-pen"></i><span>Novo Relatório</span>
                             </button>
                         </div>
+                    </div> <!-- ESSA DIV ESTAVA FALTANDO E FOI RECOLOCADA AQUI -->
 
                     <!-- TELA 1: NOVO RELATÓRIO -->
+
                     <div id="visit-form-view" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div>
@@ -5827,7 +5831,7 @@
             }
         }
 
-        async function loadVisitHistory() {
+        
     const tbody = document.getElementById('visit-table-body');
     if(tbody) tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold">Carregando histórico...</td></tr>`;
     
@@ -6501,9 +6505,9 @@
             tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 font-semibold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Carregando histórico na nuvem...</td></tr>`;
 
             try {
-                // Busca no Firebase todos os registros salvos do tipo "visit"
-                const snapshot = await db.collection("prescriptions").where("type", "==", "visit").orderBy("createdAt", "desc").get();
-                let html = '';
+                // Busca no Firebase apenas filtrando, sem o orderBy para evitar erro de Index
+                const snapshot = await db.collection("prescriptions").where("type", "==", "visit").get();
+                let relatorios = [];
 
                 if (snapshot.empty) {
                     tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-slate-500 italic">Nenhum relatório de visita encontrado.</td></tr>`;
@@ -6511,20 +6515,25 @@
                 }
 
                 snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const dataFormatada = new Date(data.createdAt).toLocaleDateString('pt-BR');
+                    relatorios.push({ id: doc.id, ...doc.data() });
+                });
 
-                    // BOTÃO DE BAIXAR O PDF SEMPRE APARECE
+                // Ordena os relatórios do mais recente para o mais antigo no próprio JavaScript!
+                relatorios.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+                let html = '';
+                relatorios.forEach(data => {
+                    const dataFormatada = data.createdAt ? new Date(data.createdAt).toLocaleDateString('pt-BR') : '-';
+
                     let acoesHtml = `
-                        <button onclick="downloadSavedPDF('${doc.id}')" class="text-cyan-600 hover:text-cyan-800 font-bold p-2 mr-2 bg-cyan-50 rounded-lg transition-all" title="Baixar Laudo PDF">
+                        <button onclick="downloadSavedPDF('${data.id}')" class="text-cyan-600 hover:text-cyan-800 font-bold p-2 mr-2 bg-cyan-50 rounded-lg transition-all" title="Baixar Laudo PDF">
                             <i class="fa-solid fa-file-pdf"></i> Baixar
                         </button>
                     `;
 
-                    // TRAVA DE SEGURANÇA: A lixeira só é criada na tela se a pessoa tiver a permissão canEditVisit
-                    if (canEditVisit) {
+                    if (typeof canEditVisit !== 'undefined' && canEditVisit) {
                         acoesHtml += `
-                            <button onclick="deletarRelatorioVisita('${doc.id}')" class="text-red-500 hover:text-red-700 font-bold p-2 bg-red-50 rounded-lg transition-all" title="Excluir Relatório">
+                            <button onclick="deletarRelatorioVisita('${data.id}')" class="text-red-500 hover:text-red-700 font-bold p-2 bg-red-50 rounded-lg transition-all" title="Excluir Relatório">
                                 <i class="fa-solid fa-trash"></i>
                             </button>
                         `;
@@ -6544,7 +6553,7 @@
 
             } catch (error) {
                 console.error("Erro ao carregar histórico de visitas:", error);
-                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="4" class="p-6 text-center text-red-500 font-bold">Erro ao carregar o histórico. Lembre-se de fazer login!</td></tr>`;
             }
         }
 
