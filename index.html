@@ -1010,6 +1010,7 @@
                 <!-- MÓDULO 6: RELATÓRIO DE VISITA TÉCNICA -->
                 <div id="content-visit" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
                     
+                    <!-- CABEÇALHO DO MÓDULO 6 -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
                         <div>
                             <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
@@ -1028,7 +1029,7 @@
                         </div>
                     </div> 
 
-                    <!-- TELA 1: NOVO RELATÓRIO (Corrigido para aparecer só 1 vez) -->
+                    <!-- TELA 1: NOVO RELATÓRIO -->
                     <div id="visit-form-view" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                             <div>
@@ -1051,7 +1052,7 @@
 
                         <div class="space-y-2">
                             <div class="flex items-center gap-2">
-                                <input type="file" id="visit-audio-upload" accept="audio/*" class="hidden" onchange="handleAudioFileUpload(this)">                               
+                                <input type="file" id="visit-audio-upload" accept="audio/*" class="hidden" onchange="handleAudioFileUpload(this)">
                                 <button onclick="document.getElementById('visit-audio-upload').click()" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex items-center gap-1.5 transition-all">
                                     <i class="fa-solid fa-file-audio"></i><span>Importar Áudio</span>
                                 </button>
@@ -1097,7 +1098,7 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div> 
+                    </div> <!-- FIM TELA 2 -->
 
                 </div>
                 
