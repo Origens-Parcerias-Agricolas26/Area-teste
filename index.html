@@ -1028,27 +1028,7 @@
                         </div>
                     </div> 
 
-                    <div id="visit-form-view" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
-                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Produtor</label>
-                                <select id="visit-sel-producer" onchange="changeActiveProducer('visit-sel-producer')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Fazenda</label>
-                                <select id="visit-sel-farm" onchange="changeActiveFarm('visit-sel-farm')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Safra</label>
-                                <input type="text" id="visit-sel-safra" placeholder="Ex: 2025/2026" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white">
-                            </div>
-                            <div>
-                                <label class="block text-[10px] font-bold text-slate-500 mb-1 uppercase">Talhão / Área</label>
-                                <input type="text" id="visit-sel-talhao" placeholder="Ex: Visita Geral ou Talhão 1" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white">
-                            </div>
-                        </div> 
-
-                    <!-- TELA 1: NOVO RELATÓRIO -->
+                    <!-- TELA 1: NOVO RELATÓRIO (Corrigido para aparecer só 1 vez) -->
                     <div id="visit-form-view" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
                         <div class="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
                             <div>
@@ -1071,7 +1051,7 @@
 
                         <div class="space-y-2">
                             <div class="flex items-center gap-2">
-                                <input type="file" id="visit-audio-upload" accept="audio/*" class="hidden" onchange="handleAudioFileUpload(this)">
+                                <input type="file" id="visit-audio-upload" accept="audio/*" class="hidden" onchange="handleAudioFileUpload(this)">                               
                                 <button onclick="document.getElementById('visit-audio-upload').click()" class="bg-indigo-50 border border-indigo-200 hover:bg-indigo-100 text-indigo-700 font-bold px-3 py-1.5 rounded-lg text-[10px] shadow-sm flex items-center gap-1.5 transition-all">
                                     <i class="fa-solid fa-file-audio"></i><span>Importar Áudio</span>
                                 </button>
@@ -6564,10 +6544,12 @@
                     if (hist && !hist.classList.contains('hidden') && typeof loadRecHistory === 'function') {
                         loadRecHistory();
                     }
+                }                
+                else if (tab === 'users') {
+                    if (typeof renderAdminTables === 'function') renderAdminTables();
                 }
             }, 100);
-        }
-
+        };
         // =========================================================================
         // ATUALIZAÇÃO FORÇADA DOS FILTROS E LIMPEZA DE CACHE
         // =========================================================================
