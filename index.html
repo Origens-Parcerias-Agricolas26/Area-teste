@@ -6449,7 +6449,7 @@
         });
         
         // =========================================================================
-        // TROCA DE ABAS E ATUALIZAÇÃO (VERSÃO LIMPA E ESTÁVEL)
+        // TROCA DE ABAS E ATUALIZAÇÃO (VERSÃO ORIGINAL COM FIX LEAFLET)
         // =========================================================================
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
@@ -6459,10 +6459,6 @@
                 const btn = document.getElementById('tab-' + id);
                 
                 if (el) {
-                    // 1. Limpa qualquer gambiarra de estilo que eu tenha passado antes
-                    el.style.display = ''; 
-                    
-                    // 2. Usa apenas o jeito correto do Tailwind para mostrar/esconder
                     if (id === tabId) {
                         el.classList.remove('hidden');
                     } else {
@@ -6470,7 +6466,6 @@
                     }
                 }
                 
-                // Atualiza cores do menu
                 if (btn) {
                     if (id === tabId) {
                         btn.classList.add('bg-slate-800', 'text-white');
@@ -6486,14 +6481,13 @@
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
             if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
             
-            // Garante que a tela sempre abra no topo
-            const mainContainer = document.querySelector('main');
-            if (mainContainer) mainContainer.scrollTo(0, 0);
-
-            // 3. MÁGICA DOS MAPAS: O evento nativo do navegador avisa todos os mapas para aparecerem
+            // Corrige o scroll e recalcula os mapas (Gatilhos do Leaflet Original)
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
-            }, 150);
+                if (tabId === 'maps' && typeof map !== 'undefined' && map !== null) map.invalidateSize();
+                if (tabId === 'vrate' && typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
+                if (tabId === 'seeds' && typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
+            }, 100);
         };
 
         // =========================================================================
