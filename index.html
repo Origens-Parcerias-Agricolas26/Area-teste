@@ -2565,10 +2565,9 @@
         }
 
         function initLeafletMap() {
-            function initLeafletMap() {
-            if (!mapLeft) {            
-            mapLeft = L.map('map-left', { preferCanvas: true }).setView([-12.592, -58.012], 13);
-            mapRight = L.map('map-right', { zoomControl: false, preferCanvas: true }).setView([-12.592, -58.012], 13);
+            if (!mapLeft) {
+                mapLeft = L.map('map-left').setView([-12.592, -58.012], 13);
+                mapRight = L.map('map-right', { zoomControl: false }).setView([-12.592, -58.012], 13);
 
                 changeBasemap();
 
@@ -2910,8 +2909,8 @@
         // MÓDULO DE TAXA VARIÁVEL DE FERTILIZANTES
         // =========================================================================
         function initVRateMap() {
-            if (!vrateMap) {        
-                vrateMap = L.map('vrate-map', { preferCanvas: true }).setView([-12.592, -58.012], 13);
+            if (!vrateMap) {
+                vrateMap = L.map('vrate-map').setView([-12.592, -58.012], 13);
                 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Origens &copy; Esri', maxZoom: 18
                 }).addTo(vrateMap);
@@ -3186,8 +3185,8 @@
         // MÓDULO 3: PRESCRIÇÃO E TAXA VARIÁVEL DE SEMENTES
         // =========================================================================
         function initSeedsMap() {
-            if (!seedsMap) {        
-                seedsMap = L.map('seeds-map', { preferCanvas: true }).setView([-12.592, -58.012], 13);
+            if (!seedsMap) {
+                seedsMap = L.map('seeds-map').setView([-12.592, -58.012], 13);
                 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Origens &copy; Esri', maxZoom: 18
                 }).addTo(seedsMap);
@@ -6463,13 +6462,13 @@
             ['chk-labels', 'chk-values', 'vrate-chk-labels', 'vrate-chk-values', 'seeds-chk-labels', 'seeds-chk-values'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.checked = false;
-            });            
+            });           
         });
-
+        
         // =========================================================================
         // TROCA DE ABAS COM GERENCIAMENTO DE MAPAS E PERMISSÕES (CÓDIGO FINAL)
         // =========================================================================
-        window.switchTab = function(tab) {
+        function switchTab(tab) {
             // 1. Verificação de Permissões
             if (tab === 'vrate' && typeof canAccessVRate !== 'undefined' && !canAccessVRate) {
                 alert("Você não possui permissão de acesso ao Módulo de Taxa Variável & Adubação.");
@@ -6524,6 +6523,7 @@
                     if (typeof initVRateMap === 'function') initVRateMap();
                     if (typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
                     
+                    // Se já processou o Excel, atualiza as cores. Senão, carrega a fazenda cinza.
                     if (typeof vrateProcessedData !== 'undefined' && vrateProcessedData.length > 0) {
                         if (typeof vrateUpdateMap === 'function') vrateUpdateMap();
                     } else {
@@ -6534,6 +6534,7 @@
                     if (typeof initSeedsMap === 'function') initSeedsMap();
                     if (typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
                     
+                    // Mesma lógica de manter as cores para as sementes
                     if ((typeof seedsProcessedData !== 'undefined' && seedsProcessedData.length > 0) || 
                         (typeof seedsCultivarMap !== 'undefined' && Object.keys(seedsCultivarMap).length > 0)) {
                         if (typeof seedsUpdateMap === 'function') seedsUpdateMap();
@@ -6562,12 +6563,12 @@
                     }
                 }
             }, 100);
-        };
+        }
 
         // =========================================================================
         // ATUALIZAÇÃO FORÇADA DOS FILTROS E LIMPEZA DE CACHE
         // =========================================================================
-        window.changeActiveFarm = function(sourceSelectId) {
+        function changeActiveFarm(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
             
             // Sincroniza selects de todas as abas
@@ -6602,7 +6603,8 @@
                 const hist = document.getElementById('visit-history-view');
                 if (hist && !hist.classList.contains('hidden') && typeof loadVisitHistory === 'function') loadVisitHistory();
             }
-        };
+        }        
+        
     </script>
 </body>
-</html>        
+</html>
