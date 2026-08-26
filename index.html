@@ -6466,66 +6466,112 @@
         });
         
         // =========================================================================
-        // TROCA DE ABAS COM REDESENHO INFALÍVEL DOS MAPAS
+        // TROCA DE ABAS COM GERENCIAMENTO DE MAPAS E PERMISSÕES (CÓDIGO FINAL)
         // =========================================================================
-        window.switchTab = function(tabId) {
-            const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
-            
-            tabs.forEach(id => {
-                const el = document.getElementById('content-' + id);
-                const btn = document.getElementById('tab-' + id);
-                
-                if (el) {
-                    if (id === tabId) {
-                        el.classList.remove('hidden');
-                    } else {
-                        el.classList.add('hidden');
-                    }
-                }
-                
+        function switchTab(tab) {
+            // 1. Verificação de Permissões
+            if (tab === 'vrate' && typeof canAccessVRate !== 'undefined' && !canAccessVRate) {
+                alert("Você não possui permissão de acesso ao Módulo de Taxa Variável & Adubação.");
+                return;
+            }
+            if (tab === 'visit' && typeof canAccessVisit !== 'undefined' && !canAccessVisit) {
+                alert("Você não possui permissão de acesso ao Módulo de Relatório de Visita.");
+                return;
+            }
+            if (tab === 'seeds' && typeof canAccessSeeds !== 'undefined' && !canAccessSeeds) {
+                alert("Você não possui permissão de acesso ao Módulo de Sementes & Plantio.");
+                return;
+            }
+            if (tab === 'sampling' && typeof canAccessSampling !== 'undefined' && !canAccessSampling) {
+                alert("Você não possui permissão de acesso ao Módulo de Amostragem de Solo.");
+                return;
+            }
+
+            // 2. Oculta tudo e ajusta as cores dos botões
+            ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit'].forEach(t => {
+                const el = document.getElementById(`content-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (el) el.classList.add('hidden');
                 if (btn) {
-                    if (id === tabId) {
-                        btn.classList.add('bg-slate-800', 'text-white');
-                        btn.classList.remove('text-slate-300');
-                    } else {
-                        btn.classList.remove('bg-slate-800', 'text-white');
-                        btn.classList.add('text-slate-300');
-                    }
+                    btn.classList.remove('bg-slate-800', 'text-white');
+                    btn.classList.add('text-slate-300');
                 }
             });
 
-            if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
-            if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
+            // 3. Mostra a aba clicada
+            const activeContent = document.getElementById(`content-${tab}`);
+            const activeBtn = document.getElementById(`tab-${tab}`);
+            if (activeContent) activeContent.classList.remove('hidden');
+            if (activeBtn) {
+                activeBtn.classList.remove('text-slate-300');
+                activeBtn.classList.add('bg-slate-800', 'text-white');
+            }
+
+            // Reseta sub-visões
+            if (tab === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
+            if (tab === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
             
+            // Joga o scroll pro topo
             const mainContainer = document.querySelector('main');
             if (mainContainer) mainContainer.scrollTo(0, 0);
 
-            // MÁGICA: Ajusta o Leaflet sem depender do nome da variável e carrega os dados!
+            // 4. MÁGICA: Redimensionamento e Carregamento (Sem perder as cores!)
             setTimeout(() => {
                 window.dispatchEvent(new Event('resize'));
                 
-                // Força o Leaflet a recalcular o tamanho buscando direto a div do mapa
-                ['map-left', 'map-right', 'vrate-map', 'seeds-map'].forEach(id => {
-                    const mapDiv = document.getElementById(id);
-                    if (mapDiv && mapDiv._leaflet_map) {
-                        mapDiv._leaflet_map.invalidateSize();
+                if (tab === 'vrate') {
+                    if (typeof initVRateMap === 'function') initVRateMap();
+                    if (typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
+                    
+                    // Se já processou o Excel, atualiza as cores. Senão, carrega a fazenda cinza.
+                    if (typeof vrateProcessedData !== 'undefined' && vrateProcessedData.length > 0) {
+                        if (typeof vrateUpdateMap === 'function') vrateUpdateMap();
+                    } else {
+                        if (typeof vrateChangeFarm === 'function') vrateChangeFarm();
                     }
-                });
-
-                // Chama as funções originais EXATAS que você me mandou
-                if (tabId === 'maps' && typeof updateGISMap === 'function') updateGISMap();
-                if (tabId === 'vrate' && typeof vrateChangeFarm === 'function') vrateChangeFarm();
-                if (tabId === 'seeds' && typeof seedsChangeFarm === 'function') seedsChangeFarm();
-                
-            }, 150);
-        };
+                } 
+                else if (tab === 'seeds') {
+                    if (typeof initSeedsMap === 'function') initSeedsMap();
+                    if (typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
+                    
+                    // Mesma lógica de manter as cores para as sementes
+                    if ((typeof seedsProcessedData !== 'undefined' && seedsProcessedData.length > 0) || 
+                        (typeof seedsCultivarMap !== 'undefined' && Object.keys(seedsCultivarMap).length > 0)) {
+                        if (typeof seedsUpdateMap === 'function') seedsUpdateMap();
+                    } else {
+                        if (typeof seedsChangeFarm === 'function') seedsChangeFarm();
+                    }
+                } 
+                else if (tab === 'sampling') {
+                    if (typeof fetchSamplingData === 'function') fetchSamplingData();
+                } 
+                else if (tab === 'maps') {
+                    if (typeof mapLeft !== 'undefined' && mapLeft !== null) mapLeft.invalidateSize();
+                    if (typeof mapRight !== 'undefined' && mapRight !== null) mapRight.invalidateSize();
+                    if (typeof updateGISMap === 'function') updateGISMap();
+                } 
+                else if (tab === 'visit') {
+                    if (typeof canEditVisit !== 'undefined' && !canEditVisit) {
+                        if (typeof toggleVisitView === 'function') toggleVisitView('history');
+                    }
+                    if (typeof loadVisitHistory === 'function') loadVisitHistory();
+                } 
+                else if (tab === 'recommendation') {
+                    const hist = document.getElementById('rec-history-view');
+                    if (hist && !hist.classList.contains('hidden') && typeof loadRecHistory === 'function') {
+                        loadRecHistory();
+                    }
+                }
+            }, 100);
+        }
 
         // =========================================================================
-        // ATUALIZAÇÃO FORÇADA DOS FILTROS E HISTÓRICOS
+        // ATUALIZAÇÃO FORÇADA DOS FILTROS E LIMPEZA DE CACHE
         // =========================================================================
-        window.changeActiveFarm = function(sourceSelectId) {
+        function changeActiveFarm(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
             
+            // Sincroniza selects de todas as abas
             ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el && el.value !== selectedVal) el.value = selectedVal;
@@ -6539,7 +6585,12 @@
                 return el && !el.classList.contains('hidden');
             };
 
-            // Usa as funções exatas do seu código original
+            // Se mudou de fazenda, temos que limpar os dados da planilha processada anterior
+            if (typeof vrateProcessedData !== 'undefined') vrateProcessedData = [];
+            if (typeof seedsProcessedData !== 'undefined') seedsProcessedData = [];
+            if (typeof seedsCultivarMap !== 'undefined') seedsCultivarMap = {};
+
+            // Atualiza apenas o mapa que o usuário está vendo na tela
             if (isVisible('seeds') && typeof seedsChangeFarm === 'function') seedsChangeFarm();
             else if (isVisible('vrate') && typeof vrateChangeFarm === 'function') vrateChangeFarm();
             else if (isVisible('maps') && typeof updateGISMap === 'function') updateGISMap();
@@ -6552,7 +6603,7 @@
                 const hist = document.getElementById('visit-history-view');
                 if (hist && !hist.classList.contains('hidden') && typeof loadVisitHistory === 'function') loadVisitHistory();
             }
-        };        
+        }        
         
     </script>
 </body>
