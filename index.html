@@ -6447,7 +6447,64 @@
         });
         
         // =========================================================================
-        // TROCA DE ABAS E ATUALIZAÇÃO (VERSÃO ORIGINAL COM FIX LEAFLET)
+        // TROCA DE ABAS COM REDESENHO UNIVERSAL DE MAPAS (LEAFLET)
+        // =========================================================================
+        window.switchTab = function(tabId) {
+            const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
+            
+            tabs.forEach(id => {
+                const el = document.getElementById('content-' + id);
+                const btn = document.getElementById('tab-' + id);
+                
+                if (el) {
+                    el.style.display = ''; // Limpa resíduos de estilo
+                    if (id === tabId) {
+                        el.classList.remove('hidden');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
+                
+                if (btn) {
+                    if (id === tabId) {
+                        btn.classList.add('bg-slate-800', 'text-white');
+                        btn.classList.remove('text-slate-300');
+                    } else {
+                        btn.classList.remove('bg-slate-800', 'text-white');
+                        btn.classList.add('text-slate-300');
+                    }
+                }
+            });
+
+            // Reseta a visão das sub-abas para não vazar a tabela de histórico
+            if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
+            if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
+            
+            // Joga o scroll para o topo
+            const mainContainer = document.querySelector('main');
+            if (mainContainer) mainContainer.scrollTo(0, 0);
+
+            // ATUALIZA OS MAPAS (Método à prova de falhas: via HTML e Variável)
+            setTimeout(() => {
+                window.dispatchEvent(new Event('resize'));
+                
+                // 1. Tenta achar os mapas direto pelo HTML
+                ['map-left', 'map-right', 'vrate-map', 'seeds-map'].forEach(mapId => {
+                    const m = document.getElementById(mapId);
+                    if (m && m._leaflet_map) {
+                        m._leaflet_map.invalidateSize();
+                    }
+                });
+
+                // 2. Fallback pelas variáveis originais do seu código
+                if (tabId === 'maps' && typeof map !== 'undefined' && map !== null) map.invalidateSize();
+                if (tabId === 'vrate' && typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
+                if (tabId === 'seeds' && typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
+            }, 150);
+        };
+
+        // =========================================================================
+        // ATUALIZAÇÃO FORÇADA DOS FILTROS E HISTÓRICOS
         // =========================================================================
         window.changeActiveFarm = function(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
@@ -6465,7 +6522,6 @@
                 return el && !el.classList.contains('hidden');
             };
 
-            // Atualiza os dados apenas do módulo que está aberto
             if (isVisible('seeds') && typeof seedsChangeFarm === 'function') seedsChangeFarm();
             else if (isVisible('vrate') && typeof vrateChangeFarm === 'function') vrateChangeFarm();
             else if (isVisible('maps') && typeof updateGISMap === 'function') updateGISMap();
@@ -6477,64 +6533,6 @@
             else if (isVisible('visit')) {
                 const hist = document.getElementById('visit-history-view');
                 if (hist && !hist.classList.contains('hidden') && typeof loadVisitHistory === 'function') loadVisitHistory();
-            }
-        };
-
-            // Reseta a visão das sub-abas
-            if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
-            if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
-            
-            // Corrige o scroll e recalcula os mapas (Gatilhos do Leaflet Original)
-            setTimeout(() => {
-                window.dispatchEvent(new Event('resize'));
-                if (tabId === 'maps' && typeof map !== 'undefined' && map !== null) map.invalidateSize();
-                if (tabId === 'vrate' && typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
-                if (tabId === 'seeds' && typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
-            }, 100);
-        };
-
-        // =========================================================================
-        // ATUALIZAÇÃO FORÇADA DOS FILTROS (MAPA, VRATE, SEMENTES E AGORA HISTÓRICOS)
-        // =========================================================================
-        window.changeActiveFarm = function(sourceSelectId) {
-            const selectedVal = document.getElementById(sourceSelectId).value;
-            
-            // 1. Sincroniza todas as caixinhas de fazenda para mostrar a mesma coisa
-            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
-                const el = document.getElementById(id);
-                if (el && el.value !== selectedVal) el.value = selectedVal;
-            });
-
-            if(typeof populateSafraSelector === 'function') populateSafraSelector();
-            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
-
-            // 2. MÁGICA DOS MÓDULOS: Atualiza SÓ o que a pessoa está vendo na hora
-            if (document.getElementById('content-seeds') && !document.getElementById('content-seeds').classList.contains('hidden')) {
-                if(typeof seedsChangeFarm === 'function') seedsChangeFarm();
-            } 
-            else if (document.getElementById('content-vrate') && !document.getElementById('content-vrate').classList.contains('hidden')) {
-                if(typeof vrateChangeFarm === 'function') vrateChangeFarm();
-            } 
-            else if (document.getElementById('content-maps') && !document.getElementById('content-maps').classList.contains('hidden')) {
-                if(typeof updateGISMap === 'function') updateGISMap();
-            } 
-            // ATUALIZAÇÃO DO MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA
-            else if (document.getElementById('content-recommendation') && !document.getElementById('content-recommendation').classList.contains('hidden')) {
-                if(typeof recChangeFarm === 'function') recChangeFarm();
-                
-                // Se o Histórico estiver aberto, atualiza a tabela NA HORA!
-                const recHistory = document.getElementById('rec-history-view');
-                if (recHistory && !recHistory.classList.contains('hidden')) {
-                    if(typeof loadRecHistory === 'function') loadRecHistory();
-                }
-            }
-            // ATUALIZAÇÃO DO MÓDULO 6: VISITA TÉCNICA
-            else if (document.getElementById('content-visit') && !document.getElementById('content-visit').classList.contains('hidden')) {
-                // Se o Histórico estiver aberto, atualiza a tabela NA HORA!
-                const visitHistory = document.getElementById('visit-history-view');
-                if (visitHistory && !visitHistory.classList.contains('hidden')) {
-                    if(typeof loadVisitHistory === 'function') loadVisitHistory();
-                }
             }
         };        
         
