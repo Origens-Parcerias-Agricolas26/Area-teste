@@ -2565,9 +2565,10 @@
         }
 
         function initLeafletMap() {
-            if (!mapLeft) {
-                mapLeft = L.map('map-left').setView([-12.592, -58.012], 13);
-                mapRight = L.map('map-right', { zoomControl: false }).setView([-12.592, -58.012], 13);
+            function initLeafletMap() {
+            if (!mapLeft) {            
+            mapLeft = L.map('map-left', { preferCanvas: true }).setView([-12.592, -58.012], 13);
+            mapRight = L.map('map-right', { zoomControl: false, preferCanvas: true }).setView([-12.592, -58.012], 13);
 
                 changeBasemap();
 
@@ -2909,8 +2910,8 @@
         // MÓDULO DE TAXA VARIÁVEL DE FERTILIZANTES
         // =========================================================================
         function initVRateMap() {
-            if (!vrateMap) {
-                vrateMap = L.map('vrate-map').setView([-12.592, -58.012], 13);
+            if (!vrateMap) {        
+                vrateMap = L.map('vrate-map', { preferCanvas: true }).setView([-12.592, -58.012], 13);
                 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Origens &copy; Esri', maxZoom: 18
                 }).addTo(vrateMap);
@@ -3185,8 +3186,8 @@
         // MÓDULO 3: PRESCRIÇÃO E TAXA VARIÁVEL DE SEMENTES
         // =========================================================================
         function initSeedsMap() {
-            if (!seedsMap) {
-                seedsMap = L.map('seeds-map').setView([-12.592, -58.012], 13);
+            if (!seedsMap) {        
+                seedsMap = L.map('seeds-map', { preferCanvas: true }).setView([-12.592, -58.012], 13);
                 L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
                     attribution: 'Origens &copy; Esri', maxZoom: 18
                 }).addTo(seedsMap);
