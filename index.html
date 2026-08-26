@@ -2817,6 +2817,7 @@
             const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
 
             const buildLayer = (depthKey) => L.geoJSON(currentGeoJSON, {
+                smoothFactor: 2.5,
                 filter: f => {
                     if (selectedTalhoes.length && !selectedTalhoes.includes(String(f.properties.Talhao))) {
                         return false;
@@ -2929,6 +2930,7 @@
             if (vrateGeojsonLayer) vrateMap.removeLayer(vrateGeojsonLayer);
 
             vrateGeojsonLayer = L.geoJSON(vrateCustomGeoJSON, {
+                smoothFactor: 2.5,
                 style: { fillColor: '#cbd5e1', fillOpacity: 0.4, color: '#2563eb', weight: 1.5 }
             }).addTo(vrateMap);
 
@@ -3205,6 +3207,7 @@
             if (seedsGeojsonLayer) seedsMap.removeLayer(seedsGeojsonLayer);
 
             seedsGeojsonLayer = L.geoJSON(seedsCustomGeoJSON, {
+                smoothFactor: 2.5,
                 style: { fillColor: '#cbd5e1', fillOpacity: 0.4, color: '#16a34a', weight: 1.5 }
             }).addTo(seedsMap);
 
