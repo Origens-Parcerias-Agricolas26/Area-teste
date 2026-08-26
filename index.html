@@ -6449,7 +6449,7 @@
         });
         
         // =========================================================================
-        // TROCA DE ABAS COM DESPERTADOR UNIVERSAL DE MAPAS (LEAFLET)
+        // TROCA DE ABAS E ATUALIZAÇÃO (VERSÃO LIMPA E ESTÁVEL)
         // =========================================================================
         window.switchTab = function(tabId) {
             const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
@@ -6459,17 +6459,18 @@
                 const btn = document.getElementById('tab-' + id);
                 
                 if (el) {
-                    // Limpa estilos travados 
+                    // 1. Limpa qualquer gambiarra de estilo que eu tenha passado antes
                     el.style.display = ''; 
                     
+                    // 2. Usa apenas o jeito correto do Tailwind para mostrar/esconder
                     if (id === tabId) {
                         el.classList.remove('hidden');
                     } else {
                         el.classList.add('hidden');
-                        el.style.display = 'none'; // Esconde à força (Remove a Caixa Fantasma)
                     }
                 }
                 
+                // Atualiza cores do menu
                 if (btn) {
                     if (id === tabId) {
                         btn.classList.add('bg-slate-800', 'text-white');
@@ -6481,38 +6482,22 @@
                 }
             });
 
-            // Reseta a visão das sub-abas para não vazar a tabela de histórico
+            // Reseta a visão das sub-abas
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
             if (tabId === 'visit' && typeof toggleVisitView === 'function') toggleVisitView('form');
             
-            // Joga o scroll para o topo para a tela começar certinha
+            // Garante que a tela sempre abra no topo
             const mainContainer = document.querySelector('main');
             if (mainContainer) mainContainer.scrollTo(0, 0);
 
-            // 🌟 MÁGICA UNIVERSAL DOS MAPAS: 
+            // 3. MÁGICA DOS MAPAS: O evento nativo do navegador avisa todos os mapas para aparecerem
             setTimeout(() => {
-                // 1. Simula que a tela do computador mudou de tamanho
                 window.dispatchEvent(new Event('resize'));
-                
-                // 2. Varre a memória do navegador procurando QUALQUER mapa Leaflet e acorda ele
-                for (let variavel in window) {
-                    try {
-                        if (window[variavel] && typeof window[variavel].invalidateSize === 'function') {
-                            window[variavel].invalidateSize();
-                        }
-                    } catch(e) {}
-                }
-
-                // 3. Plano B: Procura o mapa direto pela ID do HTML e força a barra
-                ['map-left', 'map-right', 'vrate-map', 'seeds-map'].forEach(mapId => {
-                    const m = document.getElementById(mapId);
-                    if(m && m._leaflet_map) m._leaflet_map.invalidateSize();
-                });
             }, 150);
         };
 
         // =========================================================================
-        // ATUALIZAÇÃO FORÇADA DOS FILTROS
+        // ATUALIZAÇÃO DOS FILTROS E HISTÓRICOS
         // =========================================================================
         window.changeActiveFarm = function(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
