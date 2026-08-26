@@ -899,7 +899,6 @@
                                                 <select id="rec-sel-farm" onchange="changeActiveFarm('rec-sel-farm')" class="w-full text-xs font-bold p-2 border border-slate-300 rounded-lg bg-white"></select>
                                             </div>
                                         </div>
-                                        <!-- O ERRO ESTAVA AQUI! Faltava essa DIV abrindo! -->
                                         <div>
                                             <div class="flex justify-between items-center mb-1">
                                                 <label class="block text-[10px] font-bold text-slate-500">Talhões (Segure Ctrl para vários)</label>
@@ -1028,7 +1027,7 @@
                                 <i class="fa-solid fa-pen"></i><span>Novo Relatório</span>
                             </button>
                         </div>
-                    </div>
+                    </div> 
 
                     <!-- TELA 1: NOVO RELATÓRIO -->
                     <div id="visit-form-view" class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-5">
@@ -1096,13 +1095,12 @@
                                     </tr>
                                 </thead>
                                 <tbody id="visit-table-body" class="divide-y divide-slate-200 font-medium">
-                                    <!-- Preenchido via JS -->
                                 </tbody>
                             </table>
                         </div>
                     </div> 
 
-                </div> 
+                </div>
                 
                 <!-- CONTAINER OCULTO PARA GERAR O PDF DO RELATÓRIO -->
                 <div id="pdf-visit-template" style="display:none;"></div>
@@ -6451,31 +6449,36 @@
         // =========================================================================
         // TROCA DE ABAS E ATUALIZAÇÃO (VERSÃO ORIGINAL COM FIX LEAFLET)
         // =========================================================================
-        window.switchTab = function(tabId) {
-            const tabs = ['maps', 'vrate', 'seeds', 'sampling', 'recommendation', 'visit', 'users'];
+        window.changeActiveFarm = function(sourceSelectId) {
+            const selectedVal = document.getElementById(sourceSelectId).value;
             
-            tabs.forEach(id => {
-                const el = document.getElementById('content-' + id);
-                const btn = document.getElementById('tab-' + id);
-                
-                if (el) {
-                    if (id === tabId) {
-                        el.classList.remove('hidden');
-                    } else {
-                        el.classList.add('hidden');
-                    }
-                }
-                
-                if (btn) {
-                    if (id === tabId) {
-                        btn.classList.add('bg-slate-800', 'text-white');
-                        btn.classList.remove('text-slate-300');
-                    } else {
-                        btn.classList.remove('bg-slate-800', 'text-white');
-                        btn.classList.add('text-slate-300');
-                    }
-                }
+            ['sel-farm', 'vrate-sel-farm', 'seeds-sel-farm', 'visit-sel-farm', 'rec-sel-farm'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.value !== selectedVal) el.value = selectedVal;
             });
+
+            if(typeof populateSafraSelector === 'function') populateSafraSelector();
+            if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();
+
+            const isVisible = (id) => {
+                const el = document.querySelector('#content-' + id);
+                return el && !el.classList.contains('hidden');
+            };
+
+            // Atualiza os dados apenas do módulo que está aberto
+            if (isVisible('seeds') && typeof seedsChangeFarm === 'function') seedsChangeFarm();
+            else if (isVisible('vrate') && typeof vrateChangeFarm === 'function') vrateChangeFarm();
+            else if (isVisible('maps') && typeof updateGISMap === 'function') updateGISMap();
+            else if (isVisible('recommendation')) {
+                if(typeof recChangeFarm === 'function') recChangeFarm();
+                const hist = document.getElementById('rec-history-view');
+                if (hist && !hist.classList.contains('hidden') && typeof loadRecHistory === 'function') loadRecHistory();
+            }
+            else if (isVisible('visit')) {
+                const hist = document.getElementById('visit-history-view');
+                if (hist && !hist.classList.contains('hidden') && typeof loadVisitHistory === 'function') loadVisitHistory();
+            }
+        };
 
             // Reseta a visão das sub-abas
             if (tabId === 'recommendation' && typeof toggleRecView === 'function') toggleRecView('form');
