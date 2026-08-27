@@ -5204,10 +5204,7 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
-        
-        // A SOLUÇÃO: Usamos a API GVIZ oficial do Google, que é à prova de bloqueios de CORS!
-        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/gviz/tq?tqx=out:csv&gid=1524034082";
-        
+        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
@@ -5217,28 +5214,22 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
-                // Carimbo de tempo para forçar atualização em tempo real
+                // Carimbo de tempo para forçar o navegador a ignorar o cache
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
-                if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
                 parseEvoCSV(textData);
             } catch (error) {
-                console.error("Erro no Fetch:", error);
-                if (container) container.innerHTML = `
-                    <div class="col-span-full p-10 text-center text-red-600 font-bold">
-                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>
-                        Erro de Conexão com o Google.<br>
-                        <span class="text-sm font-medium text-slate-600 mt-2 block">
-                            Não foi possível ler a planilha. Verifique sua internet.
-                        </span>
-                    </div>`;
+                console.error(error);
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha.</div>`;
             }
         }
 
         function parseEvoCSV(rawText) {
             const container = document.getElementById('evo-charts-container');
             
+            // VERIFICAÇÃO DE SEGURANÇA: Planilha bloqueada
             if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
+                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nMude o acesso geral para 'Qualquer pessoa com o link'.");
                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
                 return;
             }
@@ -5246,34 +5237,48 @@
             const lines = rawText.split(/\r\n|\n/);
             let headerIdx = -1;
             let headers = [];
+            let separator = '\t';
 
-            // Busca inteligente pelas colunas
+            // BUSCA INTELIGENTE: Procura nas primeiras 10 linhas da planilha até achar o cabeçalho
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                // O GVIZ usa CSV. O Regex abaixo separa as vírgulas ignorando as vírgulas dentro dos números (ex: "5,38")
-                let tempCommas = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.trim().replace(/^"|"$/g, ''));
+                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
+                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
 
+                if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
+                    headers = tempTabs;
+                    headerIdx = i;
+                    separator = '\t';
+                    break;
+                }
                 if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
                     headers = tempCommas;
                     headerIdx = i;
+                    separator = ',';
                     break;
                 }
             }
 
             if (headerIdx === -1) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Não encontrei as colunas 'Safra' e 'Campo' nas 10 primeiras linhas.</div>`;
                 return;
             }
 
             evoRawData = [];
             
+            // Lê os dados a partir da linha logo abaixo do cabeçalho encontrado
             for (let i = headerIdx + 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+                let cols = [];
+                if (separator === ',') {
+                    cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+                } else {
+                    cols = line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
+                }
 
                 let row = {};
                 headers.forEach((h, idx) => {
@@ -5295,13 +5300,10 @@
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados na linha ${headerIdx + 1}, mas as linhas de dados abaixo estão vazias.</div>`;
                  return;
             }
 
-            if (typeof populateEvoFilters === 'function') populateEvoFilters();
-            if (typeof renderEvoCharts === 'function') renderEvoCharts();
-        }
             populateEvoFilters();
             renderEvoCharts();
         }
@@ -5338,6 +5340,34 @@
             ['proprietario', 'propriedade', 'campo', 'sub', 'prof'].forEach(id => document.getElementById(`evo-${id}-all`).checked = true);
         }
 
+        function toggleEvoDropdown(id) {
+            const content = document.getElementById(`evo-${id}-dropdown`);
+            document.querySelectorAll('.evo-dropdown-content').forEach(d => { if(d !== content) d.classList.remove('show'); });
+            content.classList.toggle('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#content-evolucao .relative')) {
+                document.querySelectorAll('.evo-dropdown-content').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        function toggleAllEvo(id, isChecked) {
+            document.querySelectorAll(`.chk-evo-${id}`).forEach(chk => chk.checked = isChecked);
+            updateEvoDropdownText(`chk-evo-${id}`);
+            renderEvoCharts();
+        }
+
+        function updateEvoDropdownText(cls) {
+            const chks = document.querySelectorAll(`.${cls}`);
+            const checked = Array.from(chks).filter(c => c.checked);
+            const textEl = document.getElementById(cls.replace('chk-', '') + '-text');
+            if(checked.length === 0) textEl.innerText = "Nenhum";
+            else if(checked.length === chks.length) textEl.innerText = "Todos Selecionados";
+            else if(checked.length === 1) textEl.innerText = checked[0].value;
+            else textEl.innerText = `${checked.length} Selecionados`;
+        }
+
         function renderEvoCharts() {
             const container = document.getElementById('evo-charts-container');
             const proprietarios = Array.from(document.querySelectorAll('.chk-evo-proprietario:checked')).map(c => c.value);
@@ -5348,7 +5378,7 @@
             const elementos = Array.from(document.querySelectorAll('.chk-evo-elemento:checked')).map(c => c.value);
             const criticoVal = parseFloat(document.getElementById('evo-critico').value);
 
-            // Filtrar os dados brutos com as duas novas condições (Proprietário e Propriedade)
+            // Filtrar os dados brutos com as novas condições (Proprietário e Propriedade)
             const filtered = evoRawData.filter(r => 
                 proprietarios.includes(r['Proprietário']) &&
                 propriedades.includes(r['Propriedade']) &&
