@@ -5179,7 +5179,9 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
-        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=csv&gid=1524034082";
+        
+        // Mudamos o final da URL de format=csv para format=tsv (Tabulação) para evitar conflito com vírgulas BR
+        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
@@ -5190,33 +5192,67 @@
             
             try {
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL);
-                const csvText = await response.text();
-                parseEvoCSV(csvText);
+                const textData = await response.text();
+                parseEvoCSV(textData);
             } catch (error) {
                 console.error(error);
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold">Erro ao buscar planilha de Evolução.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha de Evolução.</div>`;
             }
         }
 
-        function parseEvoCSV(csvText) {
-            const lines = csvText.split(/\r\n|\n/);
+        function parseEvoCSV(tsvText) {
+            const container = document.getElementById('evo-charts-container');
+            
+            // VERIFICAÇÃO DE SEGURANÇA: Se o Google retornar HTML, a planilha está Privada/Bloqueada
+            if (tsvText.trim().toLowerCase().startsWith('<!doctype html>') || tsvText.toLowerCase().includes('<html')) {
+                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nVá na planilha, clique em 'Compartilhar' e mude o acesso geral para 'Qualquer pessoa com o link'.");
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.<br><span class="text-sm font-medium">Libere o acesso de leitura no Google Sheets e clique em Sincronizar novamente.</span></div>`;
+                return;
+            }
+
+            // Usamos \n para quebrar as linhas
+            const lines = tsvText.split(/\r\n|\n/);
             evoRawData = [];
-            const headers = lines[0].split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(h => h.replace(/^"|"$/g, '').trim());
+            
+            if (lines.length < 2) {
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">A planilha foi lida, mas parece estar vazia.</div>`;
+                return;
+            }
+
+            // O separador agora é a Tabulação (\t)
+            const headers = lines[0].split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
 
             for (let i = 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
-                const cols = lines[i].split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+                const cols = lines[i].split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
+                
                 let row = {};
                 headers.forEach((h, idx) => {
-                    let val = cols[idx];
-                    if (evoElementsList.includes(h) || h === 'Sub01') {
-                        val = parseFloat(val);
-                        if (isNaN(val)) val = null;
+                    let val = cols[idx] || '';
+                    
+                    // Se for um elemento químico, trocamos a vírgula BR por ponto para o sistema conseguir calcular a média
+                    if (evoElementsList.includes(h)) {
+                        val = val.replace(',', '.'); 
+                        let num = parseFloat(val);
+                        row[h] = isNaN(num) ? null : num;
+                    } else {
+                        // Para colunas de texto (Safra, Campo, Sub01)
+                        if (h === 'Sub01' && val === '') val = 'Geral'; // Evita caixas de filtro vazias
+                        row[h] = val;
                     }
-                    row[h] = val;
                 });
-                if(row.Safra) evoRawData.push(row);
+                
+                // Só salva a linha na memória se a coluna Safra e Campo existirem nela
+                if (row['Safra'] && row['Campo']) {
+                    evoRawData.push(row);
+                }
             }
+
+            if (evoRawData.length === 0) {
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Nenhum dado válido encontrado. Verifique se as colunas 'Safra' e 'Campo' estão escritas exatamente assim na planilha.</div>`;
+                 return;
+            }
+
             populateEvoFilters();
             renderEvoCharts();
         }
