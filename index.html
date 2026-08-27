@@ -5204,8 +5204,7 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
-        
-        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/gviz/tq?tqx=out:csv&gid=1524034082";
+        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
@@ -5216,12 +5215,11 @@
             
             try {
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
-                if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
                 parseEvoCSV(textData);
             } catch (error) {
-                console.error("Erro no Fetch:", error);
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>Erro de Conexão com o Google.<br><span class="text-sm font-medium text-slate-600 mt-2 block">Não foi possível ler a planilha. Verifique sua internet.</span></div>`;
+                console.error(error);
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha.</div>`;
             }
         }
 
@@ -5229,6 +5227,7 @@
             const container = document.getElementById('evo-charts-container');
             
             if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
+                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nMude o acesso geral para 'Qualquer pessoa com o link'.");
                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
                 return;
             }
@@ -5236,20 +5235,31 @@
             const lines = rawText.split(/\r\n|\n/);
             let headerIdx = -1;
             let headers = [];
+            let separator = '\t';
 
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
-                let tempCommas = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.trim().replace(/^"|"$/g, ''));
+                
+                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
+                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+
+                if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
+                    headers = tempTabs;
+                    headerIdx = i;
+                    separator = '\t';
+                    break;
+                }
                 if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
                     headers = tempCommas;
                     headerIdx = i;
+                    separator = ',';
                     break;
                 }
             }
 
             if (headerIdx === -1) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">NOVO ERRO DETECTADO: Não encontrei as colunas 'Safra' e 'Campo' nas 10 primeiras linhas.</div>`;
                 return;
             }
 
@@ -5259,11 +5269,17 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+                let cols = [];
+                if (separator === ',') {
+                    cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+                } else {
+                    cols = line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
+                }
 
                 let row = {};
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
+                    
                     if (evoElementsList.includes(h)) {
                         val = val.replace(',', '.'); 
                         let num = parseFloat(val);
@@ -5280,7 +5296,7 @@
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados na linha ${headerIdx + 1}, mas as linhas de dados abaixo estão vazias.</div>`;
                  return;
             }
 
@@ -5288,7 +5304,7 @@
         }
 
         // ==========================================
-        // MOTOR DE FILTROS EM CASCATA
+        // MOTOR DE FILTROS EM CASCATA (BLINDADO)
         // ==========================================
         function buildEvoCheckboxes(set, cls) {
             const id = cls.replace('chk-evo-', '');
@@ -5300,11 +5316,10 @@
         }
 
         function populateEvoFilters() {
-            // Cria apenas o 1º Nível (Proprietários) da base crua
             const proprietarios = new Set(evoRawData.map(r => r['Proprietário']));
             document.getElementById('evo-proprietario-options').innerHTML = buildEvoCheckboxes(proprietarios, 'chk-evo-proprietario');
+            document.getElementById('evo-proprietario-all').checked = true;
             
-            // Os Elementos são fixos, então já montamos direto
             document.getElementById('evo-elemento-options').innerHTML = evoElementsList.map(v => `
                 <label class="flex items-center space-x-2 p-1.5 hover:bg-pink-100 rounded cursor-pointer w-full">
                     <input type="checkbox" value="${v}" ${['P', 'K', 'V%', 'MO', 'CTC', 'pH_CaCl2'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('elemento')">
@@ -5313,64 +5328,66 @@
             
             updateEvoDropdownText('chk-evo-elemento');
             
-            // Dispara o gatilho inicial: Ele vai construir Propriedade, depois Campo, depois Subs automaticamente
+            // Dispara o gatilho inicial que vai descer a cascata perfeitamente
             handleEvoFilterChange('proprietario'); 
         }
 
-        function handleEvoFilterChange(levelChanged) {
-            // Se o usuário mexer nos Elementos, apenas redesenha os gráficos
-            if (levelChanged === 'elemento') {
+        function handleEvoFilterChange(sourceLevel) {
+            if (sourceLevel === 'elemento') {
                 updateEvoDropdownText('chk-evo-elemento');
                 renderEvoCharts();
                 return;
             }
 
-            let validData = evoRawData;
+            const getSel = (cls) => Array.from(document.querySelectorAll('.' + cls + ':checked')).map(c => c.value);
             
-            // Lê o que está marcado no Proprietário
-            const selProprietarios = Array.from(document.querySelectorAll('.chk-evo-proprietario:checked')).map(c => c.value);
+            let selProps = getSel('chk-evo-proprietario');
+            let selPropriedades = [];
+            let selCampos = [];
+            let selSubs = [];
             
-            // Se mudou Proprietário, refaz a lista de Propriedades e avisa para continuar a cascata
-            if (levelChanged === 'proprietario') {
-                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']));
-                const propriedades = new Set(validData.map(r => r['Propriedade']));
+            // 1. Proprietário mudou -> Reconstrói Propriedades
+            if (sourceLevel === 'proprietario') {
+                const validProps = evoRawData.filter(r => selProps.includes(r['Proprietário']));
+                const propriedades = new Set(validProps.map(r => r['Propriedade']));
                 document.getElementById('evo-propriedade-options').innerHTML = buildEvoCheckboxes(propriedades, 'chk-evo-propriedade');
-                levelChanged = 'propriedade'; 
-            }
-            
-            // Lê o que está marcado na Propriedade
-            const selPropriedades = Array.from(document.querySelectorAll('.chk-evo-propriedade:checked')).map(c => c.value);
-            
-            // Se mudou Propriedade, refaz a lista de Campos
-            if (levelChanged === 'propriedade') {
-                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']));
-                const campos = new Set(validData.map(r => r.Campo));
-                document.getElementById('evo-campo-options').innerHTML = buildEvoCheckboxes(campos, 'chk-evo-campo');
-                levelChanged = 'campo'; 
-            }
-            
-            // Lê o que está marcado no Campo
-            const selCampos = Array.from(document.querySelectorAll('.chk-evo-campo:checked')).map(c => c.value);
-            
-            // Se mudou Campo, refaz a lista de Subs
-            if (levelChanged === 'campo') {
-                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo));
-                const subs = new Set(validData.map(r => r.Sub01));
-                document.getElementById('evo-sub-options').innerHTML = buildEvoCheckboxes(subs, 'chk-evo-sub');
-                levelChanged = 'sub'; 
-            }
-            
-            // Lê o que está marcado na Sub
-            const selSubs = Array.from(document.querySelectorAll('.chk-evo-sub:checked')).map(c => c.value);
-            
-            // Se mudou Sub, refaz a lista de Profundidades
-            if (levelChanged === 'sub') {
-                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo) && selSubs.includes(String(r.Sub01)));
-                const profs = new Set(validData.map(r => r.Prof));
-                document.getElementById('evo-prof-options').innerHTML = buildEvoCheckboxes(profs, 'chk-evo-prof');
+                document.getElementById('evo-propriedade-all').checked = true;
+                selPropriedades = Array.from(propriedades); // Memória forçada!
+            } else {
+                selPropriedades = getSel('chk-evo-propriedade');
             }
 
-            // Atualiza o visual de texto de todos os botões dropdown
+            // 2. Propriedade mudou -> Reconstrói Campos
+            if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade') {
+                const validCampos = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']));
+                const campos = new Set(validCampos.map(r => r.Campo));
+                document.getElementById('evo-campo-options').innerHTML = buildEvoCheckboxes(campos, 'chk-evo-campo');
+                document.getElementById('evo-campo-all').checked = true;
+                selCampos = Array.from(campos); // Memória forçada!
+            } else {
+                selCampos = getSel('chk-evo-campo');
+            }
+
+            // 3. Campo mudou -> Reconstrói Subdivisões
+            if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade' || sourceLevel === 'campo') {
+                const validSubs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo));
+                const subs = new Set(validSubs.map(r => String(r.Sub01)));
+                document.getElementById('evo-sub-options').innerHTML = buildEvoCheckboxes(subs, 'chk-evo-sub');
+                document.getElementById('evo-sub-all').checked = true;
+                selSubs = Array.from(subs); // Memória forçada!
+            } else {
+                selSubs = getSel('chk-evo-sub');
+            }
+
+            // 4. Subdivisão mudou -> Reconstrói Profundidades
+            if (sourceLevel !== 'prof') {
+                const validProfs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo) && selSubs.includes(String(r.Sub01)));
+                const profs = new Set(validProfs.map(r => r.Prof));
+                document.getElementById('evo-prof-options').innerHTML = buildEvoCheckboxes(profs, 'chk-evo-prof');
+                document.getElementById('evo-prof-all').checked = true;
+            }
+
+            // Atualiza os textos do topo dos botões
             ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof'].forEach(updateEvoDropdownText);
             
             renderEvoCharts();
@@ -5384,13 +5401,12 @@
         function updateEvoDropdownText(cls) {
             const chks = document.querySelectorAll(`.${cls}`);
             const checked = Array.from(chks).filter(c => c.checked);
-            const id = cls.replace('chk-', ''); // Ex: chk-evo-campo vira evo-campo
+            const id = cls.replace('chk-', ''); 
             const textEl = document.getElementById(`${id}-text`);
             const allChk = document.getElementById(`${id}-all`);
             
             if (!textEl) return;
 
-            // Logiquinha inteligente para a caixa de texto e o "Selecionar Todos"
             if (checked.length === 0) {
                 textEl.innerText = "Nenhum";
                 if (allChk) allChk.checked = false;
@@ -5429,7 +5445,6 @@
             const elementos = Array.from(document.querySelectorAll('.chk-evo-elemento:checked')).map(c => c.value);
             const criticoVal = parseFloat(document.getElementById('evo-critico').value);
 
-            // Filtrar os dados brutos com a intersecção de TODAS as caixas
             const filtered = evoRawData.filter(r => 
                 selProprietarios.includes(r['Proprietário']) &&
                 selPropriedades.includes(r['Propriedade']) &&
