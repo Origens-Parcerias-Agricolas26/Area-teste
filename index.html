@@ -5216,12 +5216,22 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
-                const response = await fetch(GOOGLE_SHEETS_EVO_URL);
+                // Carimbo de tempo na URL para FORÇAR o navegador a ignorar o cache!
+                const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
+                if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
                 parseEvoCSV(textData);
             } catch (error) {
-                console.error(error);
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha de Evolução.</div>`;
+                console.error("Erro no Fetch:", error);
+                if (container) container.innerHTML = `
+                    <div class="col-span-full p-10 text-center text-red-600 font-bold">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>
+                        Erro de Conexão ou Bloqueio do Google.<br>
+                        <span class="text-sm font-medium text-slate-600 mt-2 block">
+                            Isso quase sempre acontece quando a planilha está <b>Privada</b>.<br>
+                            Vá no Google Sheets, clique em "Compartilhar" e mude para "Qualquer pessoa com o link".
+                        </span>
+                    </div>`;
             }
         }
 
