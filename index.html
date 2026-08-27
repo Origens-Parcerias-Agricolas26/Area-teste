@@ -5204,25 +5204,19 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
+        
+        // Voltamos para o formato TSV (inquebrável contra vírgulas)
         const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
-        
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
-
-        // O MAPEAMENTO ABSOLUTO: Liga a posição exata da coluna (Índice 0 = A) ao Elemento
-        const evoIndexMap = {
-            19: 'pH_água', 20: 'pH_CaCl2', 21: 'P', 22: 'K', 24: 'Ca', 25: 'Mg',
-            26: 'Al', 27: 'H', 28: 'MO', 29: 'Areia', 30: 'Silte', 31: 'Argila',
-            32: 'Sb', 33: 'CTC', 34: 'V%', 44: 'Zn', 45: 'Cu', 46: 'Fe', 
-            47: 'Mn', 48: 'S', 49: 'B'
-        };
 
         async function fetchEvoData() {
             const container = document.getElementById('evo-charts-container');
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
+                // Traz os dados sempre atualizados (sem cache)
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
                 if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
@@ -5245,13 +5239,17 @@
             let headerIdx = -1;
             let headers = [];
 
-            // Apenas alinha os nomes dos Filtros em Texto, os Elementos serão lidos por posição
+            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS (SEU CÓDIGO ORIGINAL)
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
+                    // Alinha qualquer variação de nome para o padrão do sistema
+                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
+                    if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
+                    if (/v\s*%/i.test(str)) return 'V%';
                     if (/propriet.rio/i.test(str)) return 'Proprietário';
                     if (/propriedade/i.test(str)) return 'Propriedade';
                     if (/safra/i.test(str)) return 'Safra';
@@ -5280,26 +5278,19 @@
                 if (!line) continue;
 
                 let cols = line.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
-                let row = {};
 
-                // 1. Lê os textos (Proprietário, Safra, Campo...)
+                let row = {};
                 headers.forEach((h, idx) => {
-                    if (!evoElementsList.includes(h)) {
-                        let val = cols[idx] || '';
-                        if (h === 'Sub01' && val === '') val = 'Geral';
-                        if (val === '') val = '-';
+                    let val = cols[idx] || '';
+                    if (evoElementsList.includes(h)) {
+                        val = val.replace(',', '.'); 
+                        let num = parseFloat(val);
+                        row[h] = isNaN(num) ? null : num;
+                    } else {
+                        if (val === '') val = '-'; // Evita caixas em branco
                         row[h] = val;
                     }
                 });
-
-                // 2. Lê os Números pela Posição Absoluta (Ignora nomes do laboratório)
-                for (let idx in evoIndexMap) {
-                    let elName = evoIndexMap[idx];
-                    let val = cols[idx] || '';
-                    val = val.replace(/\s/g, '').replace(',', '.'); // Limpa sujeira e arruma vírgula
-                    let num = parseFloat(val);
-                    row[elName] = isNaN(num) ? null : num;
-                }
 
                 // Só processa se a linha for válida
                 if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
@@ -5308,7 +5299,7 @@
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os dados estão vazios.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
                  return;
             }
 
@@ -5479,19 +5470,18 @@
 
             elementos.forEach(el => {
                 const labels = safrasArray;
-                
-                // CÁLCULO DA MÉDIA MATEMÁTICA (Soma / Quantidade)
                 const averages = safrasArray.map(safra => {
+                    // Pega apenas as linhas que têm número válido
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    if (rowsSafra.length === 0) return null; // Previne a queda da linha para o zero
+                    if (rowsSafra.length === 0) return null; // FIX 1: Retorna Nulo para o gráfico não despencar
                     
                     let sum = 0;
                     rowsSafra.forEach(r => sum += r[el]);
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // Se o elemento inteiro for nulo, ignora o desenho do gráfico
+                // FIX 2: Bloqueia a criação do quadrado branco se o elemento não tiver dado nenhum
                 if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
@@ -5512,7 +5502,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Conecta os pontos mesmo com anos pulados
+                        spanGaps: true, // FIX 3: Conecta os pontos vizinhos se faltar uma safra no meio
                         yAxisID: 'y'
                     },
                     {
