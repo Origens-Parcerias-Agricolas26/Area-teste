@@ -5205,8 +5205,9 @@
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
         
-        // Mudamos o final da URL de format=csv para format=tsv (Tabulação) para evitar conflito com vírgulas BR
-        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRRSrMuY9RRhHVTSicZRDYGN65KEAsMiv_UEQjXzK_bKG4z_aIPLS-1C8gqFLq8n76N5cXo17SCdGh6/pub?output=tsv";
+        // A SOLUÇÃO: Usamos a API GVIZ oficial do Google, que é à prova de bloqueios de CORS!
+        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/gviz/tq?tqx=out:csv&gid=1524034082";
+        
         let evoRawData = [];
         let evoChartsInst = {};
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
@@ -5216,7 +5217,7 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
-                // Carimbo de tempo na URL para FORÇAR o navegador a ignorar o cache!
+                // Carimbo de tempo para forçar atualização em tempo real
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
                 if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
@@ -5226,83 +5227,81 @@
                 if (container) container.innerHTML = `
                     <div class="col-span-full p-10 text-center text-red-600 font-bold">
                         <i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>
-                        Erro de Conexão ou Bloqueio do Google.<br>
+                        Erro de Conexão com o Google.<br>
                         <span class="text-sm font-medium text-slate-600 mt-2 block">
-                            Isso quase sempre acontece quando a planilha está <b>Privada</b>.<br>
-                            Vá no Google Sheets, clique em "Compartilhar" e mude para "Qualquer pessoa com o link".
+                            Não foi possível ler a planilha. Verifique sua internet.
                         </span>
                     </div>`;
             }
         }
 
-        function parseEvoCSV(tsvText) {
+        function parseEvoCSV(rawText) {
             const container = document.getElementById('evo-charts-container');
             
-            // VERIFICAÇÃO DE SEGURANÇA: Se o Google retornar HTML, a planilha está Privada/Bloqueada
-            if (tsvText.trim().toLowerCase().startsWith('<!doctype html>') || tsvText.toLowerCase().includes('<html')) {
-                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nVá na planilha, clique em 'Compartilhar' e mude o acesso geral para 'Qualquer pessoa com o link'.");
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.<br><span class="text-sm font-medium">Libere o acesso de leitura no Google Sheets e clique em Sincronizar novamente.</span></div>`;
+            if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
                 return;
             }
 
-            // Usamos \n para quebrar as linhas
-            const lines = tsvText.split(/\r\n|\n/);
-            evoRawData = [];
-            
-            if (lines.length < 2) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">A planilha foi lida, mas parece estar vazia.</div>`;
-                return;
-            }
-
-            // NOVO: Procurar a linha de cabeçalho dinamicamente (ignora linhas vazias no topo do Excel)
-            let headerIdx = 0;
+            const lines = rawText.split(/\r\n|\n/);
+            let headerIdx = -1;
             let headers = [];
-            for (let i = 0; i < Math.min(5, lines.length); i++) {
-                const tempCols = lines[i].split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
-                if (tempCols.includes('Safra') && tempCols.includes('Campo')) {
-                    headers = tempCols;
+
+            // Busca inteligente pelas colunas
+            for (let i = 0; i < Math.min(10, lines.length); i++) {
+                const line = lines[i];
+                if (!line.trim()) continue;
+                
+                // O GVIZ usa CSV. O Regex abaixo separa as vírgulas ignorando as vírgulas dentro dos números (ex: "5,38")
+                let tempCommas = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.trim().replace(/^"|"$/g, ''));
+
+                if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
+                    headers = tempCommas;
                     headerIdx = i;
                     break;
                 }
             }
 
-            if (headers.length === 0) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas nas primeiras linhas.</div>`;
+            if (headerIdx === -1) {
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
                 return;
             }
 
-            // Começa a ler os dados logo abaixo da linha do cabeçalho
+            evoRawData = [];
+            
             for (let i = headerIdx + 1; i < lines.length; i++) {
-                if (!lines[i].trim()) continue;
-                const cols = lines[i].split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
-                
+                const line = lines[i].trim();
+                if (!line) continue;
+
+                let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+
                 let row = {};
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
                     
-                    // Se for um elemento químico, trocamos a vírgula BR por ponto para o sistema conseguir calcular a média
                     if (evoElementsList.includes(h)) {
                         val = val.replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
-                        // Para colunas de texto (Safra, Campo, Sub01)
-                        if (h === 'Sub01' && val === '') val = 'Geral'; // Evita caixas de filtro vazias
+                        if (h === 'Sub01' && val === '') val = 'Geral';
                         row[h] = val;
                     }
                 });
-                
-                // Só salva a linha na memória se a coluna Safra e Campo existirem nela
+
                 if (row['Safra'] && row['Campo']) {
                     evoRawData.push(row);
                 }
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Nenhum dado válido encontrado. Verifique se as colunas 'Safra' e 'Campo' estão preenchidas.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
                  return;
             }
 
+            if (typeof populateEvoFilters === 'function') populateEvoFilters();
+            if (typeof renderEvoCharts === 'function') renderEvoCharts();
+        }
             populateEvoFilters();
             renderEvoCharts();
         }
