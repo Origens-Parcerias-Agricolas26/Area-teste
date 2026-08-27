@@ -5204,6 +5204,8 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
+        
+        // Voltamos para o formato TSV (inquebrável contra vírgulas)
         const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
@@ -5214,12 +5216,14 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
+                // Traz os dados sempre atualizados (sem cache)
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
+                if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
                 parseEvoCSV(textData);
             } catch (error) {
-                console.error(error);
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha.</div>`;
+                console.error("Erro no Fetch:", error);
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>Erro de Conexão com o Google.<br><span class="text-sm font-medium text-slate-600 mt-2 block">Não foi possível ler a planilha. Verifique sua internet.</span></div>`;
             }
         }
 
@@ -5227,43 +5231,43 @@
             const container = document.getElementById('evo-charts-container');
             
             if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
-                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nMude o acesso geral para 'Qualquer pessoa com o link'.");
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada. Libere o acesso para 'Qualquer pessoa com o link'.</div>`;
                 return;
             }
 
             const lines = rawText.split(/\r\n|\n/);
             let headerIdx = -1;
             let headers = [];
-            let separator = '\t';
 
+            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
-                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-
-                // AJUSTE CIRÚRGICO 1: Força o reconhecimento apenas do pH_CaCl2 (ignora espaços/minúsculas da planilha)
-                tempTabs = tempTabs.map(h => h.toLowerCase().replace(/\s/g, '_') === 'ph_cacl2' ? 'pH_CaCl2' : h);
-                tempCommas = tempCommas.map(h => h.toLowerCase().replace(/\s/g, '_') === 'ph_cacl2' ? 'pH_CaCl2' : h);
+                let tempTabs = line.split('\t').map(h => {
+                    let str = h.replace(/^"|"$/g, '').trim();
+                    // Alinha qualquer variação de nome para o padrão do sistema
+                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
+                    if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
+                    if (/v\s*%/i.test(str)) return 'V%';
+                    if (/propriet.rio/i.test(str)) return 'Proprietário';
+                    if (/propriedade/i.test(str)) return 'Propriedade';
+                    if (/safra/i.test(str)) return 'Safra';
+                    if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
+                    if (/prof/i.test(str)) return 'Prof';
+                    if (/^sub/i.test(str)) return 'Sub01';
+                    return str;
+                });
 
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
                     headers = tempTabs;
                     headerIdx = i;
-                    separator = '\t';
-                    break;
-                }
-                if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
-                    headers = tempCommas;
-                    headerIdx = i;
-                    separator = ',';
                     break;
                 }
             }
 
             if (headerIdx === -1) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">NOVO ERRO DETECTADO: Não encontrei as colunas 'Safra' e 'Campo' nas 10 primeiras linhas.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
                 return;
             }
 
@@ -5273,34 +5277,29 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = [];
-                if (separator === ',') {
-                    cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-                } else {
-                    cols = line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
-                }
+                let cols = line.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
 
                 let row = {};
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
-                    
                     if (evoElementsList.includes(h)) {
-                        val = val.replace(/\s/g, '').replace(',', '.'); // Remove eventuais espaços invisíveis nos números
+                        val = val.replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
-                        if (h === 'Sub01' && val === '') val = 'Geral';
+                        if (val === '') val = '-'; // Evita caixas em branco
                         row[h] = val;
                     }
                 });
 
-                if (row['Safra'] && row['Campo']) {
+                // Só processa se a linha for válida
+                if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
                     evoRawData.push(row);
                 }
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados na linha ${headerIdx + 1}, mas as linhas de dados abaixo estão vazias.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
                  return;
             }
 
@@ -5308,7 +5307,7 @@
         }
 
         // ==========================================
-        // MOTOR DE FILTROS EM CASCATA (BLINDADO)
+        // MOTOR DE FILTROS EM CASCATA
         // ==========================================
         function buildEvoCheckboxes(set, cls) {
             const id = cls.replace('chk-evo-', '');
@@ -5331,8 +5330,6 @@
                 </label>`).join('');
             
             updateEvoDropdownText('chk-evo-elemento');
-            
-            // Dispara o gatilho inicial que vai descer a cascata perfeitamente
             handleEvoFilterChange('proprietario'); 
         }
 
@@ -5350,43 +5347,39 @@
             let selCampos = [];
             let selSubs = [];
             
-            // 1. Proprietário mudou -> Reconstrói Propriedades
             if (sourceLevel === 'proprietario') {
                 const validProps = evoRawData.filter(r => selProps.includes(r['Proprietário']));
                 const propriedades = new Set(validProps.map(r => r['Propriedade']));
                 document.getElementById('evo-propriedade-options').innerHTML = buildEvoCheckboxes(propriedades, 'chk-evo-propriedade');
                 const allPropriedade = document.getElementById('evo-propriedade-all');
                 if(allPropriedade) allPropriedade.checked = true;
-                selPropriedades = Array.from(propriedades); // Memória forçada!
+                selPropriedades = Array.from(propriedades);
             } else {
                 selPropriedades = getSel('chk-evo-propriedade');
             }
 
-            // 2. Propriedade mudou -> Reconstrói Campos
             if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade') {
                 const validCampos = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']));
                 const campos = new Set(validCampos.map(r => r.Campo));
                 document.getElementById('evo-campo-options').innerHTML = buildEvoCheckboxes(campos, 'chk-evo-campo');
                 const allCampo = document.getElementById('evo-campo-all');
                 if(allCampo) allCampo.checked = true;
-                selCampos = Array.from(campos); // Memória forçada!
+                selCampos = Array.from(campos);
             } else {
                 selCampos = getSel('chk-evo-campo');
             }
 
-            // 3. Campo mudou -> Reconstrói Subdivisões
             if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade' || sourceLevel === 'campo') {
                 const validSubs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo));
                 const subs = new Set(validSubs.map(r => String(r.Sub01)));
                 document.getElementById('evo-sub-options').innerHTML = buildEvoCheckboxes(subs, 'chk-evo-sub');
                 const allSub = document.getElementById('evo-sub-all');
                 if(allSub) allSub.checked = true;
-                selSubs = Array.from(subs); // Memória forçada!
+                selSubs = Array.from(subs);
             } else {
                 selSubs = getSel('chk-evo-sub');
             }
 
-            // 4. Subdivisão mudou -> Reconstrói Profundidades
             if (sourceLevel !== 'prof') {
                 const validProfs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo) && selSubs.includes(String(r.Sub01)));
                 const profs = new Set(validProfs.map(r => r.Prof));
@@ -5395,7 +5388,6 @@
                 if(allProf) allProf.checked = true;
             }
 
-            // Atualiza os textos do topo dos botões
             ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof'].forEach(updateEvoDropdownText);
             
             renderEvoCharts();
@@ -5478,29 +5470,15 @@
 
             elementos.forEach(el => {
                 const labels = safrasArray;
-                
-                // AJUSTE CIRÚRGICO 2: Cálculo Matemático (Soma / Quantidade) à prova de erros.
                 const averages = safrasArray.map(safra => {
-                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
-                    
-                    if (rowsSafra.length === 0) return null; // Retorna nulo para o gráfico não despencar para zero
+                    // Pega apenas as linhas que têm número válido
+                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
+                    if (rowsSafra.length === 0) return 0;
                     
                     let sum = 0;
-                    let count = 0;
-                    
-                    rowsSafra.forEach(r => {
-                        let num = parseFloat(r[el]);
-                        if (!isNaN(num)) {
-                            sum += num;
-                            count++;
-                        }
-                    });
-                    
-                    return count > 0 ? Number((sum / count).toFixed(2)) : null;
+                    rowsSafra.forEach(r => sum += r[el]);
+                    return Number((sum / rowsSafra.length).toFixed(2));
                 });
-
-                // Se não houver nenhum dado do elemento, não renderiza a caixa branca
-                if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
@@ -5520,7 +5498,6 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Garante que a linha conecte pontos distantes se faltar um ano
                         yAxisID: 'y'
                     },
                     {
