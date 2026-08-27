@@ -5216,7 +5216,6 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
-                // Traz os dados sempre atualizados (sem cache)
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
                 if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
@@ -5239,23 +5238,26 @@
             let headerIdx = -1;
             let headers = [];
 
-            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS (SEU CÓDIGO)
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
-                    // Alinha qualquer variação de nome para o padrão do sistema
-                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
-                    if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
-                    if (/v\s*%/i.test(str)) return 'V%';
+                    
+                    // 1. Textos base
                     if (/propriet.rio/i.test(str)) return 'Proprietário';
                     if (/propriedade/i.test(str)) return 'Propriedade';
                     if (/safra/i.test(str)) return 'Safra';
                     if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
                     if (/prof/i.test(str)) return 'Prof';
                     if (/^sub/i.test(str)) return 'Sub01';
+
+                    // 2. A lixa que arranca espaços invisíveis para o sistema não ser enganado!
+                    let cleanStr = str.replace(/[\s\u200B-\u200D\uFEFF_]/g, '').toLowerCase();
+                    let found = evoElementsList.find(el => el.toLowerCase().replace(/[\s_]/g, '') === cleanStr);
+                    if (found) return found;
+
                     return str;
                 });
 
@@ -5283,16 +5285,16 @@
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
                     if (evoElementsList.includes(h)) {
-                        val = val.replace(',', '.'); 
+                        // EXATAMENTE A SUA SUGESTÃO: Troca vírgula por ponto para a média funcionar!
+                        val = val.replace(/\s/g, '').replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
-                        if (val === '') val = '-'; // Evita caixas em branco
+                        if (val === '') val = '-';
                         row[h] = val;
                     }
                 });
 
-                // Só processa se a linha for válida
                 if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
                     evoRawData.push(row);
                 }
@@ -5471,17 +5473,17 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
-                    // Pega apenas as linhas que têm número válido para calcular a média
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    if (rowsSafra.length === 0) return null; // Transforma 0 em null para não despencar o gráfico
+                    if (rowsSafra.length === 0) return null;
                     
                     let sum = 0;
                     rowsSafra.forEach(r => sum += r[el]);
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // Cria o quadro na tela para todos os elementos selecionados
+                if (averages.every(v => v === null)) return;
+
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
                 wrapper.innerHTML = `<h3 class="text-sm font-extrabold text-slate-700 uppercase mb-3 border-b pb-1 w-full text-center">${el}</h3><div class="relative w-full h-64"><canvas id="evoChart_${el}"></canvas></div>`;
@@ -5500,7 +5502,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Liga a linha se pular algum ano
+                        spanGaps: true,
                         yAxisID: 'y'
                     },
                     {
