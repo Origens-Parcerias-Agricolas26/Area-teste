@@ -5241,27 +5241,26 @@
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                // CIRURGIA 1: Identifica o pH_CaCl2 (e outros elementos) independente de maiúscula ou minúscula na planilha!
-                let tempTabs = line.split('\t').map(h => {
-                    let clean = h.trim().replace(/^"|"$/g, '');
-                    let match = evoElementsList.find(el => el.toLowerCase() === clean.toLowerCase());
-                    return match ? match : clean;
-                });
-                
-                let tempCommas = line.split(',').map(h => {
-                    let clean = h.trim().replace(/^"|"$/g, '');
-                    let match = evoElementsList.find(el => el.toLowerCase() === clean.toLowerCase());
-                    return match ? match : clean;
-                });
+                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
+                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
 
+                // SOLUÇÃO 1: Limpa espaços e letras maiúsculas para forçar o Match exato do pH_CaCl2 e outros elementos.
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
-                    headers = tempTabs;
+                    headers = tempTabs.map(h => {
+                        let strippedH = h.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase();
+                        let exactMatch = evoElementsList.find(el => el.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase() === strippedH);
+                        return exactMatch ? exactMatch : h;
+                    });
                     headerIdx = i;
                     separator = '\t';
                     break;
                 }
                 if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
-                    headers = tempCommas;
+                    headers = tempCommas.map(h => {
+                        let strippedH = h.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase();
+                        let exactMatch = evoElementsList.find(el => el.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase() === strippedH);
+                        return exactMatch ? exactMatch : h;
+                    });
                     headerIdx = i;
                     separator = ',';
                     break;
@@ -5291,7 +5290,8 @@
                     let val = cols[idx] || '';
                     
                     if (evoElementsList.includes(h)) {
-                        val = val.replace(',', '.'); 
+                        // Limpa espaços invisíveis e converte vírgula para ponto antes do cálculo
+                        val = String(val).replace(/\s/g, '').replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
@@ -5338,7 +5338,6 @@
             
             updateEvoDropdownText('chk-evo-elemento');
             
-            // Dispara o gatilho inicial que vai descer a cascata perfeitamente
             handleEvoFilterChange('proprietario'); 
         }
 
@@ -5356,40 +5355,36 @@
             let selCampos = [];
             let selSubs = [];
             
-            // 1. Proprietário mudou -> Reconstrói Propriedades
             if (sourceLevel === 'proprietario') {
                 const validProps = evoRawData.filter(r => selProps.includes(r['Proprietário']));
                 const propriedades = new Set(validProps.map(r => r['Propriedade']));
                 document.getElementById('evo-propriedade-options').innerHTML = buildEvoCheckboxes(propriedades, 'chk-evo-propriedade');
                 document.getElementById('evo-propriedade-all').checked = true;
-                selPropriedades = Array.from(propriedades); // Memória forçada!
+                selPropriedades = Array.from(propriedades);
             } else {
                 selPropriedades = getSel('chk-evo-propriedade');
             }
 
-            // 2. Propriedade mudou -> Reconstrói Campos
             if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade') {
                 const validCampos = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']));
                 const campos = new Set(validCampos.map(r => r.Campo));
                 document.getElementById('evo-campo-options').innerHTML = buildEvoCheckboxes(campos, 'chk-evo-campo');
                 document.getElementById('evo-campo-all').checked = true;
-                selCampos = Array.from(campos); // Memória forçada!
+                selCampos = Array.from(campos);
             } else {
                 selCampos = getSel('chk-evo-campo');
             }
 
-            // 3. Campo mudou -> Reconstrói Subdivisões
             if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade' || sourceLevel === 'campo') {
                 const validSubs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo));
                 const subs = new Set(validSubs.map(r => String(r.Sub01)));
                 document.getElementById('evo-sub-options').innerHTML = buildEvoCheckboxes(subs, 'chk-evo-sub');
                 document.getElementById('evo-sub-all').checked = true;
-                selSubs = Array.from(subs); // Memória forçada!
+                selSubs = Array.from(subs);
             } else {
                 selSubs = getSel('chk-evo-sub');
             }
 
-            // 4. Subdivisão mudou -> Reconstrói Profundidades
             if (sourceLevel !== 'prof') {
                 const validProfs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo) && selSubs.includes(String(r.Sub01)));
                 const profs = new Set(validProfs.map(r => r.Prof));
@@ -5397,7 +5392,6 @@
                 document.getElementById('evo-prof-all').checked = true;
             }
 
-            // Atualiza os textos do topo dos botões
             ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof'].forEach(updateEvoDropdownText);
             
             renderEvoCharts();
@@ -5478,19 +5472,29 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 
-                // CIRURGIA 2: Cálculo matemático de média inquebrável (Soma / Quantidade). Retorna null se vazio.
+                // SOLUÇÃO 2: CÁLCULO DE MÉDIA CIENTÍFICO (Impossível somar agora)
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
                     
-                    if (rowsSafra.length === 0) return null; // Retorna nulo para não despencar pro zero
+                    // Retorna null (e não 0) para o gráfico não despencar caso falte dado num ano
+                    if (rowsSafra.length === 0) return null; 
                     
                     let sum = 0;
-                    rowsSafra.forEach(r => sum += Number(r[el]));
+                    let count = 0;
                     
-                    return Number((sum / rowsSafra.length).toFixed(2));
+                    rowsSafra.forEach(r => {
+                        let num = Number(r[el]); // Exige formato numérico 
+                        if (!isNaN(num)) {
+                            sum += num;
+                            count++;
+                        }
+                    });
+                    
+                    // Fórmula de Média: Soma / Quantidade de análises
+                    return count > 0 ? Number((sum / count).toFixed(2)) : null;
                 });
 
-                // Se o elemento inteiro estiver vazio em todos os anos, não desenha um quadro inútil.
+                // Se o elemento inteiro estiver vazio em todos os anos daquela fazenda, não desenha o gráfico
                 if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
