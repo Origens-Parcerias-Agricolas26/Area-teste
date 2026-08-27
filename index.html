@@ -5209,17 +5209,65 @@
         let evoChartsInst = {};
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
 
+        // Função Implacável para corrigir nomes de cabeçalhos (Ignora espaços, maiúsculas e parênteses)
+        function normalizeEvoHeader(h) {
+            let str = h.replace(/^"|"$/g, '').trim();
+            let lower = str.toLowerCase();
+
+            if (lower.includes('propriet')) return 'Proprietário';
+            if (lower.includes('propriedade')) return 'Propriedade';
+            if (lower.includes('safra')) return 'Safra';
+            if (lower.includes('campo') || lower.includes('talh')) return 'Campo';
+            if (lower.includes('prof')) return 'Prof';
+            if (lower.startsWith('sub')) return 'Sub01';
+
+            if (lower.includes('ph') && lower.includes('cacl')) return 'pH_CaCl2';
+            if (lower.includes('ph') && (lower.includes('agua') || lower.includes('água'))) return 'pH_água';
+            if (lower.includes('v%') || lower.includes('v %')) return 'V%';
+
+            for (let el of evoElementsList) {
+                if (el.includes('pH') || el === 'V%') continue; 
+                if (lower === el.toLowerCase()) return el;
+                // Pega elementos que têm unidades junto, ex: "P (mg/dm3)"
+                let regex = new RegExp('^' + el + '([^a-z0-9]|$)', 'i');
+                if (regex.test(lower)) return el;
+            }
+            return str;
+        }
+
+        // Função Blindada para converter qualquer número com vírgula, ponto ou letras perdidas
+        function parseSoilNumber(val) {
+            if (val === null || val === undefined || val === '') return null;
+            let str = String(val).trim();
+            if (str === '-' || str === '') return null;
+            
+            str = str.replace(/\s/g, '');
+            if (str.includes(',') && str.includes('.')) {
+                let lastComma = str.lastIndexOf(',');
+                let lastDot = str.lastIndexOf('.');
+                if (lastComma > lastDot) str = str.replace(/\./g, '').replace(',', '.');
+                else str = str.replace(/,/g, '');
+            } else if (str.includes(',')) {
+                str = str.replace(',', '.');
+            }
+            
+            str = str.replace(/[^\d.-]/g, ''); // Remove tudo que não for número
+            let num = parseFloat(str);
+            return isNaN(num) ? null : num;
+        }
+
         async function fetchEvoData() {
             const container = document.getElementById('evo-charts-container');
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
+                if (!response.ok) throw new Error("Falha na rede");
                 const textData = await response.text();
                 parseEvoCSV(textData);
             } catch (error) {
                 console.error(error);
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha.</div>`;
             }
         }
 
@@ -5227,7 +5275,6 @@
             const container = document.getElementById('evo-charts-container');
             
             if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
-                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nMude o acesso geral para 'Qualquer pessoa com o link'.");
                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
                 return;
             }
@@ -5235,51 +5282,23 @@
             const lines = rawText.split(/\r\n|\n/);
             let headerIdx = -1;
             let headers = [];
-            let separator = '\t';
 
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
-                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-
+                let tempTabs = line.split('\t').map(normalizeEvoHeader);
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
                     headers = tempTabs;
                     headerIdx = i;
-                    separator = '\t';
-                    break;
-                }
-                if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
-                    headers = tempCommas;
-                    headerIdx = i;
-                    separator = ',';
                     break;
                 }
             }
 
             if (headerIdx === -1) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Não encontrei as colunas 'Safra' e 'Campo' nas primeiras linhas.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
                 return;
             }
-
-            // =========================================================
-            // CORRETOR DE CABEÇALHOS (Resolve o pH_CaCl2 e Proprietários)
-            // =========================================================
-            headers = headers.map(h => {
-                let str = h.trim();
-                let strLower = str.toLowerCase();
-                
-                // Mapeia os nomes da planilha para os nomes exatos do código
-                if (strLower.includes('ph') && strLower.includes('cacl')) return 'pH_CaCl2';
-                if (strLower.includes('ph') && (strLower.includes('agua') || strLower.includes('água'))) return 'pH_água';
-                if (strLower === 'v%') return 'V%';
-                if (strLower.includes('propriet')) return 'Proprietário';
-                if (strLower.includes('propriedade')) return 'Propriedade';
-                if (strLower === 'sub01' || strLower === 'sub 01' || strLower === 'subdivisão' || strLower === 'sub') return 'Sub01';
-                
-                return str;
-            });
 
             evoRawData = [];
             
@@ -5287,35 +5306,28 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = [];
-                if (separator === ',') {
-                    cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-                } else {
-                    cols = line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
-                }
+                let cols = line.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
 
                 let row = {};
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
-                    
                     if (evoElementsList.includes(h)) {
-                        val = val.replace(',', '.'); 
-                        let num = parseFloat(val);
-                        row[h] = isNaN(num) ? null : num;
+                        row[h] = parseSoilNumber(val);
                     } else {
                         if (h === 'Sub01' && val === '') val = 'Geral';
-                        row[h] = val;
+                        row[h] = val || '-';
                     }
                 });
 
-                // Confirmação final se a linha tem as informações base para existir
-                if (row['Safra'] && row['Campo'] && row['Proprietário']) {
+                if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
+                    if (!row['Proprietário'] || row['Proprietário'] === '-') row['Proprietário'] = 'Não Informado';
+                    if (!row['Propriedade'] || row['Propriedade'] === '-') row['Propriedade'] = 'Não Informada';
                     evoRawData.push(row);
                 }
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os dados lidos parecem estar vazios ou sem as colunas corretas.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
                  return;
             }
 
@@ -5323,13 +5335,11 @@
         }
 
         // ==========================================
-        // MOTOR DE FILTROS EM CASCATA 
+        // MOTOR DE FILTROS EM CASCATA
         // ==========================================
         function buildEvoCheckboxes(set, cls) {
             const id = cls.replace('chk-evo-', '');
-            // Impede a criação de botões "undefined"
             const validValues = Array.from(set).filter(v => v !== undefined && v !== null && String(v).trim() !== '');
-            
             return validValues.sort().map(v => `
                 <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-100 rounded cursor-pointer w-full">
                     <input type="checkbox" value="${v}" checked class="${cls} form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('${id}')">
@@ -5370,8 +5380,7 @@
                 const validProps = evoRawData.filter(r => selProps.includes(r['Proprietário']));
                 const propriedades = new Set(validProps.map(r => r['Propriedade']));
                 document.getElementById('evo-propriedade-options').innerHTML = buildEvoCheckboxes(propriedades, 'chk-evo-propriedade');
-                const allPropriedade = document.getElementById('evo-propriedade-all');
-                if(allPropriedade) allPropriedade.checked = true;
+                const allProp = document.getElementById('evo-propriedade-all'); if(allProp) allProp.checked = true;
                 selPropriedades = Array.from(propriedades);
             } else {
                 selPropriedades = getSel('chk-evo-propriedade');
@@ -5381,8 +5390,7 @@
                 const validCampos = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']));
                 const campos = new Set(validCampos.map(r => r.Campo));
                 document.getElementById('evo-campo-options').innerHTML = buildEvoCheckboxes(campos, 'chk-evo-campo');
-                const allCampo = document.getElementById('evo-campo-all');
-                if(allCampo) allCampo.checked = true;
+                const allCamp = document.getElementById('evo-campo-all'); if(allCamp) allCamp.checked = true;
                 selCampos = Array.from(campos);
             } else {
                 selCampos = getSel('chk-evo-campo');
@@ -5392,8 +5400,7 @@
                 const validSubs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo));
                 const subs = new Set(validSubs.map(r => String(r.Sub01)));
                 document.getElementById('evo-sub-options').innerHTML = buildEvoCheckboxes(subs, 'chk-evo-sub');
-                const allSub = document.getElementById('evo-sub-all');
-                if(allSub) allSub.checked = true;
+                const allSub = document.getElementById('evo-sub-all'); if(allSub) allSub.checked = true;
                 selSubs = Array.from(subs);
             } else {
                 selSubs = getSel('chk-evo-sub');
@@ -5403,8 +5410,7 @@
                 const validProfs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo) && selSubs.includes(String(r.Sub01)));
                 const profs = new Set(validProfs.map(r => r.Prof));
                 document.getElementById('evo-prof-options').innerHTML = buildEvoCheckboxes(profs, 'chk-evo-prof');
-                const allProf = document.getElementById('evo-prof-all');
-                if(allProf) allProf.checked = true;
+                const allProf = document.getElementById('evo-prof-all'); if(allProf) allProf.checked = true;
             }
 
             ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof'].forEach(updateEvoDropdownText);
@@ -5454,7 +5460,7 @@
         });
 
         // ==========================================
-        // CÁLCULO EXATO DAS MÉDIAS E RENDERIZAÇÃO
+        // CÁLCULO DE MÉDIA EXATA
         // ==========================================
         function renderEvoCharts() {
             const container = document.getElementById('evo-charts-container');
@@ -5491,15 +5497,13 @@
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
-                    if (rowsSafra.length === 0) return 0;
+                    
+                    // Retorna nulo se não houver dado para aquela safra, em vez de 0 (para o gráfico não cair bruscamente)
+                    if (rowsSafra.length === 0) return null; 
                     
                     let sum = 0;
-                    let count = 0;
-                    rowsSafra.forEach(r => {
-                        sum += r[el];
-                        count++;
-                    });
-                    return count > 0 ? Number((sum / count).toFixed(2)) : 0;
+                    rowsSafra.forEach(r => sum += r[el]);
+                    return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
                 const wrapper = document.createElement('div');
@@ -5520,6 +5524,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
+                        spanGaps: true, // Conecta a linha mesmo se faltar dado de um ano
                         yAxisID: 'y'
                     },
                     {
