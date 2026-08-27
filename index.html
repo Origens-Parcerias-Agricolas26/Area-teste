@@ -5204,7 +5204,8 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
-        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
+        
+        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/gviz/tq?tqx=out:csv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
@@ -5214,22 +5215,20 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
-                // Carimbo de tempo para forçar o navegador a ignorar o cache
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
+                if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
                 parseEvoCSV(textData);
             } catch (error) {
-                console.error(error);
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha.</div>`;
+                console.error("Erro no Fetch:", error);
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>Erro de Conexão com o Google.<br><span class="text-sm font-medium text-slate-600 mt-2 block">Não foi possível ler a planilha. Verifique sua internet.</span></div>`;
             }
         }
 
         function parseEvoCSV(rawText) {
             const container = document.getElementById('evo-charts-container');
             
-            // VERIFICAÇÃO DE SEGURANÇA: Planilha bloqueada
             if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
-                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nMude o acesso geral para 'Qualquer pessoa com o link'.");
                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
                 return;
             }
@@ -5237,53 +5236,34 @@
             const lines = rawText.split(/\r\n|\n/);
             let headerIdx = -1;
             let headers = [];
-            let separator = '\t';
 
-            // BUSCA INTELIGENTE: Procura nas primeiras 10 linhas da planilha até achar o cabeçalho
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
-                
-                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
-                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-
-                if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
-                    headers = tempTabs;
-                    headerIdx = i;
-                    separator = '\t';
-                    break;
-                }
+                let tempCommas = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => h.trim().replace(/^"|"$/g, ''));
                 if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
                     headers = tempCommas;
                     headerIdx = i;
-                    separator = ',';
                     break;
                 }
             }
 
             if (headerIdx === -1) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Não encontrei as colunas 'Safra' e 'Campo' nas 10 primeiras linhas.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
                 return;
             }
 
             evoRawData = [];
             
-            // Lê os dados a partir da linha logo abaixo do cabeçalho encontrado
             for (let i = headerIdx + 1; i < lines.length; i++) {
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = [];
-                if (separator === ',') {
-                    cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-                } else {
-                    cols = line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
-                }
+                let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
 
                 let row = {};
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
-                    
                     if (evoElementsList.includes(h)) {
                         val = val.replace(',', '.'); 
                         let num = parseFloat(val);
@@ -5300,44 +5280,130 @@
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados na linha ${headerIdx + 1}, mas as linhas de dados abaixo estão vazias.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
                  return;
             }
 
             populateEvoFilters();
-            renderEvoCharts();
+        }
+
+        // ==========================================
+        // MOTOR DE FILTROS EM CASCATA
+        // ==========================================
+        function buildEvoCheckboxes(set, cls) {
+            const id = cls.replace('chk-evo-', '');
+            return Array.from(set).sort().map(v => `
+                <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-100 rounded cursor-pointer w-full">
+                    <input type="checkbox" value="${v}" checked class="${cls} form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('${id}')">
+                    <span class="truncate">${v}</span>
+                </label>`).join('');
         }
 
         function populateEvoFilters() {
-            const proprietarios = new Set(), propriedades = new Set(), campos = new Set(), subs = new Set(), profs = new Set();
-            evoRawData.forEach(r => {
-                if (r['Proprietário']) proprietarios.add(r['Proprietário']);
-                if (r['Propriedade']) propriedades.add(r['Propriedade']);
-                if (r.Campo) campos.add(r.Campo);
-                if (r.Sub01 !== null && r.Sub01 !== undefined) subs.add(r.Sub01);
-                if (r.Prof) profs.add(r.Prof);
-            });
-
-            const buildHTML = (set, cls) => Array.from(set).sort().map(v => `
-                <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-100 rounded cursor-pointer w-full">
-                    <input type="checkbox" value="${v}" checked class="${cls} form-checkbox text-pink-600 rounded" onchange="updateEvoDropdownText('${cls}'); renderEvoCharts()">
-                    <span class="truncate">${v}</span>
-                </label>`).join('');
-
-            document.getElementById('evo-proprietario-options').innerHTML = buildHTML(proprietarios, 'chk-evo-proprietario');
-            document.getElementById('evo-propriedade-options').innerHTML = buildHTML(propriedades, 'chk-evo-propriedade');
-            document.getElementById('evo-campo-options').innerHTML = buildHTML(campos, 'chk-evo-campo');
-            document.getElementById('evo-sub-options').innerHTML = buildHTML(subs, 'chk-evo-sub');
-            document.getElementById('evo-prof-options').innerHTML = buildHTML(profs, 'chk-evo-prof');
+            // Cria apenas o 1º Nível (Proprietários) da base crua
+            const proprietarios = new Set(evoRawData.map(r => r['Proprietário']));
+            document.getElementById('evo-proprietario-options').innerHTML = buildEvoCheckboxes(proprietarios, 'chk-evo-proprietario');
             
+            // Os Elementos são fixos, então já montamos direto
             document.getElementById('evo-elemento-options').innerHTML = evoElementsList.map(v => `
                 <label class="flex items-center space-x-2 p-1.5 hover:bg-pink-100 rounded cursor-pointer w-full">
-                    <input type="checkbox" value="${v}" ${['P', 'K', 'V%', 'MO', 'CTC', 'pH_CaCl2'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="updateEvoDropdownText('chk-evo-elemento'); renderEvoCharts()">
+                    <input type="checkbox" value="${v}" ${['P', 'K', 'V%', 'MO', 'CTC', 'pH_CaCl2'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('elemento')">
                     <span class="truncate">${v}</span>
                 </label>`).join('');
+            
+            updateEvoDropdownText('chk-evo-elemento');
+            
+            // Dispara o gatilho inicial: Ele vai construir Propriedade, depois Campo, depois Subs automaticamente
+            handleEvoFilterChange('proprietario'); 
+        }
 
-            ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof', 'chk-evo-elemento'].forEach(updateEvoDropdownText);
-            ['proprietario', 'propriedade', 'campo', 'sub', 'prof'].forEach(id => document.getElementById(`evo-${id}-all`).checked = true);
+        function handleEvoFilterChange(levelChanged) {
+            // Se o usuário mexer nos Elementos, apenas redesenha os gráficos
+            if (levelChanged === 'elemento') {
+                updateEvoDropdownText('chk-evo-elemento');
+                renderEvoCharts();
+                return;
+            }
+
+            let validData = evoRawData;
+            
+            // Lê o que está marcado no Proprietário
+            const selProprietarios = Array.from(document.querySelectorAll('.chk-evo-proprietario:checked')).map(c => c.value);
+            
+            // Se mudou Proprietário, refaz a lista de Propriedades e avisa para continuar a cascata
+            if (levelChanged === 'proprietario') {
+                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']));
+                const propriedades = new Set(validData.map(r => r['Propriedade']));
+                document.getElementById('evo-propriedade-options').innerHTML = buildEvoCheckboxes(propriedades, 'chk-evo-propriedade');
+                levelChanged = 'propriedade'; 
+            }
+            
+            // Lê o que está marcado na Propriedade
+            const selPropriedades = Array.from(document.querySelectorAll('.chk-evo-propriedade:checked')).map(c => c.value);
+            
+            // Se mudou Propriedade, refaz a lista de Campos
+            if (levelChanged === 'propriedade') {
+                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']));
+                const campos = new Set(validData.map(r => r.Campo));
+                document.getElementById('evo-campo-options').innerHTML = buildEvoCheckboxes(campos, 'chk-evo-campo');
+                levelChanged = 'campo'; 
+            }
+            
+            // Lê o que está marcado no Campo
+            const selCampos = Array.from(document.querySelectorAll('.chk-evo-campo:checked')).map(c => c.value);
+            
+            // Se mudou Campo, refaz a lista de Subs
+            if (levelChanged === 'campo') {
+                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo));
+                const subs = new Set(validData.map(r => r.Sub01));
+                document.getElementById('evo-sub-options').innerHTML = buildEvoCheckboxes(subs, 'chk-evo-sub');
+                levelChanged = 'sub'; 
+            }
+            
+            // Lê o que está marcado na Sub
+            const selSubs = Array.from(document.querySelectorAll('.chk-evo-sub:checked')).map(c => c.value);
+            
+            // Se mudou Sub, refaz a lista de Profundidades
+            if (levelChanged === 'sub') {
+                validData = evoRawData.filter(r => selProprietarios.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo) && selSubs.includes(String(r.Sub01)));
+                const profs = new Set(validData.map(r => r.Prof));
+                document.getElementById('evo-prof-options').innerHTML = buildEvoCheckboxes(profs, 'chk-evo-prof');
+            }
+
+            // Atualiza o visual de texto de todos os botões dropdown
+            ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof'].forEach(updateEvoDropdownText);
+            
+            renderEvoCharts();
+        }
+
+        function toggleAllEvo(id, isChecked) {
+            document.querySelectorAll(`.chk-evo-${id}`).forEach(chk => chk.checked = isChecked);
+            handleEvoFilterChange(id);
+        }
+
+        function updateEvoDropdownText(cls) {
+            const chks = document.querySelectorAll(`.${cls}`);
+            const checked = Array.from(chks).filter(c => c.checked);
+            const id = cls.replace('chk-', ''); // Ex: chk-evo-campo vira evo-campo
+            const textEl = document.getElementById(`${id}-text`);
+            const allChk = document.getElementById(`${id}-all`);
+            
+            if (!textEl) return;
+
+            // Logiquinha inteligente para a caixa de texto e o "Selecionar Todos"
+            if (checked.length === 0) {
+                textEl.innerText = "Nenhum";
+                if (allChk) allChk.checked = false;
+            } else if (checked.length === chks.length && chks.length > 0) {
+                textEl.innerText = "Todos Selecionados";
+                if (allChk) allChk.checked = true;
+            } else if (checked.length === 1) {
+                textEl.innerText = checked[0].value;
+                if (allChk) allChk.checked = false;
+            } else {
+                textEl.innerText = `${checked.length} Selecionados`;
+                if (allChk) allChk.checked = false;
+            }
         }
 
         function toggleEvoDropdown(id) {
@@ -5352,42 +5418,26 @@
             }
         });
 
-        function toggleAllEvo(id, isChecked) {
-            document.querySelectorAll(`.chk-evo-${id}`).forEach(chk => chk.checked = isChecked);
-            updateEvoDropdownText(`chk-evo-${id}`);
-            renderEvoCharts();
-        }
-
-        function updateEvoDropdownText(cls) {
-            const chks = document.querySelectorAll(`.${cls}`);
-            const checked = Array.from(chks).filter(c => c.checked);
-            const textEl = document.getElementById(cls.replace('chk-', '') + '-text');
-            if(checked.length === 0) textEl.innerText = "Nenhum";
-            else if(checked.length === chks.length) textEl.innerText = "Todos Selecionados";
-            else if(checked.length === 1) textEl.innerText = checked[0].value;
-            else textEl.innerText = `${checked.length} Selecionados`;
-        }
-
         function renderEvoCharts() {
             const container = document.getElementById('evo-charts-container');
-            const proprietarios = Array.from(document.querySelectorAll('.chk-evo-proprietario:checked')).map(c => c.value);
-            const propriedades = Array.from(document.querySelectorAll('.chk-evo-propriedade:checked')).map(c => c.value);
-            const campos = Array.from(document.querySelectorAll('.chk-evo-campo:checked')).map(c => c.value);
-            const subs = Array.from(document.querySelectorAll('.chk-evo-sub:checked')).map(c => isNaN(c.value) ? c.value : parseFloat(c.value));
-            const profs = Array.from(document.querySelectorAll('.chk-evo-prof:checked')).map(c => c.value);
+            
+            const selProprietarios = Array.from(document.querySelectorAll('.chk-evo-proprietario:checked')).map(c => c.value);
+            const selPropriedades = Array.from(document.querySelectorAll('.chk-evo-propriedade:checked')).map(c => c.value);
+            const selCampos = Array.from(document.querySelectorAll('.chk-evo-campo:checked')).map(c => c.value);
+            const selSubs = Array.from(document.querySelectorAll('.chk-evo-sub:checked')).map(c => c.value);
+            const selProfs = Array.from(document.querySelectorAll('.chk-evo-prof:checked')).map(c => c.value);
             const elementos = Array.from(document.querySelectorAll('.chk-evo-elemento:checked')).map(c => c.value);
             const criticoVal = parseFloat(document.getElementById('evo-critico').value);
 
-            // Filtrar os dados brutos com as novas condições (Proprietário e Propriedade)
+            // Filtrar os dados brutos com a intersecção de TODAS as caixas
             const filtered = evoRawData.filter(r => 
-                proprietarios.includes(r['Proprietário']) &&
-                propriedades.includes(r['Propriedade']) &&
-                campos.includes(r.Campo) && 
-                subs.includes(r.Sub01) && 
-                profs.includes(r.Prof)
+                selProprietarios.includes(r['Proprietário']) &&
+                selPropriedades.includes(r['Propriedade']) &&
+                selCampos.includes(r.Campo) && 
+                selSubs.includes(String(r.Sub01)) && 
+                selProfs.includes(r.Prof)
             );
 
-            // Limpar gráficos antigos
             Object.values(evoChartsInst).forEach(chart => chart.destroy());
             evoChartsInst = {};
             container.innerHTML = '';
@@ -5397,7 +5447,6 @@
                 return;
             }
 
-            // Agrupar por Safra
             const safrasSet = new Set(filtered.map(r => String(r.Safra)));
             const safrasArray = Array.from(safrasSet).sort();
 
@@ -5410,7 +5459,6 @@
                     return sum / rowsSafra.length;
                 });
 
-                // Criação do HTML do Gráfico
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
                 wrapper.innerHTML = `<h3 class="text-sm font-extrabold text-slate-700 uppercase mb-3 border-b pb-1 w-full text-center">${el}</h3><div class="relative w-full h-64"><canvas id="evoChart_${el}"></canvas></div>`;
@@ -5423,7 +5471,7 @@
                         type: 'line',
                         label: 'Tendência',
                         data: averages,
-                        borderColor: '#db2777', // pink-600
+                        borderColor: '#db2777',
                         backgroundColor: '#db2777',
                         borderWidth: 2,
                         tension: 0.3,
@@ -5435,8 +5483,8 @@
                         type: 'bar',
                         label: `Média de ${el}`,
                         data: averages,
-                        backgroundColor: 'rgba(56, 189, 248, 0.6)', // sky-400
-                        borderColor: '#0284c7', // sky-600
+                        backgroundColor: 'rgba(56, 189, 248, 0.6)',
+                        borderColor: '#0284c7',
                         borderWidth: 1,
                         borderRadius: 4,
                         yAxisID: 'y'
@@ -5448,7 +5496,7 @@
                         type: 'line',
                         label: 'Valor Crítico',
                         data: Array(labels.length).fill(criticoVal),
-                        borderColor: '#ef4444', // red-500
+                        borderColor: '#ef4444',
                         borderWidth: 2,
                         borderDash: [5, 5],
                         pointRadius: 0,
