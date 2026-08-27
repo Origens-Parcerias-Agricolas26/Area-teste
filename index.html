@@ -5219,10 +5219,25 @@
                 return;
             }
 
-            // O separador agora é a Tabulação (\t)
-            const headers = lines[0].split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
+            // NOVO: Procurar a linha de cabeçalho dinamicamente (ignora linhas vazias no topo do Excel)
+            let headerIdx = 0;
+            let headers = [];
+            for (let i = 0; i < Math.min(5, lines.length); i++) {
+                const tempCols = lines[i].split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
+                if (tempCols.includes('Safra') && tempCols.includes('Campo')) {
+                    headers = tempCols;
+                    headerIdx = i;
+                    break;
+                }
+            }
 
-            for (let i = 1; i < lines.length; i++) {
+            if (headers.length === 0) {
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas nas primeiras linhas.</div>`;
+                return;
+            }
+
+            // Começa a ler os dados logo abaixo da linha do cabeçalho
+            for (let i = headerIdx + 1; i < lines.length; i++) {
                 if (!lines[i].trim()) continue;
                 const cols = lines[i].split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
                 
@@ -5249,7 +5264,7 @@
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Nenhum dado válido encontrado. Verifique se as colunas 'Safra' e 'Campo' estão escritas exatamente assim na planilha.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Nenhum dado válido encontrado. Verifique se as colunas 'Safra' e 'Campo' estão preenchidas.</div>`;
                  return;
             }
 
