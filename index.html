@@ -5239,14 +5239,27 @@
             let headerIdx = -1;
             let headers = [];
 
-            // O SEU CÓDIGO ORIGINAL E INTACTO DE BUSCA INTELIGENTE
+            // BUSCA INTELIGENTE E BLINDADA DE CABEÇALHOS
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
-                    // Alinha qualquer variação de nome para o padrão do sistema
+                    
+                    // BLINDAGEM: Arranca espaços, caracteres invisíveis e joga pra minúsculo
+                    let cleanForTest = str.replace(/[\s\u200B-\u200D\uFEFF\u00A0]/g, '').toLowerCase();
+
+                    // 1. Escudo absoluto para os Elementos isolados (impede que espaços invisíveis os quebrem)
+                    const exactMap = {
+                        'p': 'P', 'k': 'K', 'ca': 'Ca', 'mg': 'Mg', 'al': 'Al',
+                        'h': 'H', 'mo': 'MO', 'areia': 'Areia', 'silte': 'Silte',
+                        'argila': 'Argila', 'sb': 'Sb', 'ctc': 'CTC', 'zn': 'Zn',
+                        'cu': 'Cu', 'fe': 'Fe', 'mn': 'Mn', 's': 'S', 'b': 'B'
+                    };
+                    if (exactMap[cleanForTest]) return exactMap[cleanForTest];
+
+                    // 2. Seus filtros e variações originais (intactos)
                     if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
                     if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
                     if (/v\s*%/i.test(str)) return 'V%';
@@ -5256,6 +5269,7 @@
                     if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
                     if (/prof/i.test(str)) return 'Prof';
                     if (/^sub/i.test(str)) return 'Sub01';
+                    
                     return str;
                 });
 
@@ -5283,7 +5297,8 @@
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
                     if (evoElementsList.includes(h)) {
-                        val = val.replace(',', '.'); 
+                        // Limpa espaços no meio dos números e arruma a vírgula
+                        val = val.replace(/\s/g, '').replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
@@ -5471,19 +5486,19 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
+                    // Exige que o dado não seja apenas texto, mas tenha sido validado como número
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    // RETORNA NULL em vez de zero. Isso evita que o gráfico caia.
-                    if (rowsSafra.length === 0) return null; 
+                    if (rowsSafra.length === 0) return null; // Retorna null para ignorar anos vazios
                     
-                    // CÁLCULO DA MÉDIA MATEMÁTICA (Soma / Quantidade)
+                    // Cálculo da Média (Soma / Quantidade)
                     let sum = 0;
                     rowsSafra.forEach(r => sum += r[el]);
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // CÓDIGO DE BLOQUEIO REMOVIDO DAQUI! 
-                // A partir de agora o quadro sempre vai aparecer na tela.
+                // Trava restaurada: Se não houver literalmente NENHUM dado para esse elemento, não cria o quadrado vazio
+                if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
@@ -5503,7 +5518,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Adicionado: liga as linhas se um ano estiver em branco
+                        spanGaps: true, // Conecta os pontos mesmo que a safra intermediária esteja vazia
                         yAxisID: 'y'
                     },
                     {
