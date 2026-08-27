@@ -880,8 +880,33 @@
                     </div>
 
                     <!-- Filtros Dinâmicos -->
-                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative z-40">
-                        <div class="relative">
+                    <div class="flex flex-wrap gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative z-40">
+                        
+                        <div class="relative flex-1 min-w-[150px]">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Proprietário</label>
+                            <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('proprietario')">
+                                <span id="evo-proprietario-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
+                                <i class="fa-solid fa-chevron-down text-slate-500"></i>
+                            </div>
+                            <div id="evo-proprietario-dropdown" class="evo-dropdown-content p-2">
+                                <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded cursor-pointer font-bold border-b mb-1 text-xs"><input type="checkbox" id="evo-proprietario-all" class="form-checkbox text-pink-600 rounded" onchange="toggleAllEvo('proprietario', this.checked)"><span>Selecionar Todos</span></label>
+                                <div id="evo-proprietario-options" class="text-xs font-semibold text-slate-700 space-y-1"></div>
+                            </div>
+                        </div>
+
+                        <div class="relative flex-1 min-w-[150px]">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Propriedade</label>
+                            <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('propriedade')">
+                                <span id="evo-propriedade-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
+                                <i class="fa-solid fa-chevron-down text-slate-500"></i>
+                            </div>
+                            <div id="evo-propriedade-dropdown" class="evo-dropdown-content p-2">
+                                <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded cursor-pointer font-bold border-b mb-1 text-xs"><input type="checkbox" id="evo-propriedade-all" class="form-checkbox text-pink-600 rounded" onchange="toggleAllEvo('propriedade', this.checked)"><span>Selecionar Todos</span></label>
+                                <div id="evo-propriedade-options" class="text-xs font-semibold text-slate-700 space-y-1"></div>
+                            </div>
+                        </div>
+
+                        <div class="relative flex-1 min-w-[120px]">
                             <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Campo / Talhão</label>
                             <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('campo')">
                                 <span id="evo-campo-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
@@ -893,7 +918,7 @@
                             </div>
                         </div>
 
-                        <div class="relative">
+                        <div class="relative flex-1 min-w-[120px]">
                             <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Subdivisão</label>
                             <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('sub')">
                                 <span id="evo-sub-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
@@ -905,7 +930,7 @@
                             </div>
                         </div>
 
-                        <div class="relative">
+                        <div class="relative flex-1 min-w-[140px]">
                             <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Profundidade</label>
                             <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('prof')">
                                 <span id="evo-prof-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
@@ -917,7 +942,7 @@
                             </div>
                         </div>
 
-                        <div class="relative">
+                        <div class="relative flex-1 min-w-[150px]">
                             <label class="block text-[11px] font-bold text-pink-700 uppercase mb-1">Elementos Analisados</label>
                             <div class="bg-pink-50 border border-pink-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('elemento')">
                                 <span id="evo-elemento-text" class="truncate pr-2 text-xs font-bold text-pink-900">Selecione...</span>
@@ -929,9 +954,9 @@
                             </div>
                         </div>
 
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Valor Crítico (Linha Alvo)</label>
-                            <input type="number" id="evo-critico" placeholder="Ex: 15.5" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-bold bg-white text-slate-800" oninput="renderEvoCharts()">
+                        <div class="flex-1 min-w-[140px]">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Valor Crítico (Linha)</label>
+                            <input type="number" id="evo-critico" placeholder="Ex: 15.5" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-bold bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-pink-500" oninput="renderEvoCharts()">
                         </div>
                     </div>
 
@@ -5273,8 +5298,10 @@
         }
 
         function populateEvoFilters() {
-            const campos = new Set(), subs = new Set(), profs = new Set();
+            const proprietarios = new Set(), propriedades = new Set(), campos = new Set(), subs = new Set(), profs = new Set();
             evoRawData.forEach(r => {
+                if (r['Proprietário']) proprietarios.add(r['Proprietário']);
+                if (r['Propriedade']) propriedades.add(r['Propriedade']);
                 if (r.Campo) campos.add(r.Campo);
                 if (r.Sub01 !== null && r.Sub01 !== undefined) subs.add(r.Sub01);
                 if (r.Prof) profs.add(r.Prof);
@@ -5286,6 +5313,8 @@
                     <span class="truncate">${v}</span>
                 </label>`).join('');
 
+            document.getElementById('evo-proprietario-options').innerHTML = buildHTML(proprietarios, 'chk-evo-proprietario');
+            document.getElementById('evo-propriedade-options').innerHTML = buildHTML(propriedades, 'chk-evo-propriedade');
             document.getElementById('evo-campo-options').innerHTML = buildHTML(campos, 'chk-evo-campo');
             document.getElementById('evo-sub-options').innerHTML = buildHTML(subs, 'chk-evo-sub');
             document.getElementById('evo-prof-options').innerHTML = buildHTML(profs, 'chk-evo-prof');
@@ -5296,49 +5325,27 @@
                     <span class="truncate">${v}</span>
                 </label>`).join('');
 
-            ['chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof', 'chk-evo-elemento'].forEach(updateEvoDropdownText);
-            ['campo', 'sub', 'prof'].forEach(id => document.getElementById(`evo-${id}-all`).checked = true);
-        }
-
-        function toggleEvoDropdown(id) {
-            const content = document.getElementById(`evo-${id}-dropdown`);
-            document.querySelectorAll('.evo-dropdown-content').forEach(d => { if(d !== content) d.classList.remove('show'); });
-            content.classList.toggle('show');
-        }
-
-        document.addEventListener('click', (e) => {
-            if (!e.target.closest('#content-evolucao .relative')) {
-                document.querySelectorAll('.evo-dropdown-content').forEach(d => d.classList.remove('show'));
-            }
-        });
-
-        function toggleAllEvo(id, isChecked) {
-            document.querySelectorAll(`.chk-evo-${id}`).forEach(chk => chk.checked = isChecked);
-            updateEvoDropdownText(`chk-evo-${id}`);
-            renderEvoCharts();
-        }
-
-        function updateEvoDropdownText(cls) {
-            const chks = document.querySelectorAll(`.${cls}`);
-            const checked = Array.from(chks).filter(c => c.checked);
-            const textEl = document.getElementById(cls.replace('chk-', '') + '-text');
-            if(checked.length === 0) textEl.innerText = "Nenhum";
-            else if(checked.length === chks.length) textEl.innerText = "Todos Selecionados";
-            else if(checked.length === 1) textEl.innerText = checked[0].value;
-            else textEl.innerText = `${checked.length} Selecionados`;
+            ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof', 'chk-evo-elemento'].forEach(updateEvoDropdownText);
+            ['proprietario', 'propriedade', 'campo', 'sub', 'prof'].forEach(id => document.getElementById(`evo-${id}-all`).checked = true);
         }
 
         function renderEvoCharts() {
             const container = document.getElementById('evo-charts-container');
+            const proprietarios = Array.from(document.querySelectorAll('.chk-evo-proprietario:checked')).map(c => c.value);
+            const propriedades = Array.from(document.querySelectorAll('.chk-evo-propriedade:checked')).map(c => c.value);
             const campos = Array.from(document.querySelectorAll('.chk-evo-campo:checked')).map(c => c.value);
             const subs = Array.from(document.querySelectorAll('.chk-evo-sub:checked')).map(c => isNaN(c.value) ? c.value : parseFloat(c.value));
             const profs = Array.from(document.querySelectorAll('.chk-evo-prof:checked')).map(c => c.value);
             const elementos = Array.from(document.querySelectorAll('.chk-evo-elemento:checked')).map(c => c.value);
             const criticoVal = parseFloat(document.getElementById('evo-critico').value);
 
-            // Filtrar os dados brutos
+            // Filtrar os dados brutos com as duas novas condições (Proprietário e Propriedade)
             const filtered = evoRawData.filter(r => 
-                campos.includes(r.Campo) && subs.includes(r.Sub01) && profs.includes(r.Prof)
+                proprietarios.includes(r['Proprietário']) &&
+                propriedades.includes(r['Propriedade']) &&
+                campos.includes(r.Campo) && 
+                subs.includes(r.Sub01) && 
+                profs.includes(r.Prof)
             );
 
             // Limpar gráficos antigos
@@ -5358,7 +5365,7 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
-                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null);
+                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
                     if (rowsSafra.length === 0) return 0;
                     const sum = rowsSafra.reduce((acc, curr) => acc + curr[el], 0);
                     return sum / rowsSafra.length;
