@@ -6737,7 +6737,7 @@
         // =========================================================================
         // TROCA DE ABAS COM GERENCIAMENTO DE MAPAS E PERMISSÕES (CÓDIGO FINAL)
         // =========================================================================
-        function switchTab(tab) {
+        window.switchTab = function(tab) {
             // 1. Verificação de Permissões
             if (tab === 'vrate' && typeof canAccessVRate !== 'undefined' && !canAccessVRate) {
                 alert("Você não possui permissão de acesso ao Módulo de Taxa Variável & Adubação.");
@@ -6755,12 +6755,10 @@
                 alert("Você não possui permissão de acesso ao Módulo de Amostragem de Solo.");
                 return;
             }
-           
-            // ADICIONE ESTE BLOCO AQUI:
             if (tab === 'evolucao' && typeof canAccessSampling !== 'undefined' && !canAccessSampling) {
-        alert("Você não possui permissão de acesso aos Gráficos de Evolução.");
-        return;
-    }
+                alert("Você não possui permissão de acesso aos Gráficos de Evolução.");
+                return;
+            }
 
             // 2. Oculta tudo e ajusta as cores dos botões
             ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
@@ -6798,7 +6796,6 @@
                     if (typeof initVRateMap === 'function') initVRateMap();
                     if (typeof vrateMap !== 'undefined' && vrateMap !== null) vrateMap.invalidateSize();
                     
-                    // Se já processou o Excel, atualiza as cores. Senão, carrega a fazenda cinza.
                     if (typeof vrateProcessedData !== 'undefined' && vrateProcessedData.length > 0) {
                         if (typeof vrateUpdateMap === 'function') vrateUpdateMap();
                     } else {
@@ -6809,7 +6806,6 @@
                     if (typeof initSeedsMap === 'function') initSeedsMap();
                     if (typeof seedsMap !== 'undefined' && seedsMap !== null) seedsMap.invalidateSize();
                     
-                    // Mesma lógica de manter as cores para as sementes
                     if ((typeof seedsProcessedData !== 'undefined' && seedsProcessedData.length > 0) || 
                         (typeof seedsCultivarMap !== 'undefined' && Object.keys(seedsCultivarMap).length > 0)) {
                         if (typeof seedsUpdateMap === 'function') seedsUpdateMap();
@@ -6836,20 +6832,20 @@
                     if (hist && !hist.classList.contains('hidden') && typeof loadRecHistory === 'function') {
                         loadRecHistory();
                     }
-                }                
+                }
                 else if (tab === 'users') {
                     if (typeof renderAdminTables === 'function') renderAdminTables();
                 }
-            }, 100);
                 else if (tab === 'evolucao') {
                     if (evoRawData.length === 0) fetchEvoData();
                 }
             }, 100);
         };
+
         // =========================================================================
         // ATUALIZAÇÃO FORÇADA DOS FILTROS E LIMPEZA DE CACHE
         // =========================================================================
-        function changeActiveFarm(sourceSelectId) {
+        window.changeActiveFarm = function(sourceSelectId) {
             const selectedVal = document.getElementById(sourceSelectId).value;
             
             // Sincroniza selects de todas as abas
@@ -6884,8 +6880,11 @@
                 const hist = document.getElementById('visit-history-view');
                 if (hist && !hist.classList.contains('hidden') && typeof loadVisitHistory === 'function') loadVisitHistory();
             }
-        }        
-        
+            else if (isVisible('evolucao')) {
+                if (typeof renderEvoCharts === 'function') renderEvoCharts();
+            }
+        };
     </script>
 </body>
-</html>
+</html>        
+        
