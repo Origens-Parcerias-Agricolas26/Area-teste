@@ -5204,6 +5204,8 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
+        
+        // Voltamos para o formato TSV (inquebrável contra vírgulas)
         const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
@@ -5214,6 +5216,7 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
+                // Traz os dados sempre atualizados (sem cache)
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
                 if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
@@ -5235,31 +5238,36 @@
             const lines = rawText.split(/\r\n|\n/);
             let headerIdx = -1;
             let headers = [];
-            let separator = '\t';
 
+            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS (SEU CÓDIGO)
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
-                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+                let tempTabs = line.split('\t').map(h => {
+                    let str = h.replace(/^"|"$/g, '').trim();
+                    // Alinha qualquer variação de nome para o padrão do sistema
+                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
+                    if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
+                    if (/v\s*%/i.test(str)) return 'V%';
+                    if (/propriet.rio/i.test(str)) return 'Proprietário';
+                    if (/propriedade/i.test(str)) return 'Propriedade';
+                    if (/safra/i.test(str)) return 'Safra';
+                    if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
+                    if (/prof/i.test(str)) return 'Prof';
+                    if (/^sub/i.test(str)) return 'Sub01';
+                    return str;
+                });
 
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
                     headers = tempTabs;
                     headerIdx = i;
-                    separator = '\t';
-                    break;
-                }
-                if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
-                    headers = tempCommas;
-                    headerIdx = i;
-                    separator = ',';
                     break;
                 }
             }
 
             if (headerIdx === -1) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">NOVO ERRO DETECTADO: Não encontrei as colunas 'Safra' e 'Campo' nas 10 primeiras linhas.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
                 return;
             }
 
@@ -5269,38 +5277,29 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = [];
-                if (separator === ',') {
-                    cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
-                } else {
-                    cols = line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
-                }
+                let cols = line.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
 
                 let row = {};
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
-                    
-                    // ALTERAÇÃO 1: Procura o elemento na lista ignorando maiúsculas e minúsculas!
-                    let matchedEl = evoElementsList.find(el => el.toLowerCase() === h.toLowerCase());
-                    
-                    if (matchedEl) {
+                    if (evoElementsList.includes(h)) {
                         val = val.replace(',', '.'); 
                         let num = parseFloat(val);
-                        // Salva usando o nome oficial do sistema (ex: pH_CaCl2)
-                        row[matchedEl] = isNaN(num) ? null : num;
+                        row[h] = isNaN(num) ? null : num;
                     } else {
-                        if (h === 'Sub01' && val === '') val = 'Geral';
+                        if (val === '') val = '-'; // Evita caixas em branco
                         row[h] = val;
                     }
                 });
 
-                if (row['Safra'] && row['Campo']) {
+                // Só processa se a linha for válida
+                if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
                     evoRawData.push(row);
                 }
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados na linha ${headerIdx + 1}, mas as linhas de dados abaixo estão vazias.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
                  return;
             }
 
@@ -5472,17 +5471,25 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 
-                // ALTERAÇÃO 2: Cálculo matemático fixo. Soma todos os valores válidos e divide. Retorna nulo se o ano for vazio.
                 const averages = safrasArray.map(safra => {
-                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
+                    // Pega apenas as linhas que têm número válido
+                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    if (rowsSafra.length === 0) return null; // Gráfico ignora o ano ao invés de despencar pra zero
+                    // RETORNA NULL em vez de 0 (isso impede o gráfico de despencar)
+                    if (rowsSafra.length === 0) return null; 
                     
-                    const sum = rowsSafra.reduce((acc, curr) => acc + Number(curr[el]), 0);
-                    return Number((sum / rowsSafra.length).toFixed(2));
+                    // MATEMÁTICA EXATA (Soma / Quantidade)
+                    let sum = 0;
+                    let count = 0;
+                    rowsSafra.forEach(r => {
+                        sum += parseFloat(r[el]);
+                        count++;
+                    });
+                    
+                    return Number((sum / count).toFixed(2));
                 });
 
-                // Não desenha o gráfico se aquele elemento não teve análise em nenhum ano
+                // Se não houver nenhum dado válido no histórico inteiro, não desenha o quadro vazio
                 if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
@@ -5503,7 +5510,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Conecta a linha visualmente se pular um ano
+                        spanGaps: true, // Isso faz a linha "pular" o ano vazio e conectar com o próximo!
                         yAxisID: 'y'
                     },
                     {
