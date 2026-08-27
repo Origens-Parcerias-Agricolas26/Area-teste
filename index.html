@@ -5216,6 +5216,7 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
+                // Traz os dados sempre atualizados (sem cache)
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
                 if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
@@ -5238,26 +5239,23 @@
             let headerIdx = -1;
             let headers = [];
 
+            // O SEU CÓDIGO ORIGINAL DE BUSCA INTELIGENTE (INTACTO)
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
-                    
-                    // 1. Textos base
+                    // Alinha qualquer variação de nome para o padrão do sistema
+                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
+                    if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
+                    if (/v\s*%/i.test(str)) return 'V%';
                     if (/propriet.rio/i.test(str)) return 'Proprietário';
                     if (/propriedade/i.test(str)) return 'Propriedade';
                     if (/safra/i.test(str)) return 'Safra';
                     if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
                     if (/prof/i.test(str)) return 'Prof';
                     if (/^sub/i.test(str)) return 'Sub01';
-
-                    // 2. A lixa que arranca espaços invisíveis para o sistema não ser enganado!
-                    let cleanStr = str.replace(/[\s\u200B-\u200D\uFEFF_]/g, '').toLowerCase();
-                    let found = evoElementsList.find(el => el.toLowerCase().replace(/[\s_]/g, '') === cleanStr);
-                    if (found) return found;
-
                     return str;
                 });
 
@@ -5285,16 +5283,19 @@
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
                     if (evoElementsList.includes(h)) {
-                        // EXATAMENTE A SUA SUGESTÃO: Troca vírgula por ponto para a média funcionar!
-                        val = val.replace(/\s/g, '').replace(',', '.'); 
+                        
+                        // A SUA SUGESTÃO APLICADA AQUI: Troca a vírgula e limpa o número
+                        val = String(val).replace(/,/g, '.').replace(/[^\d.-]/g, ''); 
+                        
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
-                        if (val === '') val = '-';
+                        if (val === '') val = '-'; // Evita caixas em branco
                         row[h] = val;
                     }
                 });
 
+                // Só processa se a linha for válida
                 if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
                     evoRawData.push(row);
                 }
@@ -5472,17 +5473,19 @@
 
             elementos.forEach(el => {
                 const labels = safrasArray;
+                
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    if (rowsSafra.length === 0) return null;
+                    if (rowsSafra.length === 0) return null; // Retorna null para conectar a linha sem cair pro zero
                     
                     let sum = 0;
                     rowsSafra.forEach(r => sum += r[el]);
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                if (averages.every(v => v === null)) return;
+                // A TRAVA QUE ESCONDIA OS GRÁFICOS FOI REMOVIDA DAQUI! 
+                // Todos os gráficos selecionados vão aparecer obrigatoriamente.
 
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
@@ -5502,7 +5505,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true,
+                        spanGaps: true, // Conecta a linha mesmo que a safra não tenha dado
                         yAxisID: 'y'
                     },
                     {
