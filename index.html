@@ -5241,19 +5241,17 @@
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                // CIRURGIA 1: Ajusta SÓ o pH_CaCl2 e pH_água caso venham diferentes, deixa o resto idêntico
+                // CIRURGIA 1: Identifica o pH_CaCl2 (e outros elementos) independente de maiúscula ou minúscula na planilha!
                 let tempTabs = line.split('\t').map(h => {
                     let clean = h.trim().replace(/^"|"$/g, '');
-                    if (clean.toLowerCase() === 'ph_cacl2' || clean.toLowerCase() === 'ph cacl2') return 'pH_CaCl2';
-                    if (clean.toLowerCase() === 'ph_água' || clean.toLowerCase() === 'ph_agua') return 'pH_água';
-                    return clean;
+                    let match = evoElementsList.find(el => el.toLowerCase() === clean.toLowerCase());
+                    return match ? match : clean;
                 });
                 
                 let tempCommas = line.split(',').map(h => {
                     let clean = h.trim().replace(/^"|"$/g, '');
-                    if (clean.toLowerCase() === 'ph_cacl2' || clean.toLowerCase() === 'ph cacl2') return 'pH_CaCl2';
-                    if (clean.toLowerCase() === 'ph_água' || clean.toLowerCase() === 'ph_agua') return 'pH_água';
-                    return clean;
+                    let match = evoElementsList.find(el => el.toLowerCase() === clean.toLowerCase());
+                    return match ? match : clean;
                 });
 
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
@@ -5480,28 +5478,19 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 
-                // CIRURGIA 2: Cálculo matemático inquebrável (Soma / Quantidade)
+                // CIRURGIA 2: Cálculo matemático de média inquebrável (Soma / Quantidade). Retorna null se vazio.
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
                     
-                    if (rowsSafra.length === 0) return null; // Retorna nulo para o gráfico não cair para zero
+                    if (rowsSafra.length === 0) return null; // Retorna nulo para não despencar pro zero
                     
                     let sum = 0;
-                    let count = 0;
+                    rowsSafra.forEach(r => sum += Number(r[el]));
                     
-                    rowsSafra.forEach(r => {
-                        let num = parseFloat(r[el]);
-                        if (!isNaN(num)) {
-                            sum += num;
-                            count++;
-                        }
-                    });
-                    
-                    // Executa a Média
-                    return count > 0 ? Number((sum / count).toFixed(2)) : null;
+                    return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // Evita que o código desenhe um gráfico inteiro vazio
+                // Se o elemento inteiro estiver vazio em todos os anos, não desenha um quadro inútil.
                 if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
@@ -5522,7 +5511,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Se faltar ano na amostra, a linha passa reto e não despenca
+                        spanGaps: true, // Conecta a linha visualmente se faltar uma safra no meio
                         yAxisID: 'y'
                     },
                     {
