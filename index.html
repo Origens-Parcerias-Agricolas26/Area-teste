@@ -5207,66 +5207,47 @@
         const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
+        
+        // Lista EXATA igual aos cabeçalhos da sua planilha
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
 
-        // O CORRETOR DE CABEÇALHOS SUPREMO: Reconhece o elemento não importa como o laboratório escreveu!
+        // Lê a mente dos filtros, mas deixa os Elementos intactos para não misturar 'P' com 'P Resina' e 'Ca' com 'Ca%'
         function normalizeEvoHeader(h) {
             let str = h.replace(/^"|"$/g, '').trim();
             let lower = str.toLowerCase();
 
-            if (lower.includes('propriet')) return 'Proprietário';
-            if (lower.includes('propriedade')) return 'Propriedade';
-            if (lower.includes('safra')) return 'Safra';
-            if (lower.includes('campo') || lower.includes('talh')) return 'Campo';
-            if (lower.includes('prof')) return 'Prof';
+            if (lower === 'proprietario' || lower === 'proprietário') return 'Proprietário';
+            if (lower === 'propriedade') return 'Propriedade';
+            if (lower === 'safra') return 'Safra';
+            if (lower === 'campo' || lower === 'talhão' || lower === 'talhao') return 'Campo';
+            if (lower === 'prof' || lower === 'profundidade') return 'Prof';
             if (lower.startsWith('sub')) return 'Sub01';
 
-            if (lower.includes('ph') && lower.includes('cacl')) return 'pH_CaCl2';
-            if (lower.includes('ph') && (lower.includes('agua') || lower.includes('água'))) return 'pH_água';
-            if (lower.includes('v%')) return 'V%';
-
-            let firstWord = lower.split(/[^a-z0-9à-ú]/)[0]; 
-            const exactMap = {
-                'p': 'P', 'fósforo': 'P', 'fosforo': 'P',
-                'k': 'K', 'potássio': 'K', 'potassio': 'K',
-                'ca': 'Ca', 'cálcio': 'Ca', 'calcio': 'Ca',
-                'mg': 'Mg', 'magnésio': 'Mg', 'magnesio': 'Mg',
-                'al': 'Al', 'alumínio': 'Al', 'aluminio': 'Al',
-                'h': 'H', 'hidrogênio': 'H',
-                'mo': 'MO',
-                'areia': 'Areia', 'silte': 'Silte', 'argila': 'Argila',
-                'sb': 'Sb',
-                'ctc': 'CTC', 't': 'CTC',
-                'v': 'V%', 'saturação': 'V%', 'saturacao': 'V%',
-                'zn': 'Zn', 'zinco': 'Zn',
-                'cu': 'Cu', 'cobre': 'Cu',
-                'fe': 'Fe', 'ferro': 'Fe',
-                'mn': 'Mn', 'manganês': 'Mn', 'manganes': 'Mn',
-                's': 'S', 'enxofre': 'S',
-                'b': 'B', 'boro': 'B'
-            };
-
-            if (exactMap[firstWord]) return exactMap[firstWord];
-            return str;
+            return str; 
         }
 
-        // Conversor blindado de números (Aceita vírgula, ponto e remove lixo em volta)
+        // Leitor cego a erros: Ignora os '---' do laboratório e converte vírgula brasileira para ponto de cálculo
         function parseSoilNumber(val) {
-            if (val === null || val === undefined || val === '') return null;
+            if (val === null || val === undefined) return null;
             let str = String(val).trim();
-            if (str === '-' || str === '') return null;
             
-            str = str.replace(/\s/g, '');
-            if (str.includes(',') && str.includes('.')) {
+            if (str === '' || str === '-' || str === '---') return null;
+            
+            str = str.replace(/\s/g, ''); // Tira espaços
+            
+            if (str.includes(',') && !str.includes('.')) {
+                str = str.replace(',', '.');
+            } else if (str.includes(',') && str.includes('.')) {
                 let lastComma = str.lastIndexOf(',');
                 let lastDot = str.lastIndexOf('.');
-                if (lastComma > lastDot) str = str.replace(/\./g, '').replace(',', '.');
-                else str = str.replace(/,/g, '');
-            } else if (str.includes(',')) {
-                str = str.replace(',', '.');
+                if (lastComma > lastDot) {
+                    str = str.replace(/\./g, '').replace(',', '.');
+                } else {
+                    str = str.replace(/,/g, '');
+                }
             }
             
-            str = str.replace(/[^\d.-]/g, '');
+            str = str.replace(/[^\d.-]/g, ''); // Arranca letras ou símbolos que o laboratório tenha digitado junto
             let num = parseFloat(str);
             return isNaN(num) ? null : num;
         }
@@ -5475,7 +5456,7 @@
         });
 
         // ==========================================
-        // CÁLCULO DE MÉDIA EXATA
+        // CÁLCULO CIENTÍFICO DA MÉDIA
         // ==========================================
         function renderEvoCharts() {
             const container = document.getElementById('evo-charts-container');
@@ -5511,26 +5492,28 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 
-                // Média matemática explícita, à prova de falhas (impossível somar)
+                // CÁLCULO DE MÉDIA CIENTÍFICO (Não é soma!)
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
                     
-                    if (rowsSafra.length === 0) return null; // Retorna nulo (ignora no gráfico em vez de ir pra zero)
+                    if (rowsSafra.length === 0) return null; 
                     
                     let sum = 0;
                     let count = 0;
+                    
                     for (let r of rowsSafra) {
-                        let val = parseFloat(r[el]);
+                        let val = Number(r[el]);
                         if (!isNaN(val)) {
-                            sum += val;
-                            count++;
+                            sum += val; // Acumula o valor
+                            count++;    // Conta quantas amostras existem
                         }
                     }
+                    
+                    // Retorna a Divisão (Soma / Quantidade = Média Perfeita)
                     return count > 0 ? Number((sum / count).toFixed(2)) : null;
                 });
 
-                // Se a coluna inteira estava nula na planilha, pula ela e não desenha o gráfico em branco.
-                if (averages.every(v => v === null)) return;
+                if (averages.every(v => v === null)) return; // Não desenha gráfico vazio
 
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
@@ -5550,7 +5533,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Conecta a linha visualmente se faltar uma safra
+                        spanGaps: true, 
                         yAxisID: 'y'
                     },
                     {
