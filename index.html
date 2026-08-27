@@ -5239,7 +5239,7 @@
             let headerIdx = -1;
             let headers = [];
 
-            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS (SEU CÓDIGO ORIGINAL)
+            // O SEU CÓDIGO ORIGINAL E INTACTO DE BUSCA INTELIGENTE
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
@@ -5471,18 +5471,19 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
-                    // Pega apenas as linhas que têm número válido
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    if (rowsSafra.length === 0) return null; // FIX 1: Retorna Nulo para o gráfico não despencar
+                    // RETORNA NULL em vez de zero. Isso evita que o gráfico caia.
+                    if (rowsSafra.length === 0) return null; 
                     
+                    // CÁLCULO DA MÉDIA MATEMÁTICA (Soma / Quantidade)
                     let sum = 0;
                     rowsSafra.forEach(r => sum += r[el]);
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // FIX 2: Bloqueia a criação do quadrado branco se o elemento não tiver dado nenhum
-                if (averages.every(v => v === null)) return;
+                // CÓDIGO DE BLOQUEIO REMOVIDO DAQUI! 
+                // A partir de agora o quadro sempre vai aparecer na tela.
 
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
@@ -5502,7 +5503,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // FIX 3: Conecta os pontos vizinhos se faltar uma safra no meio
+                        spanGaps: true, // Adicionado: liga as linhas se um ano estiver em branco
                         yAxisID: 'y'
                     },
                     {
