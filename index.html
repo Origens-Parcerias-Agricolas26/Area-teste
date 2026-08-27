@@ -5241,21 +5241,8 @@
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                // EXATAMENTE O SEU CÓDIGO (Para não quebrar o P, K, Ca, etc)
                 let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
                 let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
-
-                // CIRURGIA 1: Conserta apenas o pH se vier bagunçado da planilha
-                tempTabs = tempTabs.map(h => {
-                    if (h.toLowerCase() === 'ph_cacl2' || h.toLowerCase() === 'ph cacl2') return 'pH_CaCl2';
-                    if (h.toLowerCase() === 'ph_água' || h.toLowerCase() === 'ph_agua') return 'pH_água';
-                    return h;
-                });
-                tempCommas = tempCommas.map(h => {
-                    if (h.toLowerCase() === 'ph_cacl2' || h.toLowerCase() === 'ph cacl2') return 'pH_CaCl2';
-                    if (h.toLowerCase() === 'ph_água' || h.toLowerCase() === 'ph_agua') return 'pH_água';
-                    return h;
-                });
 
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
                     headers = tempTabs;
@@ -5294,8 +5281,7 @@
                     let val = cols[idx] || '';
                     
                     if (evoElementsList.includes(h)) {
-                        // Limpa espaços invisíveis e faz a conversão de vírgula
-                        val = val.trim().replace(/\s/g, '').replace(',', '.'); 
+                        val = val.replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
@@ -5318,7 +5304,7 @@
         }
 
         // ==========================================
-        // MOTOR DE FILTROS EM CASCATA 
+        // MOTOR DE FILTROS EM CASCATA (BLINDADO)
         // ==========================================
         function buildEvoCheckboxes(set, cls) {
             const id = cls.replace('chk-evo-', '');
@@ -5341,6 +5327,8 @@
                 </label>`).join('');
             
             updateEvoDropdownText('chk-evo-elemento');
+            
+            // Dispara o gatilho inicial que vai descer a cascata perfeitamente
             handleEvoFilterChange('proprietario'); 
         }
 
@@ -5358,36 +5346,40 @@
             let selCampos = [];
             let selSubs = [];
             
+            // 1. Proprietário mudou -> Reconstrói Propriedades
             if (sourceLevel === 'proprietario') {
                 const validProps = evoRawData.filter(r => selProps.includes(r['Proprietário']));
                 const propriedades = new Set(validProps.map(r => r['Propriedade']));
                 document.getElementById('evo-propriedade-options').innerHTML = buildEvoCheckboxes(propriedades, 'chk-evo-propriedade');
                 document.getElementById('evo-propriedade-all').checked = true;
-                selPropriedades = Array.from(propriedades);
+                selPropriedades = Array.from(propriedades); // Memória forçada!
             } else {
                 selPropriedades = getSel('chk-evo-propriedade');
             }
 
+            // 2. Propriedade mudou -> Reconstrói Campos
             if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade') {
                 const validCampos = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']));
                 const campos = new Set(validCampos.map(r => r.Campo));
                 document.getElementById('evo-campo-options').innerHTML = buildEvoCheckboxes(campos, 'chk-evo-campo');
                 document.getElementById('evo-campo-all').checked = true;
-                selCampos = Array.from(campos);
+                selCampos = Array.from(campos); // Memória forçada!
             } else {
                 selCampos = getSel('chk-evo-campo');
             }
 
+            // 3. Campo mudou -> Reconstrói Subdivisões
             if (sourceLevel === 'proprietario' || sourceLevel === 'propriedade' || sourceLevel === 'campo') {
                 const validSubs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo));
                 const subs = new Set(validSubs.map(r => String(r.Sub01)));
                 document.getElementById('evo-sub-options').innerHTML = buildEvoCheckboxes(subs, 'chk-evo-sub');
                 document.getElementById('evo-sub-all').checked = true;
-                selSubs = Array.from(subs);
+                selSubs = Array.from(subs); // Memória forçada!
             } else {
                 selSubs = getSel('chk-evo-sub');
             }
 
+            // 4. Subdivisão mudou -> Reconstrói Profundidades
             if (sourceLevel !== 'prof') {
                 const validProfs = evoRawData.filter(r => selProps.includes(r['Proprietário']) && selPropriedades.includes(r['Propriedade']) && selCampos.includes(r.Campo) && selSubs.includes(String(r.Sub01)));
                 const profs = new Set(validProfs.map(r => r.Prof));
@@ -5395,6 +5387,7 @@
                 document.getElementById('evo-prof-all').checked = true;
             }
 
+            // Atualiza os textos do topo dos botões
             ['chk-evo-proprietario', 'chk-evo-propriedade', 'chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof'].forEach(updateEvoDropdownText);
             
             renderEvoCharts();
@@ -5474,20 +5467,12 @@
 
             elementos.forEach(el => {
                 const labels = safrasArray;
-                
-                // CIRURGIA 2: Cálculo matemático inquebrável (Soma / Quantidade)
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
-                    
-                    if (rowsSafra.length === 0) return null; // Previne que o gráfico caia para zero se não houver dado
-                    
-                    // Cálculo da média:
+                    if (rowsSafra.length === 0) return 0;
                     const sum = rowsSafra.reduce((acc, curr) => acc + curr[el], 0);
-                    return Number((sum / rowsSafra.length).toFixed(2));
+                    return sum / rowsSafra.length;
                 });
-
-                // Previne a renderização de um quadro vazio se o elemento inteiro não tiver dados
-                if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
@@ -5507,7 +5492,6 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Conecta a linha visualmente se faltar safra
                         yAxisID: 'y'
                     },
                     {
