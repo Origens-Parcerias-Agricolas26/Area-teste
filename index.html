@@ -5241,26 +5241,30 @@
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
+                // EXATAMENTE O SEU CÓDIGO (Para não quebrar o P, K, Ca, etc)
                 let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
                 let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
 
-                // SOLUÇÃO 1: Limpa espaços e letras maiúsculas para forçar o Match exato do pH_CaCl2 e outros elementos.
+                // CIRURGIA 1: Conserta apenas o pH se vier bagunçado da planilha
+                tempTabs = tempTabs.map(h => {
+                    if (h.toLowerCase() === 'ph_cacl2' || h.toLowerCase() === 'ph cacl2') return 'pH_CaCl2';
+                    if (h.toLowerCase() === 'ph_água' || h.toLowerCase() === 'ph_agua') return 'pH_água';
+                    return h;
+                });
+                tempCommas = tempCommas.map(h => {
+                    if (h.toLowerCase() === 'ph_cacl2' || h.toLowerCase() === 'ph cacl2') return 'pH_CaCl2';
+                    if (h.toLowerCase() === 'ph_água' || h.toLowerCase() === 'ph_agua') return 'pH_água';
+                    return h;
+                });
+
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
-                    headers = tempTabs.map(h => {
-                        let strippedH = h.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase();
-                        let exactMatch = evoElementsList.find(el => el.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase() === strippedH);
-                        return exactMatch ? exactMatch : h;
-                    });
+                    headers = tempTabs;
                     headerIdx = i;
                     separator = '\t';
                     break;
                 }
                 if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
-                    headers = tempCommas.map(h => {
-                        let strippedH = h.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase();
-                        let exactMatch = evoElementsList.find(el => el.replace(/[^a-zA-Z0-9%]/g, '').toLowerCase() === strippedH);
-                        return exactMatch ? exactMatch : h;
-                    });
+                    headers = tempCommas;
                     headerIdx = i;
                     separator = ',';
                     break;
@@ -5290,8 +5294,8 @@
                     let val = cols[idx] || '';
                     
                     if (evoElementsList.includes(h)) {
-                        // Limpa espaços invisíveis e converte vírgula para ponto antes do cálculo
-                        val = String(val).replace(/\s/g, '').replace(',', '.'); 
+                        // Limpa espaços invisíveis e faz a conversão de vírgula
+                        val = val.trim().replace(/\s/g, '').replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
@@ -5314,7 +5318,7 @@
         }
 
         // ==========================================
-        // MOTOR DE FILTROS EM CASCATA (BLINDADO)
+        // MOTOR DE FILTROS EM CASCATA 
         // ==========================================
         function buildEvoCheckboxes(set, cls) {
             const id = cls.replace('chk-evo-', '');
@@ -5337,7 +5341,6 @@
                 </label>`).join('');
             
             updateEvoDropdownText('chk-evo-elemento');
-            
             handleEvoFilterChange('proprietario'); 
         }
 
@@ -5472,29 +5475,18 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 
-                // SOLUÇÃO 2: CÁLCULO DE MÉDIA CIENTÍFICO (Impossível somar agora)
+                // CIRURGIA 2: Cálculo matemático inquebrável (Soma / Quantidade)
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
                     
-                    // Retorna null (e não 0) para o gráfico não despencar caso falte dado num ano
-                    if (rowsSafra.length === 0) return null; 
+                    if (rowsSafra.length === 0) return null; // Previne que o gráfico caia para zero se não houver dado
                     
-                    let sum = 0;
-                    let count = 0;
-                    
-                    rowsSafra.forEach(r => {
-                        let num = Number(r[el]); // Exige formato numérico 
-                        if (!isNaN(num)) {
-                            sum += num;
-                            count++;
-                        }
-                    });
-                    
-                    // Fórmula de Média: Soma / Quantidade de análises
-                    return count > 0 ? Number((sum / count).toFixed(2)) : null;
+                    // Cálculo da média:
+                    const sum = rowsSafra.reduce((acc, curr) => acc + curr[el], 0);
+                    return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // Se o elemento inteiro estiver vazio em todos os anos daquela fazenda, não desenha o gráfico
+                // Previne a renderização de um quadro vazio se o elemento inteiro não tiver dados
                 if (averages.every(v => v === null)) return;
 
                 const wrapper = document.createElement('div');
@@ -5515,7 +5507,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Conecta a linha visualmente se faltar uma safra no meio
+                        spanGaps: true, // Conecta a linha visualmente se faltar safra
                         yAxisID: 'y'
                     },
                     {
