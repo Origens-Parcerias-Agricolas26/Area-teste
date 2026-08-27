@@ -34,6 +34,13 @@
     <!-- jsPDF para Geração Direta de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <!-- jsPDF para Geração Direta de PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- ... (Firebase SDK continua aqui) ... -->
 
     <!-- Firebase SDK Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -53,6 +60,9 @@
         }
     </script>
     <style>
+        /* Estilos Evolução de Solo */
+        .evo-dropdown-content { display: none; position: absolute; background-color: #ffffff; min-width: 100%; max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.375rem; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); z-index: 50; top: 100%; left: 0; margin-top: 4px; }
+        .evo-dropdown-content.show { display: block; }
         #map-container { position: relative; width: 100%; height: 100%; overflow: hidden; }
         .map-pane-split { position: absolute; top: 0; bottom: 0; height: 100%; }
         #left-map-pane { left: 0; width: 100%; z-index: 10; border-right: 2px solid #2E7D32; }
@@ -150,6 +160,10 @@
                         <!-- MÓDULO: AMOSTRAGEM DE SOLO -->
                         <button onclick="switchTab('sampling')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hidden" id="tab-sampling">
                             <i class="fa-solid fa-vial-circle-check text-blue-400"></i><span>Amostragem de Solo</span>
+                        </button>
+                        <!-- MÓDULO: EVOLUÇÃO DE SOLO -->
+                        <button onclick="switchTab('evolucao')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hidden" id="tab-evolucao">
+                            <i class="fa-solid fa-chart-line text-pink-400"></i><span>Evolução de Solo</span>
                         </button>
                         </button>
                         <button onclick="switchTab('recommendation')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800" id="tab-recommendation">
@@ -849,6 +863,83 @@
                     </div>
                 </div>
                 <!-- GESTÃO DE ACESSOS -->
+
+                <!-- MÓDULO: EVOLUÇÃO DE SOLO -->
+                <div id="content-evolucao" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2 pb-10">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
+                        <div>
+                            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-pink-600"></i>
+                                <span>Evolução de Solo (Comparativo Histórico)</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Sincronizado via Google Sheets. Médias dinâmicas por safras.</p>
+                        </div>
+                        <button onclick="fetchEvoData()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-rotate"></i><span>Sincronizar Dados</span>
+                        </button>
+                    </div>
+
+                    <!-- Filtros Dinâmicos -->
+                    <div class="grid grid-cols-1 md:grid-cols-5 gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative z-40">
+                        <div class="relative">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Campo / Talhão</label>
+                            <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('campo')">
+                                <span id="evo-campo-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
+                                <i class="fa-solid fa-chevron-down text-slate-500"></i>
+                            </div>
+                            <div id="evo-campo-dropdown" class="evo-dropdown-content p-2">
+                                <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded cursor-pointer font-bold border-b mb-1 text-xs"><input type="checkbox" id="evo-campo-all" class="form-checkbox text-pink-600 rounded" onchange="toggleAllEvo('campo', this.checked)"><span>Selecionar Todos</span></label>
+                                <div id="evo-campo-options" class="text-xs font-semibold text-slate-700 space-y-1"></div>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Subdivisão</label>
+                            <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('sub')">
+                                <span id="evo-sub-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
+                                <i class="fa-solid fa-chevron-down text-slate-500"></i>
+                            </div>
+                            <div id="evo-sub-dropdown" class="evo-dropdown-content p-2">
+                                <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded cursor-pointer font-bold border-b mb-1 text-xs"><input type="checkbox" id="evo-sub-all" class="form-checkbox text-pink-600 rounded" onchange="toggleAllEvo('sub', this.checked)"><span>Selecionar Todos</span></label>
+                                <div id="evo-sub-options" class="text-xs font-semibold text-slate-700 space-y-1"></div>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Profundidade</label>
+                            <div class="bg-slate-50 border border-slate-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('prof')">
+                                <span id="evo-prof-text" class="truncate pr-2 text-xs font-bold text-slate-800">Selecione...</span>
+                                <i class="fa-solid fa-chevron-down text-slate-500"></i>
+                            </div>
+                            <div id="evo-prof-dropdown" class="evo-dropdown-content p-2">
+                                <label class="flex items-center space-x-2 p-2 hover:bg-slate-50 rounded cursor-pointer font-bold border-b mb-1 text-xs"><input type="checkbox" id="evo-prof-all" class="form-checkbox text-pink-600 rounded" onchange="toggleAllEvo('prof', this.checked)"><span>Selecionar Todos</span></label>
+                                <div id="evo-prof-options" class="text-xs font-semibold text-slate-700 space-y-1"></div>
+                            </div>
+                        </div>
+
+                        <div class="relative">
+                            <label class="block text-[11px] font-bold text-pink-700 uppercase mb-1">Elementos Analisados</label>
+                            <div class="bg-pink-50 border border-pink-300 p-2 rounded-lg cursor-pointer flex justify-between items-center" onclick="toggleEvoDropdown('elemento')">
+                                <span id="evo-elemento-text" class="truncate pr-2 text-xs font-bold text-pink-900">Selecione...</span>
+                                <i class="fa-solid fa-chevron-down text-pink-600"></i>
+                            </div>
+                            <div id="evo-elemento-dropdown" class="evo-dropdown-content p-2 border-pink-300">
+                                <label class="flex items-center space-x-2 p-2 hover:bg-pink-50 rounded cursor-pointer font-bold border-b mb-1 text-xs"><input type="checkbox" id="evo-elemento-all" class="form-checkbox text-pink-600 rounded" onchange="toggleAllEvo('elemento', this.checked)"><span>Selecionar Todos</span></label>
+                                <div id="evo-elemento-options" class="text-xs font-semibold text-slate-700 space-y-1"></div>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Valor Crítico (Linha Alvo)</label>
+                            <input type="number" id="evo-critico" placeholder="Ex: 15.5" class="w-full border border-slate-300 rounded-lg p-2 text-xs font-bold bg-white text-slate-800" oninput="renderEvoCharts()">
+                        </div>
+                    </div>
+
+                    <!-- Gráficos -->
+                    <div id="evo-charts-container" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 relative z-10">
+                        <div class="col-span-full p-10 text-center text-slate-400 font-bold italic"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Aguardando dados...</div>
+                    </div>
+                </div>
 
                 <!-- MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE -->
                 <div id="content-recommendation" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
@@ -5086,6 +5177,200 @@
             }
         }
         // =========================================================================
+        // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
+        // =========================================================================
+        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=csv&gid=1524034082";
+        let evoRawData = [];
+        let evoChartsInst = {};
+        const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
+
+        async function fetchEvoData() {
+            const container = document.getElementById('evo-charts-container');
+            if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
+            
+            try {
+                const response = await fetch(GOOGLE_SHEETS_EVO_URL);
+                const csvText = await response.text();
+                parseEvoCSV(csvText);
+            } catch (error) {
+                console.error(error);
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold">Erro ao buscar planilha de Evolução.</div>`;
+            }
+        }
+
+        function parseEvoCSV(csvText) {
+            const lines = csvText.split(/\r\n|\n/);
+            evoRawData = [];
+            const headers = lines[0].split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(h => h.replace(/^"|"$/g, '').trim());
+
+            for (let i = 1; i < lines.length; i++) {
+                if (!lines[i].trim()) continue;
+                const cols = lines[i].split(/,(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+                let row = {};
+                headers.forEach((h, idx) => {
+                    let val = cols[idx];
+                    if (evoElementsList.includes(h) || h === 'Sub01') {
+                        val = parseFloat(val);
+                        if (isNaN(val)) val = null;
+                    }
+                    row[h] = val;
+                });
+                if(row.Safra) evoRawData.push(row);
+            }
+            populateEvoFilters();
+            renderEvoCharts();
+        }
+
+        function populateEvoFilters() {
+            const campos = new Set(), subs = new Set(), profs = new Set();
+            evoRawData.forEach(r => {
+                if (r.Campo) campos.add(r.Campo);
+                if (r.Sub01 !== null && r.Sub01 !== undefined) subs.add(r.Sub01);
+                if (r.Prof) profs.add(r.Prof);
+            });
+
+            const buildHTML = (set, cls) => Array.from(set).sort().map(v => `
+                <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-100 rounded cursor-pointer w-full">
+                    <input type="checkbox" value="${v}" checked class="${cls} form-checkbox text-pink-600 rounded" onchange="updateEvoDropdownText('${cls}'); renderEvoCharts()">
+                    <span class="truncate">${v}</span>
+                </label>`).join('');
+
+            document.getElementById('evo-campo-options').innerHTML = buildHTML(campos, 'chk-evo-campo');
+            document.getElementById('evo-sub-options').innerHTML = buildHTML(subs, 'chk-evo-sub');
+            document.getElementById('evo-prof-options').innerHTML = buildHTML(profs, 'chk-evo-prof');
+            
+            document.getElementById('evo-elemento-options').innerHTML = evoElementsList.map(v => `
+                <label class="flex items-center space-x-2 p-1.5 hover:bg-pink-100 rounded cursor-pointer w-full">
+                    <input type="checkbox" value="${v}" ${['P', 'K', 'V%', 'MO', 'CTC', 'pH_CaCl2'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="updateEvoDropdownText('chk-evo-elemento'); renderEvoCharts()">
+                    <span class="truncate">${v}</span>
+                </label>`).join('');
+
+            ['chk-evo-campo', 'chk-evo-sub', 'chk-evo-prof', 'chk-evo-elemento'].forEach(updateEvoDropdownText);
+            ['campo', 'sub', 'prof'].forEach(id => document.getElementById(`evo-${id}-all`).checked = true);
+        }
+
+        function toggleEvoDropdown(id) {
+            const content = document.getElementById(`evo-${id}-dropdown`);
+            document.querySelectorAll('.evo-dropdown-content').forEach(d => { if(d !== content) d.classList.remove('show'); });
+            content.classList.toggle('show');
+        }
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#content-evolucao .relative')) {
+                document.querySelectorAll('.evo-dropdown-content').forEach(d => d.classList.remove('show'));
+            }
+        });
+
+        function toggleAllEvo(id, isChecked) {
+            document.querySelectorAll(`.chk-evo-${id}`).forEach(chk => chk.checked = isChecked);
+            updateEvoDropdownText(`chk-evo-${id}`);
+            renderEvoCharts();
+        }
+
+        function updateEvoDropdownText(cls) {
+            const chks = document.querySelectorAll(`.${cls}`);
+            const checked = Array.from(chks).filter(c => c.checked);
+            const textEl = document.getElementById(cls.replace('chk-', '') + '-text');
+            if(checked.length === 0) textEl.innerText = "Nenhum";
+            else if(checked.length === chks.length) textEl.innerText = "Todos Selecionados";
+            else if(checked.length === 1) textEl.innerText = checked[0].value;
+            else textEl.innerText = `${checked.length} Selecionados`;
+        }
+
+        function renderEvoCharts() {
+            const container = document.getElementById('evo-charts-container');
+            const campos = Array.from(document.querySelectorAll('.chk-evo-campo:checked')).map(c => c.value);
+            const subs = Array.from(document.querySelectorAll('.chk-evo-sub:checked')).map(c => isNaN(c.value) ? c.value : parseFloat(c.value));
+            const profs = Array.from(document.querySelectorAll('.chk-evo-prof:checked')).map(c => c.value);
+            const elementos = Array.from(document.querySelectorAll('.chk-evo-elemento:checked')).map(c => c.value);
+            const criticoVal = parseFloat(document.getElementById('evo-critico').value);
+
+            // Filtrar os dados brutos
+            const filtered = evoRawData.filter(r => 
+                campos.includes(r.Campo) && subs.includes(r.Sub01) && profs.includes(r.Prof)
+            );
+
+            // Limpar gráficos antigos
+            Object.values(evoChartsInst).forEach(chart => chart.destroy());
+            evoChartsInst = {};
+            container.innerHTML = '';
+
+            if (elementos.length === 0 || filtered.length === 0) {
+                container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-400 font-bold italic">Nenhum dado encontrado para os filtros selecionados.</div>`;
+                return;
+            }
+
+            // Agrupar por Safra
+            const safrasSet = new Set(filtered.map(r => String(r.Safra)));
+            const safrasArray = Array.from(safrasSet).sort();
+
+            elementos.forEach(el => {
+                const labels = safrasArray;
+                const averages = safrasArray.map(safra => {
+                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null);
+                    if (rowsSafra.length === 0) return 0;
+                    const sum = rowsSafra.reduce((acc, curr) => acc + curr[el], 0);
+                    return sum / rowsSafra.length;
+                });
+
+                // Criação do HTML do Gráfico
+                const wrapper = document.createElement('div');
+                wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
+                wrapper.innerHTML = `<h3 class="text-sm font-extrabold text-slate-700 uppercase mb-3 border-b pb-1 w-full text-center">${el}</h3><div class="relative w-full h-64"><canvas id="evoChart_${el}"></canvas></div>`;
+                container.appendChild(wrapper);
+
+                const ctx = document.getElementById(`evoChart_${el}`).getContext('2d');
+                
+                const datasets = [
+                    {
+                        type: 'line',
+                        label: 'Tendência',
+                        data: averages,
+                        borderColor: '#db2777', // pink-600
+                        backgroundColor: '#db2777',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        pointRadius: 4,
+                        fill: false,
+                        yAxisID: 'y'
+                    },
+                    {
+                        type: 'bar',
+                        label: `Média de ${el}`,
+                        data: averages,
+                        backgroundColor: 'rgba(56, 189, 248, 0.6)', // sky-400
+                        borderColor: '#0284c7', // sky-600
+                        borderWidth: 1,
+                        borderRadius: 4,
+                        yAxisID: 'y'
+                    }
+                ];
+
+                if (!isNaN(criticoVal)) {
+                    datasets.push({
+                        type: 'line',
+                        label: 'Valor Crítico',
+                        data: Array(labels.length).fill(criticoVal),
+                        borderColor: '#ef4444', // red-500
+                        borderWidth: 2,
+                        borderDash: [5, 5],
+                        pointRadius: 0,
+                        fill: false,
+                        yAxisID: 'y'
+                    });
+                }
+
+                evoChartsInst[el] = new Chart(ctx, {
+                    data: { labels: labels, datasets: datasets },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } },
+                        scales: { y: { beginAtZero: true, title: { display: false } }, x: { grid: { display: false } } }
+                    }
+                });
+            });
+        }
+        // =========================================================================
         // MÓDULO 5: RECOMENDAÇÃO AGRONÔMICA E ESTOQUE
         // =========================================================================
                
@@ -6470,9 +6755,15 @@
                 alert("Você não possui permissão de acesso ao Módulo de Amostragem de Solo.");
                 return;
             }
+           
+            // ADICIONE ESTE BLOCO AQUI:
+            if (tab === 'evolucao' && typeof canAccessSampling !== 'undefined' && !canAccessSampling) {
+        alert("Você não possui permissão de acesso aos Gráficos de Evolução.");
+        return;
+    }
 
             // 2. Oculta tudo e ajusta as cores dos botões
-            ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit'].forEach(t => {
+            ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
                 const el = document.getElementById(`content-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
                 if (el) el.classList.add('hidden');
@@ -6548,6 +6839,10 @@
                 }                
                 else if (tab === 'users') {
                     if (typeof renderAdminTables === 'function') renderAdminTables();
+                }
+            }, 100);
+                else if (tab === 'evolucao') {
+                    if (evoRawData.length === 0) fetchEvoData();
                 }
             }, 100);
         };
