@@ -5204,8 +5204,6 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
-        
-        // Voltamos para o formato TSV (inquebrável contra vírgulas)
         const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
@@ -5216,14 +5214,12 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
-                // Traz os dados sempre atualizados (sem cache)
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
-                if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
                 parseEvoCSV(textData);
             } catch (error) {
-                console.error("Erro no Fetch:", error);
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-triangle-exclamation text-3xl mb-3 block"></i>Erro de Conexão com o Google.<br><span class="text-sm font-medium text-slate-600 mt-2 block">Não foi possível ler a planilha. Verifique sua internet.</span></div>`;
+                console.error(error);
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-500 font-bold"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Erro de conexão ao buscar planilha.</div>`;
             }
         }
 
@@ -5231,45 +5227,59 @@
             const container = document.getElementById('evo-charts-container');
             
             if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada. Libere o acesso para 'Qualquer pessoa com o link'.</div>`;
+                alert("ACESSO NEGADO: A planilha do Google Sheets está fechada!\n\nMude o acesso geral para 'Qualquer pessoa com o link'.");
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
                 return;
             }
 
             const lines = rawText.split(/\r\n|\n/);
             let headerIdx = -1;
             let headers = [];
+            let separator = '\t';
 
-            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                let tempTabs = line.split('\t').map(h => {
-                    let str = h.replace(/^"|"$/g, '').trim();
-                    // Alinha qualquer variação de nome para o padrão do sistema
-                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
-                    if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
-                    if (/v\s*%/i.test(str)) return 'V%';
-                    if (/propriet.rio/i.test(str)) return 'Proprietário';
-                    if (/propriedade/i.test(str)) return 'Propriedade';
-                    if (/safra/i.test(str)) return 'Safra';
-                    if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
-                    if (/prof/i.test(str)) return 'Prof';
-                    if (/^sub/i.test(str)) return 'Sub01';
-                    return str;
-                });
+                let tempTabs = line.split('\t').map(h => h.trim().replace(/^"|"$/g, ''));
+                let tempCommas = line.split(',').map(h => h.trim().replace(/^"|"$/g, ''));
 
                 if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
                     headers = tempTabs;
                     headerIdx = i;
+                    separator = '\t';
+                    break;
+                }
+                if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
+                    headers = tempCommas;
+                    headerIdx = i;
+                    separator = ',';
                     break;
                 }
             }
 
             if (headerIdx === -1) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">As colunas 'Safra' e 'Campo' não foram encontradas.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Não encontrei as colunas 'Safra' e 'Campo' nas primeiras linhas.</div>`;
                 return;
             }
+
+            // =========================================================
+            // CORRETOR DE CABEÇALHOS (Resolve o pH_CaCl2 e Proprietários)
+            // =========================================================
+            headers = headers.map(h => {
+                let str = h.trim();
+                let strLower = str.toLowerCase();
+                
+                // Mapeia os nomes da planilha para os nomes exatos do código
+                if (strLower.includes('ph') && strLower.includes('cacl')) return 'pH_CaCl2';
+                if (strLower.includes('ph') && (strLower.includes('agua') || strLower.includes('água'))) return 'pH_água';
+                if (strLower === 'v%') return 'V%';
+                if (strLower.includes('propriet')) return 'Proprietário';
+                if (strLower.includes('propriedade')) return 'Propriedade';
+                if (strLower === 'sub01' || strLower === 'sub 01' || strLower === 'subdivisão' || strLower === 'sub') return 'Sub01';
+                
+                return str;
+            });
 
             evoRawData = [];
             
@@ -5277,29 +5287,35 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = line.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
+                let cols = [];
+                if (separator === ',') {
+                    cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+                } else {
+                    cols = line.split('\t').map(c => c.trim().replace(/^"|"$/g, ''));
+                }
 
                 let row = {};
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
+                    
                     if (evoElementsList.includes(h)) {
                         val = val.replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
-                        if (val === '') val = '-'; // Evita caixas em branco
+                        if (h === 'Sub01' && val === '') val = 'Geral';
                         row[h] = val;
                     }
                 });
 
-                // Só processa se a linha for válida
-                if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
+                // Confirmação final se a linha tem as informações base para existir
+                if (row['Safra'] && row['Campo'] && row['Proprietário']) {
                     evoRawData.push(row);
                 }
             }
 
             if (evoRawData.length === 0) {
-                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os cabeçalhos foram encontrados, mas os dados estão vazios.</div>`;
+                 if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-amber-500 font-bold">Os dados lidos parecem estar vazios ou sem as colunas corretas.</div>`;
                  return;
             }
 
@@ -5307,11 +5323,14 @@
         }
 
         // ==========================================
-        // MOTOR DE FILTROS EM CASCATA
+        // MOTOR DE FILTROS EM CASCATA 
         // ==========================================
         function buildEvoCheckboxes(set, cls) {
             const id = cls.replace('chk-evo-', '');
-            return Array.from(set).sort().map(v => `
+            // Impede a criação de botões "undefined"
+            const validValues = Array.from(set).filter(v => v !== undefined && v !== null && String(v).trim() !== '');
+            
+            return validValues.sort().map(v => `
                 <label class="flex items-center space-x-2 p-1.5 hover:bg-slate-100 rounded cursor-pointer w-full">
                     <input type="checkbox" value="${v}" checked class="${cls} form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('${id}')">
                     <span class="truncate">${v}</span>
@@ -5435,7 +5454,7 @@
         });
 
         // ==========================================
-        // CÁLCULO DE MÉDIA EXATA E GRÁFICOS
+        // CÁLCULO EXATO DAS MÉDIAS E RENDERIZAÇÃO
         // ==========================================
         function renderEvoCharts() {
             const container = document.getElementById('evo-charts-container');
@@ -5471,13 +5490,16 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
-                    // Pega apenas as linhas que têm número válido
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     if (rowsSafra.length === 0) return 0;
                     
                     let sum = 0;
-                    rowsSafra.forEach(r => sum += r[el]);
-                    return Number((sum / rowsSafra.length).toFixed(2));
+                    let count = 0;
+                    rowsSafra.forEach(r => {
+                        sum += r[el];
+                        count++;
+                    });
+                    return count > 0 ? Number((sum / count).toFixed(2)) : 0;
                 });
 
                 const wrapper = document.createElement('div');
