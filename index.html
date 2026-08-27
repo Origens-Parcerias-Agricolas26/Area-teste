@@ -5239,27 +5239,14 @@
             let headerIdx = -1;
             let headers = [];
 
-            // BUSCA INTELIGENTE E BLINDADA DE CABEÇALHOS
+            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS (SEU CÓDIGO)
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
-                    
-                    // BLINDAGEM: Arranca espaços, caracteres invisíveis e joga pra minúsculo
-                    let cleanForTest = str.replace(/[\s\u200B-\u200D\uFEFF\u00A0]/g, '').toLowerCase();
-
-                    // 1. Escudo absoluto para os Elementos isolados (impede que espaços invisíveis os quebrem)
-                    const exactMap = {
-                        'p': 'P', 'k': 'K', 'ca': 'Ca', 'mg': 'Mg', 'al': 'Al',
-                        'h': 'H', 'mo': 'MO', 'areia': 'Areia', 'silte': 'Silte',
-                        'argila': 'Argila', 'sb': 'Sb', 'ctc': 'CTC', 'zn': 'Zn',
-                        'cu': 'Cu', 'fe': 'Fe', 'mn': 'Mn', 's': 'S', 'b': 'B'
-                    };
-                    if (exactMap[cleanForTest]) return exactMap[cleanForTest];
-
-                    // 2. Seus filtros e variações originais (intactos)
+                    // Alinha qualquer variação de nome para o padrão do sistema
                     if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
                     if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
                     if (/v\s*%/i.test(str)) return 'V%';
@@ -5269,7 +5256,6 @@
                     if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
                     if (/prof/i.test(str)) return 'Prof';
                     if (/^sub/i.test(str)) return 'Sub01';
-                    
                     return str;
                 });
 
@@ -5297,8 +5283,7 @@
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
                     if (evoElementsList.includes(h)) {
-                        // Limpa espaços no meio dos números e arruma a vírgula
-                        val = val.replace(/\s/g, '').replace(',', '.'); 
+                        val = val.replace(',', '.'); 
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
@@ -5486,20 +5471,17 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
-                    // Exige que o dado não seja apenas texto, mas tenha sido validado como número
+                    // Pega apenas as linhas que têm número válido para calcular a média
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    if (rowsSafra.length === 0) return null; // Retorna null para ignorar anos vazios
+                    if (rowsSafra.length === 0) return null; // Transforma 0 em null para não despencar o gráfico
                     
-                    // Cálculo da Média (Soma / Quantidade)
                     let sum = 0;
                     rowsSafra.forEach(r => sum += r[el]);
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // Trava restaurada: Se não houver literalmente NENHUM dado para esse elemento, não cria o quadrado vazio
-                if (averages.every(v => v === null)) return;
-
+                // Cria o quadro na tela para todos os elementos selecionados
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
                 wrapper.innerHTML = `<h3 class="text-sm font-extrabold text-slate-700 uppercase mb-3 border-b pb-1 w-full text-center">${el}</h3><div class="relative w-full h-64"><canvas id="evoChart_${el}"></canvas></div>`;
@@ -5518,7 +5500,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Conecta os pontos mesmo que a safra intermediária esteja vazia
+                        spanGaps: true, // Liga a linha se pular algum ano
                         yAxisID: 'y'
                     },
                     {
