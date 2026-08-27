@@ -5204,7 +5204,9 @@
         // =========================================================================
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
-        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/gviz/tq?tqx=out:csv&gid=1524034082";
+        
+        // Voltamos para o formato TSV (inquebrável contra vírgulas)
+        const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
         const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
@@ -5214,6 +5216,7 @@
             if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-slate-500 font-bold"><i class="fa-solid fa-spinner fa-spin mr-2"></i>Sincronizando com Google Sheets...</div>`;
             
             try {
+                // Traz os dados sempre atualizados (sem cache)
                 const response = await fetch(GOOGLE_SHEETS_EVO_URL + "&t=" + new Date().getTime());
                 if (!response.ok) throw new Error("Falha na resposta da rede");
                 const textData = await response.text();
@@ -5228,7 +5231,7 @@
             const container = document.getElementById('evo-charts-container');
             
             if (rawText.trim().toLowerCase().startsWith('<!doctype html>') || rawText.toLowerCase().includes('<html')) {
-                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada.</div>`;
+                if (container) container.innerHTML = `<div class="col-span-full p-10 text-center text-red-600 font-bold"><i class="fa-solid fa-lock text-3xl mb-3 block"></i>Planilha Privada. Libere o acesso para 'Qualquer pessoa com o link'.</div>`;
                 return;
             }
 
@@ -5236,21 +5239,28 @@
             let headerIdx = -1;
             let headers = [];
 
+            // BUSCA INTELIGENTE E CORRETOR ORTOGRÁFICO DE CABEÇALHOS
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
-                // CORREÇÃO: "Corretor automático" de cabeçalhos (Resolve o pH_CaCl2 zerado)
-                let tempCommas = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(h => {
-                    let str = h.trim().replace(/^"|"$/g, '');
-                    if (/ph.*cacl2/i.test(str)) return 'pH_CaCl2';
+                let tempTabs = line.split('\t').map(h => {
+                    let str = h.replace(/^"|"$/g, '').trim();
+                    // Alinha qualquer variação de nome para o padrão do sistema
+                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
                     if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
                     if (/v\s*%/i.test(str)) return 'V%';
+                    if (/propriet.rio/i.test(str)) return 'Proprietário';
+                    if (/propriedade/i.test(str)) return 'Propriedade';
+                    if (/safra/i.test(str)) return 'Safra';
+                    if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
+                    if (/prof/i.test(str)) return 'Prof';
+                    if (/^sub/i.test(str)) return 'Sub01';
                     return str;
                 });
 
-                if (tempCommas.includes('Safra') && tempCommas.includes('Campo')) {
-                    headers = tempCommas;
+                if (tempTabs.includes('Safra') && tempTabs.includes('Campo')) {
+                    headers = tempTabs;
                     headerIdx = i;
                     break;
                 }
@@ -5267,7 +5277,7 @@
                 const line = lines[i].trim();
                 if (!line) continue;
 
-                let cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.trim().replace(/^"|"$/g, ''));
+                let cols = line.split('\t').map(c => c.replace(/^"|"$/g, '').trim());
 
                 let row = {};
                 headers.forEach((h, idx) => {
@@ -5277,12 +5287,13 @@
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
-                        if (h === 'Sub01' && val === '') val = 'Geral';
+                        if (val === '') val = '-'; // Evita caixas em branco
                         row[h] = val;
                     }
                 });
 
-                if (row['Safra'] && row['Campo']) {
+                // Só processa se a linha for válida
+                if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
                     evoRawData.push(row);
                 }
             }
@@ -5423,7 +5434,9 @@
             }
         });
 
-        // CORREÇÃO: Fórmula de média cravada matematicamente para evitar somas
+        // ==========================================
+        // CÁLCULO DE MÉDIA EXATA E GRÁFICOS
+        // ==========================================
         function renderEvoCharts() {
             const container = document.getElementById('evo-charts-container');
             
@@ -5458,20 +5471,13 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 const averages = safrasArray.map(safra => {
-                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && r[el] !== null && r[el] !== undefined);
+                    // Pega apenas as linhas que têm número válido
+                    const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     if (rowsSafra.length === 0) return 0;
                     
                     let sum = 0;
-                    let count = 0;
-                    rowsSafra.forEach(r => {
-                        if (typeof r[el] === 'number' && !isNaN(r[el])) {
-                            sum += r[el];
-                            count++;
-                        }
-                    });
-                    
-                    // Cálculo de Média explícito
-                    return count > 0 ? Number((sum / count).toFixed(2)) : 0;
+                    rowsSafra.forEach(r => sum += r[el]);
+                    return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
                 const wrapper = document.createElement('div');
