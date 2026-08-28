@@ -1522,6 +1522,7 @@
                         currentUserAllowedFarms = userData.farms || [];
                         canAccessSampling = !!userData.allowSampling;
                         canAccessRecommendation = userData.allowRecommendation || false;
+                        canAccessEvolution = !!userData.allowEvolution;
                         canAccessVRate = !!userData.allowVRate;
                         canAccessSeeds = !!userData.allowSeeds;
                         canAccessVisit = !!userData.allowVisit;
@@ -1566,11 +1567,13 @@
             const tabVrateBtn = document.getElementById('tab-vrate');
             const tabSeedsBtn = document.getElementById('tab-seeds');
             const tabSamplingBtn = document.getElementById('tab-sampling');
+            const tabEvolutionBtn = document.getElementById('tab-evolucao');
             const tabRec = document.getElementById('tab-recommendation');
             
             if (tabRec) typeof canAccessRecommendation !== 'undefined' && canAccessRecommendation ? tabRec.classList.remove('hidden') : tabRec.classList.add('hidden');
             if (tabVrateBtn) canAccessVRate ? tabVrateBtn.classList.remove('hidden') : tabVrateBtn.classList.add('hidden');
             if (tabSeedsBtn) canAccessSeeds ? tabSeedsBtn.classList.remove('hidden') : tabSeedsBtn.classList.add('hidden');
+            if (tabEvolutionBtn) canAccessEvolution ? tabEvolutionBtn.classList.remove('hidden') : tabEvolutionBtn.classList.add('hidden');
             if (tabSamplingBtn) canAccessSampling ? tabSamplingBtn.classList.remove('hidden') : tabSamplingBtn.classList.add('hidden');
             
             const tabVisit = document.getElementById('tab-visit');
@@ -2022,6 +2025,7 @@
             const allowVRate = document.getElementById('chk-allow-vrate').checked;
             const allowSeeds = document.getElementById('chk-allow-seeds').checked;
             const allowSampling = document.getElementById('chk-allow-sampling').checked;
+            const allowEvolution: document.getElementById('chk-allow-evolution').checked;
             const allowRecommendation = document.getElementById('chk-allow-recommendation') ? document.getElementById('chk-allow-recommendation').checked : false;
             const allowVisit = document.getElementById('chk-allow-visit') ? document.getElementById('chk-allow-visit').checked : false;
             const allowEditVisit = document.getElementById('chk-allow-edit-visit') ? document.getElementById('chk-allow-edit-visit').checked : false;
