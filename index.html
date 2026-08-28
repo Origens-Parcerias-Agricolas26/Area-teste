@@ -5205,11 +5205,13 @@
         // MÓDULO: EVOLUÇÃO DE SOLO (GRÁFICOS)
         // =========================================================================
         
-        // Voltamos para o formato TSV (inquebrável contra vírgulas)
+        // Formato TSV (inquebrável contra vírgulas e aspas do Google Sheets)
         const GOOGLE_SHEETS_EVO_URL = "https://docs.google.com/spreadsheets/d/1auRYLrM3AyWMB111N_sq9ifv8nX368_91-jCXp6S2PY/export?format=tsv&gid=1524034082";
         let evoRawData = [];
         let evoChartsInst = {};
-        const evoElementsList = ['pH_água', 'pH_CaCl2', 'P', 'K', 'Ca', 'Mg', 'Al', 'H', 'MO', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
+        
+        // A SUA NOVA LISTA OFICIAL (Blindada contra erros de exportação)
+        const evoElementsList = ['pH_água', 'pH_CaCl2', 'Fósforo', 'Potássio', 'Calcio+Mg', 'Cálcio', 'Magnésio', 'Aluminio', 'H', 'Matéria Orgânica', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'CaMg', 'CaK', 'MgK', 'Ca%', 'Mg%', 'Al%', 'K%', 'H%', 'Sat. Al', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
 
         async function fetchEvoData() {
             const container = document.getElementById('evo-charts-container');
@@ -5239,14 +5241,13 @@
             let headerIdx = -1;
             let headers = [];
 
-            // O SEU CÓDIGO ORIGINAL DE BUSCA INTELIGENTE (INTACTO)
+            // O SEU CÓDIGO ORIGINAL DE BUSCA INTELIGENTE DE CABEÇALHOS
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
-                    // Alinha qualquer variação de nome para o padrão do sistema
                     if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
                     if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
                     if (/v\s*%/i.test(str)) return 'V%';
@@ -5284,18 +5285,17 @@
                     let val = cols[idx] || '';
                     if (evoElementsList.includes(h)) {
                         
-                        // A SUA SUGESTÃO APLICADA AQUI: Troca a vírgula e limpa o número
-                        val = String(val).replace(/,/g, '.').replace(/[^\d.-]/g, ''); 
+                        // A SUA SOLUÇÃO: Troca a vírgula por ponto de forma definitiva e arranca espaços soltos
+                        val = String(val).replace(/\s/g, '').replace(/,/g, '.'); 
                         
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
-                        if (val === '') val = '-'; // Evita caixas em branco
+                        if (val === '') val = '-';
                         row[h] = val;
                     }
                 });
 
-                // Só processa se a linha for válida
                 if (row['Safra'] && row['Campo'] && row['Safra'] !== '-' && row['Campo'] !== '-') {
                     evoRawData.push(row);
                 }
@@ -5326,9 +5326,10 @@
             document.getElementById('evo-proprietario-options').innerHTML = buildEvoCheckboxes(proprietarios, 'chk-evo-proprietario');
             document.getElementById('evo-proprietario-all').checked = true;
             
+            // ATUALIZADO: Os filtros que vêm marcados por padrão foram ajustados para os novos nomes
             document.getElementById('evo-elemento-options').innerHTML = evoElementsList.map(v => `
                 <label class="flex items-center space-x-2 p-1.5 hover:bg-pink-100 rounded cursor-pointer w-full">
-                    <input type="checkbox" value="${v}" ${['P', 'K', 'V%', 'MO', 'CTC', 'pH_CaCl2'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('elemento')">
+                    <input type="checkbox" value="${v}" ${['Fósforo', 'Potássio', 'V%', 'Matéria Orgânica', 'CTC', 'pH_CaCl2'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('elemento')">
                     <span class="truncate">${v}</span>
                 </label>`).join('');
             
@@ -5474,18 +5475,19 @@
             elementos.forEach(el => {
                 const labels = safrasArray;
                 
+                // CÁLCULO DA MÉDIA MATEMÁTICA PURA (Soma / Quantidade)
                 const averages = safrasArray.map(safra => {
                     const rowsSafra = filtered.filter(r => String(r.Safra) === safra && typeof r[el] === 'number' && !isNaN(r[el]));
                     
-                    if (rowsSafra.length === 0) return null; // Retorna null para conectar a linha sem cair pro zero
+                    if (rowsSafra.length === 0) return null; // Transforma zero em nulo para o gráfico não cair no chão
                     
                     let sum = 0;
                     rowsSafra.forEach(r => sum += r[el]);
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // A TRAVA QUE ESCONDIA OS GRÁFICOS FOI REMOVIDA DAQUI! 
-                // Todos os gráficos selecionados vão aparecer obrigatoriamente.
+                // A TRAVA QUE ESCONDIA OS GRÁFICOS FOI ARRANCADA! 
+                // Todos os gráficos que você marcar no filtro vão desenhar as caixas na tela.
 
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
@@ -5505,7 +5507,7 @@
                         tension: 0.3,
                         pointRadius: 4,
                         fill: false,
-                        spanGaps: true, // Conecta a linha mesmo que a safra não tenha dado
+                        spanGaps: true, // Conecta a linha mesmo que a safra intermediária esteja vazia
                         yAxisID: 'y'
                     },
                     {
