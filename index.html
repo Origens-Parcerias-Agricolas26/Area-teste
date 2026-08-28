@@ -2051,16 +2051,17 @@
                 return false;
             }
 
-            const userObj = { 
-                name: name, 
-                role: 'client', 
-                farms: selectedFarms, 
-                allowVRate: allowVRate, 
-                allowSeeds: allowSeeds, 
+            const userObj = {
+                name: name,
+                role: 'client',
+                farms: selectedFarms,
+                allowVRate: allowVRate,
+                allowSeeds: allowSeeds,
                 allowSampling: allowSampling, // corrigi a digitação que estava "allowSamplin" no seu código original
                 allowRecommendation: allowRecommendation,
                 allowVisit: allowVisit,
-                allowEditVisit: allowEditVisit
+                allowEditVisit: allowEditVisit, // <-- Coloque uma vírgula aqui
+                allowEvolution: allowEvolution  // <-- Adicione esta linha!
             };
 
             try {
