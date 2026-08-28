@@ -1514,6 +1514,7 @@
                 canAccessRecommendation = true;
                 canAccessVisit = true;
                 canEditVisit = true;
+                canAccessEvolution = true;
             } else {
                 try {
                     const userDoc = await db.collection("users").doc(userEmail).get();
@@ -1974,6 +1975,7 @@
             document.getElementById('chk-allow-vrate').checked = !!user.allowVRate;
             document.getElementById('chk-allow-seeds').checked = !!user.allowSeeds;
             document.getElementById('chk-allow-sampling').checked = !!user.allowSampling;
+            document.getElementById('chk-allow-evolution').checked = !!user.allowEvolution;
             if (document.getElementById('chk-allow-recommendation')) {
             document.getElementById('chk-allow-recommendation').checked = !!user.allowRecommendation;
         }
@@ -2243,7 +2245,7 @@
             }
 
             // 👇 AQUI ESTÁ A CORREÇÃO: O 'visit' foi adicionado na lista!
-            ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit'].forEach(t => {
+            ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
                 const el = document.getElementById(`content-${t}`);
                 const btn = document.getElementById(`tab-${t}`);
                 if (el) el.classList.add('hidden');
