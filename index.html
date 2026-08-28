@@ -5247,15 +5247,16 @@
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
-                    // Adivinhação do pH_CaCl2 removida! Agora ele lê direto o nome correto.
-                    if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
-                    if (/v\s*%/i.test(str)) return 'V%';
+                    
                     if (/propriet.rio/i.test(str)) return 'Proprietário';
                     if (/propriedade/i.test(str)) return 'Propriedade';
                     if (/safra/i.test(str)) return 'Safra';
                     if (/campo|talh[ãa]o/i.test(str)) return 'Campo';
                     if (/prof/i.test(str)) return 'Prof';
-                    if (/^sub/i.test(str)) return 'Sub01';
+                    
+                    // CORREÇÃO DA SUBDIVISÃO: Agora busca a coluna exatamente igual a "Sub" e ignora as outras.
+                    if (/^sub$/i.test(str)) return 'Sub01'; 
+                    
                     return str;
                 });
 
@@ -5283,10 +5284,8 @@
                 headers.forEach((h, idx) => {
                     let val = cols[idx] || '';
                     if (evoElementsList.includes(h)) {
-                        
                         // Troca a vírgula por ponto de forma definitiva e arranca espaços soltos
                         val = String(val).replace(/\s/g, '').replace(/,/g, '.'); 
-                        
                         let num = parseFloat(val);
                         row[h] = isNaN(num) ? null : num;
                     } else {
@@ -5485,9 +5484,9 @@
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // Cria o container do gráfico independentemente se o resultado é nulo, mantendo os painéis visíveis
+                // Cria o container do gráfico 100% visível e responsivo
                 const wrapper = document.createElement('div');
-                wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
+                wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center w-full"; // Adicionado w-full
                 wrapper.innerHTML = `<h3 class="text-sm font-extrabold text-slate-700 uppercase mb-3 border-b pb-1 w-full text-center">${el}</h3><div class="relative w-full h-64"><canvas id="evoChart_${el}"></canvas></div>`;
                 container.appendChild(wrapper);
 
@@ -5498,7 +5497,7 @@
                         type: 'line',
                         label: 'Tendência',
                         data: averages,
-                        borderColor: '#db2777',
+                        borderColor: '#db2777', // Cor Rosa Original mantida para a linha
                         backgroundColor: '#db2777',
                         borderWidth: 2,
                         tension: 0.3,
@@ -5511,8 +5510,8 @@
                         type: 'bar',
                         label: `Média de ${el}`,
                         data: averages,
-                        backgroundColor: 'rgba(56, 189, 248, 0.6)',
-                        borderColor: '#0284c7',
+                        backgroundColor: '#49b790', // SUA NOVA COR DE VERDE APLICADA!
+                        borderColor: '#3ca07c', // Borda em tom de verde ligeiramente mais escuro para destaque
                         borderWidth: 1,
                         borderRadius: 4,
                         yAxisID: 'y'
@@ -5536,7 +5535,8 @@
                 evoChartsInst[el] = new Chart(ctx, {
                     data: { labels: labels, datasets: datasets },
                     options: {
-                        responsive: true, maintainAspectRatio: false,
+                        responsive: true, 
+                        maintainAspectRatio: false, // Permite que a altura do gráfico se adapte ao container perfeitamente
                         plugins: { legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } },
                         scales: { y: { beginAtZero: true, title: { display: false } }, x: { grid: { display: false } } }
                     }
