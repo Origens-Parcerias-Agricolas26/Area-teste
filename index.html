@@ -5210,8 +5210,8 @@
         let evoRawData = [];
         let evoChartsInst = {};
         
-        // A SUA NOVA LISTA OFICIAL (Blindada contra erros de exportação)
-        const evoElementsList = ['pH_água', 'pH_CaCl2', 'Fósforo', 'Potássio', 'Calcio+Mg', 'Cálcio', 'Magnésio', 'Aluminio', 'H', 'Matéria Orgânica', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'CaMg', 'CaK', 'MgK', 'Ca%', 'Mg%', 'Al%', 'K%', 'H%', 'Sat. Al', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
+        // A SUA NOVA LISTA OFICIAL DEFINITIVA
+        const evoElementsList = ['pH_água', 'pH em Cloreto de Cálcio', 'Fósforo', 'Potássio', 'Calcio+Mg', 'Cálcio', 'Magnésio', 'Aluminio', 'H', 'Matéria Orgânica', 'Areia', 'Silte', 'Argila', 'Sb', 'CTC', 'V%', 'CaMg', 'CaK', 'MgK', 'Ca%', 'Mg%', 'Al%', 'K%', 'H%', 'Sat. Al', 'Zn', 'Cu', 'Fe', 'Mn', 'S', 'B'];
 
         async function fetchEvoData() {
             const container = document.getElementById('evo-charts-container');
@@ -5241,14 +5241,13 @@
             let headerIdx = -1;
             let headers = [];
 
-            // O SEU CÓDIGO ORIGINAL DE BUSCA INTELIGENTE DE CABEÇALHOS
             for (let i = 0; i < Math.min(10, lines.length); i++) {
                 const line = lines[i];
                 if (!line.trim()) continue;
                 
                 let tempTabs = line.split('\t').map(h => {
                     let str = h.replace(/^"|"$/g, '').trim();
-                    if (/ph.*cacl/i.test(str)) return 'pH_CaCl2';
+                    // Adivinhação do pH_CaCl2 removida! Agora ele lê direto o nome correto.
                     if (/ph.*[áa]gua/i.test(str)) return 'pH_água';
                     if (/v\s*%/i.test(str)) return 'V%';
                     if (/propriet.rio/i.test(str)) return 'Proprietário';
@@ -5285,7 +5284,7 @@
                     let val = cols[idx] || '';
                     if (evoElementsList.includes(h)) {
                         
-                        // A SUA SOLUÇÃO: Troca a vírgula por ponto de forma definitiva e arranca espaços soltos
+                        // Troca a vírgula por ponto de forma definitiva e arranca espaços soltos
                         val = String(val).replace(/\s/g, '').replace(/,/g, '.'); 
                         
                         let num = parseFloat(val);
@@ -5329,7 +5328,7 @@
             // ATUALIZADO: Os filtros que vêm marcados por padrão foram ajustados para os novos nomes
             document.getElementById('evo-elemento-options').innerHTML = evoElementsList.map(v => `
                 <label class="flex items-center space-x-2 p-1.5 hover:bg-pink-100 rounded cursor-pointer w-full">
-                    <input type="checkbox" value="${v}" ${['Fósforo', 'Potássio', 'V%', 'Matéria Orgânica', 'CTC', 'pH_CaCl2'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('elemento')">
+                    <input type="checkbox" value="${v}" ${['Fósforo', 'Potássio', 'V%', 'Matéria Orgânica', 'CTC', 'pH em Cloreto de Cálcio'].includes(v) ? 'checked' : ''} class="chk-evo-elemento form-checkbox text-pink-600 rounded" onchange="handleEvoFilterChange('elemento')">
                     <span class="truncate">${v}</span>
                 </label>`).join('');
             
@@ -5486,9 +5485,7 @@
                     return Number((sum / rowsSafra.length).toFixed(2));
                 });
 
-                // A TRAVA QUE ESCONDIA OS GRÁFICOS FOI ARRANCADA! 
-                // Todos os gráficos que você marcar no filtro vão desenhar as caixas na tela.
-
+                // Cria o container do gráfico independentemente se o resultado é nulo, mantendo os painéis visíveis
                 const wrapper = document.createElement('div');
                 wrapper.className = "bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col items-center";
                 wrapper.innerHTML = `<h3 class="text-sm font-extrabold text-slate-700 uppercase mb-3 border-b pb-1 w-full text-center">${el}</h3><div class="relative w-full h-64"><canvas id="evoChart_${el}"></canvas></div>`;
