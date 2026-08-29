@@ -2719,7 +2719,7 @@ async function exportarLaudoPDF() {
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
     // ==========================================
-    // CAPTURA DO MAPA (Respeitando o zoom da tela)
+    // 1. CAPTURA BLINDADA DO MAPA (Sem cortes)
     // ==========================================
     const mapContainer = document.getElementById('map-left');
     const tilePane = document.querySelector('#map-left .leaflet-tile-pane');
@@ -2731,20 +2731,25 @@ async function exportarLaudoPDF() {
     const originalBg = mapContainer.style.background;
     mapContainer.style.background = '#FFFFFF';
 
-    mapLeft.invalidateSize();
-    await new Promise(resolve => setTimeout(resolve, 300));
+    // O SEGREDO: Salva o scroll atual e joga a tela pro topo absoluto
+    // Isso impede o html2canvas de cortar a imagem
+    const oldScrollX = window.scrollX;
+    const oldScrollY = window.scrollY;
+    window.scrollTo(0, 0);
 
+    mapLeft.invalidateSize();
+    await new Promise(resolve => setTimeout(resolve, 500)); // Tempo para o motor do mapa respirar
+
+    // Tira a foto limpa
     const mapCanvas = await html2canvas(mapContainer, { 
         useCORS: true, 
         scale: 2, 
-        backgroundColor: '#FFFFFF',
-        scrollX: 0,
-        scrollY: 0,
-        width: mapContainer.offsetWidth,
-        height: mapContainer.offsetHeight
+        backgroundColor: '#FFFFFF'
     });
     const mapImgData = mapCanvas.toDataURL('image/jpeg', 1.0);
 
+    // Restaura a tela para o usuário
+    window.scrollTo(oldScrollX, oldScrollY);
     mapContainer.style.background = originalBg;
     if (tilePane) tilePane.style.display = '';
     if (controlPane) controlPane.style.display = '';
@@ -2753,30 +2758,31 @@ async function exportarLaudoPDF() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
     // ==========================================
-    // MAPA (FUNDO CENTRALIZADO NA ZONA SEGURA)
+    // 2. ENQUADRAMENTO DO MAPA (Zoom Automático e Centralizado)
     // ==========================================
-    // Zona Segura: Longe da legenda (X=75) e longe do cabeçalho (Y=32)
-    const boxX = 75;
-    const boxY = 32;
-    const boxW = 212; // 297mm totais - 75mm (legenda) - 10mm (margem direita)
-    const boxH = 160; // 195mm (início do rodapé) - 32mm (cabeçalho) - 3mm (margem)
+    // Define a "Zona Segura" exata no PDF onde o mapa pode existir
+    const pdfSafeX = 70;  // X inicial: após a legenda
+    const pdfSafeY = 32;  // Y inicial: abaixo do cabeçalho
+    const pdfSafeW = 217; // Largura livre: até a margem direita
+    const pdfSafeH = 160; // Altura livre: até o rodapé
 
-    let imgW = mapCanvas.width;
-    let imgH = mapCanvas.height;
-    
-    // Encaixa perfeitamente sem vazar
-    let ratio = Math.min(boxW / imgW, boxH / imgH);
-    let mapW = imgW * ratio;
-    let mapH = imgH * ratio;
-    
-    // Cálculo exato do centro da Zona Segura
-    let xPos = boxX + (boxW - mapW) / 2; 
-    let yPos = boxY + (boxH - mapH) / 2; 
-    
-    doc.addImage(mapImgData, 'JPEG', xPos, yPos, mapW, mapH);
+    const canvasW = mapCanvas.width;
+    const canvasH = mapCanvas.height;
+
+    // Calcula o zoom automático perfeito para caber na zona segura sem sobrar e sem distorcer
+    const ratio = Math.min(pdfSafeW / canvasW, pdfSafeH / canvasH);
+    const finalW = canvasW * ratio;
+    const finalH = canvasH * ratio;
+
+    // Centraliza milimetricamente o mapa dentro da zona segura
+    const finalX = pdfSafeX + (pdfSafeW - finalW) / 2; 
+    const finalY = pdfSafeY + (pdfSafeH - finalH) / 2; 
+
+    // Desenha o mapa NO FUNDO da folha
+    doc.addImage(mapImgData, 'JPEG', finalX, finalY, finalW, finalH);
 
     // ==========================================
-    // CABEÇALHO 
+    // 3. CABEÇALHO (Desenhado por cima como moldura)
     // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
@@ -2804,7 +2810,7 @@ async function exportarLaudoPDF() {
     doc.text(`CAMADA: ${depth} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
     // ==========================================
-    // RODAPÉ 
+    // 4. RODAPÉ
     // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
@@ -2820,7 +2826,7 @@ async function exportarLaudoPDF() {
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // LEGENDA E SETA NORTE
+    // 5. LEGENDA E SETA NORTE
     // ==========================================
     const rules = getQGISRules(param);
     
