@@ -2759,7 +2759,6 @@ async function exportarLaudoPDF() {
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 const i = (y * width + x) * 4;
-                // Se o pixel não for 100% branco, marca como conteúdo
                 if (imgData[i] < 250 || imgData[i+1] < 250 || imgData[i+2] < 250) {
                     if (top === null) top = y;
                     if (left === null || x < left) left = x;
@@ -2769,9 +2768,8 @@ async function exportarLaudoPDF() {
             }
         }
         
-        if (top === null) return canvas; // Prevenção de erro
+        if (top === null) return canvas; 
         
-        // Adiciona uma margem de respiro (20px)
         const padding = 20;
         top = Math.max(0, top - padding);
         bottom = Math.min(height, bottom + padding);
@@ -2788,11 +2786,9 @@ async function exportarLaudoPDF() {
         return trimmedCanvas;
     }
 
-    // Aplica o recorte na imagem capturada
     mapCanvas = trimCanvas(mapCanvas);
     const mapImgData = mapCanvas.toDataURL('image/jpeg', 1.0);
 
-    // Restaura a tela para o usuário
     window.scrollTo(oldScrollX, oldScrollY);
     mapContainer.style.background = originalBg;
     if (tilePane) tilePane.style.display = '';
@@ -2804,20 +2800,19 @@ async function exportarLaudoPDF() {
     // ==========================================
     // 2. ENQUADRAMENTO DO MAPA RECORTADO
     // ==========================================
-    const pdfSafeX = 75;  
-    const pdfSafeY = 32;  
-    const pdfSafeW = 212; 
-    const pdfSafeH = 160; 
+    // AJUSTE MILIMÉTRICO: Traz o mapa mais para a esquerda e aumenta a área útil
+    const pdfSafeX = 40;   // Começa logo após o espaço da legenda (era 75)
+    const pdfSafeY = 32;   // Abaixo do cabeçalho
+    const pdfSafeW = 247;  // Usa toda a largura até a margem direita (297 - 40 - 10)
+    const pdfSafeH = 160;  // Altura até o rodapé (195 - 35)
 
     const canvasW = mapCanvas.width;
     const canvasH = mapCanvas.height;
 
-    // Calcula a proporção para caber perfeitamente na zona segura
     const ratio = Math.min(pdfSafeW / canvasW, pdfSafeH / canvasH);
     const finalW = canvasW * ratio;
     const finalH = canvasH * ratio;
 
-    // Centraliza
     const finalX = pdfSafeX + (pdfSafeW - finalW) / 2; 
     const finalY = pdfSafeY + (pdfSafeH - finalH) / 2; 
 
