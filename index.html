@@ -2798,23 +2798,26 @@ async function exportarLaudoPDF() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
     // ==========================================
-    // 2. ENQUADRAMENTO DO MAPA RECORTADO
+    // 2. ENQUADRAMENTO DO MAPA RECORTADO (ANCORADO NO RODAPÉ)
     // ==========================================
-    // AJUSTE MILIMÉTRICO: Traz o mapa mais para a esquerda e aumenta a área útil
-    const pdfSafeX = 40;   // Começa logo após o espaço da legenda (era 75)
-    const pdfSafeY = 32;   // Abaixo do cabeçalho
-    const pdfSafeW = 247;  // Usa toda a largura até a margem direita (297 - 40 - 10)
-    const pdfSafeH = 160;  // Altura até o rodapé (195 - 35)
+    const pdfSafeX = 45;   // Respeita a legenda na esquerda
+    const pdfSafeY = 45;   // Desce o limite superior para não bater na curva do cabeçalho
+    const pdfSafeW = 242;  // Largura máxima
+    const pdfSafeH = 145;  // Altura máxima
 
     const canvasW = mapCanvas.width;
     const canvasH = mapCanvas.height;
 
+    // Calcula a proporção para caber 100% do mapa na folha
     const ratio = Math.min(pdfSafeW / canvasW, pdfSafeH / canvasH);
     const finalW = canvasW * ratio;
     const finalH = canvasH * ratio;
 
+    // Eixo X centralizado no espaço livre
     const finalX = pdfSafeX + (pdfSafeW - finalW) / 2; 
-    const finalY = pdfSafeY + (pdfSafeH - finalH) / 2; 
+    
+    // Eixo Y Ancorado em baixo! (190 é o limite 5mm acima da faixa do rodapé)
+    const finalY = 190 - finalH; 
 
     doc.addImage(mapImgData, 'JPEG', finalX, finalY, finalW, finalH);
 
