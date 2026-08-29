@@ -2713,7 +2713,7 @@ async function exportarLaudoPDF() {
     else if (paramLower.includes('argila')) unit = "g/kg";
 
     // ==========================================
-    // 1. ZOOM GEOGRÁFICO COM MARGEM DE SEGURANÇA
+    // 1. ZOOM AUTOMÁTICO SEGURO (Evita cortes retos nas bordas)
     // ==========================================
     const originalCenter = mapLeft.getCenter();
     const originalZoom = mapLeft.getZoom();
@@ -2727,8 +2727,8 @@ async function exportarLaudoPDF() {
     });
 
     if (dataBounds && dataBounds.isValid()) {
-        // A margem de 60px obriga o mapa a desenhar os polígonos inteiros, sem cortar as pontas
-        mapLeft.fitBounds(dataBounds, { padding: [60, 60], animate: false });
+        // O padding [50, 50] força o Leaflet a desenhar a fazenda inteira, bem longe das bordas da tela
+        mapLeft.fitBounds(dataBounds, { padding: [50, 50], animate: false });
     }
 
     const mapWidthMeters = mapLeft.distance(dataBounds.getNorthWest(), dataBounds.getNorthEast());
@@ -2737,7 +2737,7 @@ async function exportarLaudoPDF() {
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
     // ==========================================
-    // 2. CAPTURA DO MAPA
+    // 2. CAPTURA DA IMAGEM
     // ==========================================
     const mapContainer = document.getElementById('map-left');
     const tilePane = document.querySelector('#map-left .leaflet-tile-pane');
@@ -2749,81 +2749,92 @@ async function exportarLaudoPDF() {
     const originalBg = mapContainer.style.background;
     mapContainer.style.background = '#FFFFFF';
 
-    const oldScrollX = window.scrollX;
-    const oldScrollY = window.scrollY;
-    window.scrollTo(0, 0);
-
     mapLeft.invalidateSize();
-    // Pausa de 1 segundo para garantir que o computador desenhou 100% da fazenda
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    // Tempo vital para o mapa terminar de carregar os polígonos após o zoom
+    await new Promise(resolve => setTimeout(resolve, 800)); 
 
-    const canvasScale = 2; // Qualidade da foto
     let mapCanvas = await html2canvas(mapContainer, { 
         useCORS: true, 
-        scale: canvasScale, 
+        scale: 2, 
         backgroundColor: '#FFFFFF',
-        scrollX: 0,
-        scrollY: 0
+        logging: false
     });
 
     // ==========================================
-    // 3. RECORTE DE PRECISÃO (USANDO COORDENADAS)
+    // 3. RECORTE AUTOMÁTICO INTELIGENTE (TRIM)
     // ==========================================
-    // Traduz as coordenadas geográficas da fazenda para pixels exatos na foto
-    const nw = mapLeft.latLngToContainerPoint(dataBounds.getNorthWest());
-    const se = mapLeft.latLngToContainerPoint(dataBounds.getSouthEast());
+    function trimCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let top = canvas.height, bottom = 0, left = canvas.width, right = 0;
+        let found = false;
+        
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                const i = (y * canvas.width + x) * 4;
+                // Verifica se o pixel NÃO é totalmente branco
+                if (imgData[i] < 250 || imgData[i+1] < 250 || imgData[i+2] < 250) {
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                    found = true;
+                }
+            }
+        }
+        
+        if (!found) return canvas; 
+        
+        const pad = 20; // Margem de respiro ao redor do recorte
+        top = Math.max(0, top - pad);
+        bottom = Math.min(canvas.height, bottom + pad);
+        left = Math.max(0, left - pad);
+        right = Math.min(canvas.width, right + pad);
+        
+        const trimW = right - left;
+        const trimH = bottom - top;
+        
+        const trimmed = document.createElement('canvas');
+        trimmed.width = trimW;
+        trimmed.height = trimH;
+        trimmed.getContext('2d').drawImage(canvas, left, top, trimW, trimH, 0, 0, trimW, trimH);
+        return trimmed;
+    }
 
-    // Calcula a caixa de corte com uma margem de segurança de 40px para não comer a linha da borda
-    const pad = 40 * canvasScale; 
-    let cropX = Math.max(0, (nw.x * canvasScale) - pad);
-    let cropY = Math.max(0, (nw.y * canvasScale) - pad);
-    let cropW = (se.x - nw.x) * canvasScale + (pad * 2);
-    let cropH = (se.y - nw.y) * canvasScale + (pad * 2);
+    mapCanvas = trimCanvas(mapCanvas);
+    const mapImgData = mapCanvas.toDataURL('image/jpeg', 1.0);
 
-    // Evita erro caso a fazenda seja maior que a tela
-    if (cropX + cropW > mapCanvas.width) cropW = mapCanvas.width - cropX;
-    if (cropY + cropH > mapCanvas.height) cropH = mapCanvas.height - cropY;
-
-    // Cria a imagem final recortada
-    const trimmedCanvas = document.createElement('canvas');
-    trimmedCanvas.width = cropW;
-    trimmedCanvas.height = cropH;
-    const ctx = trimmedCanvas.getContext('2d');
-    ctx.fillStyle = "#FFFFFF";
-    ctx.fillRect(0, 0, cropW, cropH);
-    ctx.drawImage(mapCanvas, cropX, cropY, cropW, cropH, 0, 0, cropW, cropH);
-
-    const finalImgData = trimmedCanvas.toDataURL('image/jpeg', 1.0);
-
-    // Devolve a tela ao normal
-    window.scrollTo(oldScrollX, oldScrollY);
+    // Restaura a visualização da tela para o usuário
     mapContainer.style.background = originalBg;
     if (tilePane) tilePane.style.display = '';
     if (controlPane) controlPane.style.display = '';
     mapLeft.setView(originalCenter, originalZoom, { animate: false });
 
     // ==========================================
-    // 4. INSERÇÃO RESTRITA NO PDF (ZONA SEGURA)
+    // 4. INSERÇÃO CENTRALIZADA NO PDF
     // ==========================================
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // A Zona Segura é uma caixa rigorosa que NUNCA vai vazar por cima de nada
-    const pdfSafeX = 75;   // Começa rigidamente após a legenda (X=75)
-    const pdfSafeY = 35;   // Abaixo da faixa do cabeçalho
-    const pdfSafeW = 215;  // Espaço máximo permitido para a direita
-    const pdfSafeH = 155;  // Espaço máximo permitido para baixo
+    // ZONA SEGURA: O espaço livre de texto e faixas na folha
+    const pdfSafeX = 45;   // Começa após a legenda
+    const pdfSafeY = 35;   // Começa abaixo do cabeçalho
+    const pdfSafeW = 242;  // Largura máxima permitida
+    const pdfSafeH = 150;  // Altura máxima permitida (antes do rodapé)
 
-    // Calcula a escala exata para caber dentro da Zona Segura, seja a fazenda larga ou alta
-    const ratio = Math.min(pdfSafeW / cropW, pdfSafeH / cropH);
-    const finalW = cropW * ratio;
-    const finalH = cropH * ratio;
+    const canvasW = mapCanvas.width;
+    const canvasH = mapCanvas.height;
 
-    // Centraliza o mapa dentro desse espaço de forma inteligente
+    // Calcula a proporção exata para o mapa caber sem distorcer e sem vazar
+    const ratio = Math.min(pdfSafeW / canvasW, pdfSafeH / canvasH);
+    const finalW = canvasW * ratio;
+    const finalH = canvasH * ratio;
+
+    // Centraliza matematicamente no meio do espaço em branco
     const finalX = pdfSafeX + (pdfSafeW - finalW) / 2; 
     const finalY = pdfSafeY + (pdfSafeH - finalH) / 2; 
 
-    doc.addImage(finalImgData, 'JPEG', finalX, finalY, finalW, finalH);
+    doc.addImage(mapImgData, 'JPEG', finalX, finalY, finalW, finalH);
 
     // ==========================================
     // 5. CABEÇALHO 
@@ -2866,7 +2877,7 @@ async function exportarLaudoPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("ORIGENS | www.origens.agr.br", 50, 205);
+    doc.text("ORIGENS | www.origens.agr.br", 45, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
