@@ -2808,24 +2808,26 @@
     // ==========================================
     // CORPO - MAPA CENTRALIZADO COM ASPECT RATIO
     // ==========================================
-    // Define a "caixa" invisível onde o mapa deve ser centralizado
-    // X = 60 (após a legenda), Y = 35 (abaixo do cabeçalho)
-    // Largura máxima = 227mm (297 total - 60 legenda - 10 margem dir.)
-    // Altura máxima = 155mm (195 rodapé - 35 topo - 5 margem inf.)
-    const boxX = 60;
+    // Área limite do mapa: X começa após a legenda (75), Y abaixo do cabeçalho (35)
+    const boxX = 75;
     const boxY = 35;
-    const boxW = 227; 
-    const boxH = 155;
+    const boxW = 212; // 287 (margem direita) - 75
+    const boxH = 140; // 175 (seta norte) - 35
 
     let imgW = mapCanvas.width;
     let imgH = mapCanvas.height;
     
-    // Calcula a proporção exata de redução para o mapa caber na caixa sem distorcer
+    // Proporção base para caber na caixa
     let ratio = Math.min(boxW / imgW, boxH / imgH);
-    let mapW = imgW * ratio;
-    let mapH = imgH * ratio;
     
-    // Calcula as coordenadas X e Y para cravar no centro exato do espaço em branco
+    // TRUQUE MÁGICO: Vamos dar um "zoom" na imagem para remover o excesso de fundo branco
+    // Se o mapa ficar muito grande, diminua para 1.1. Se ficar pequeno, aumente para 1.3
+    const zoomFactor = 1.25; 
+    
+    let mapW = imgW * ratio * zoomFactor;
+    let mapH = imgH * ratio * zoomFactor;
+    
+    // Recalcula X e Y para garantir que o meio da imagem fique exatamente no meio do espaço em branco
     let xPos = boxX + (boxW - mapW) / 2; 
     let yPos = boxY + (boxH - mapH) / 2; 
     
@@ -7275,4 +7277,4 @@
         };
     </script>
 </body>
-</html>        
+</html>       
