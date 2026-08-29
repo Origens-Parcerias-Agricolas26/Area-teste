@@ -2719,7 +2719,7 @@ async function exportarLaudoPDF() {
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
     // ==========================================
-    // 1. CAPTURA BLINDADA DO MAPA (Sem cortes)
+    // 1. CAPTURA BLINDADA DO MAPA
     // ==========================================
     const mapContainer = document.getElementById('map-left');
     const tilePane = document.querySelector('#map-left .leaflet-tile-pane');
@@ -2731,21 +2731,65 @@ async function exportarLaudoPDF() {
     const originalBg = mapContainer.style.background;
     mapContainer.style.background = '#FFFFFF';
 
-    // O SEGREDO: Salva o scroll atual e joga a tela pro topo absoluto
-    // Isso impede o html2canvas de cortar a imagem
     const oldScrollX = window.scrollX;
     const oldScrollY = window.scrollY;
     window.scrollTo(0, 0);
 
     mapLeft.invalidateSize();
-    await new Promise(resolve => setTimeout(resolve, 500)); // Tempo para o motor do mapa respirar
+    await new Promise(resolve => setTimeout(resolve, 500));
 
-    // Tira a foto limpa
-    const mapCanvas = await html2canvas(mapContainer, { 
+    let mapCanvas = await html2canvas(mapContainer, { 
         useCORS: true, 
         scale: 2, 
         backgroundColor: '#FFFFFF'
     });
+
+    // ==========================================
+    // ALGORITMO DE RECORTE AUTOMÁTICO (TRIM)
+    // Remove todo o fundo branco inútil da captura
+    // ==========================================
+    function trimCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const imgData = ctx.getImageData(0, 0, width, height).data;
+        
+        let top = null, bottom = null, left = null, right = null;
+        
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const i = (y * width + x) * 4;
+                // Se o pixel não for 100% branco, marca como conteúdo
+                if (imgData[i] < 250 || imgData[i+1] < 250 || imgData[i+2] < 250) {
+                    if (top === null) top = y;
+                    if (left === null || x < left) left = x;
+                    if (right === null || x > right) right = x;
+                    bottom = y;
+                }
+            }
+        }
+        
+        if (top === null) return canvas; // Prevenção de erro
+        
+        // Adiciona uma margem de respiro (20px)
+        const padding = 20;
+        top = Math.max(0, top - padding);
+        bottom = Math.min(height, bottom + padding);
+        left = Math.max(0, left - padding);
+        right = Math.min(width, right + padding);
+        
+        const trimWidth = right - left;
+        const trimHeight = bottom - top;
+        
+        const trimmedCanvas = document.createElement('canvas');
+        trimmedCanvas.width = trimWidth;
+        trimmedCanvas.height = trimHeight;
+        trimmedCanvas.getContext('2d').drawImage(canvas, left, top, trimWidth, trimHeight, 0, 0, trimWidth, trimHeight);
+        return trimmedCanvas;
+    }
+
+    // Aplica o recorte na imagem capturada
+    mapCanvas = trimCanvas(mapCanvas);
     const mapImgData = mapCanvas.toDataURL('image/jpeg', 1.0);
 
     // Restaura a tela para o usuário
@@ -2758,31 +2802,29 @@ async function exportarLaudoPDF() {
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
     // ==========================================
-    // 2. ENQUADRAMENTO DO MAPA (Zoom Automático e Centralizado)
+    // 2. ENQUADRAMENTO DO MAPA RECORTADO
     // ==========================================
-    // Define a "Zona Segura" exata no PDF onde o mapa pode existir
-    const pdfSafeX = 70;  // X inicial: após a legenda
-    const pdfSafeY = 32;  // Y inicial: abaixo do cabeçalho
-    const pdfSafeW = 217; // Largura livre: até a margem direita
-    const pdfSafeH = 160; // Altura livre: até o rodapé
+    const pdfSafeX = 75;  
+    const pdfSafeY = 32;  
+    const pdfSafeW = 212; 
+    const pdfSafeH = 160; 
 
     const canvasW = mapCanvas.width;
     const canvasH = mapCanvas.height;
 
-    // Calcula o zoom automático perfeito para caber na zona segura sem sobrar e sem distorcer
+    // Calcula a proporção para caber perfeitamente na zona segura
     const ratio = Math.min(pdfSafeW / canvasW, pdfSafeH / canvasH);
     const finalW = canvasW * ratio;
     const finalH = canvasH * ratio;
 
-    // Centraliza milimetricamente o mapa dentro da zona segura
+    // Centraliza
     const finalX = pdfSafeX + (pdfSafeW - finalW) / 2; 
     const finalY = pdfSafeY + (pdfSafeH - finalH) / 2; 
 
-    // Desenha o mapa NO FUNDO da folha
     doc.addImage(mapImgData, 'JPEG', finalX, finalY, finalW, finalH);
 
     // ==========================================
-    // 3. CABEÇALHO (Desenhado por cima como moldura)
+    // 3. CABEÇALHO 
     // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
