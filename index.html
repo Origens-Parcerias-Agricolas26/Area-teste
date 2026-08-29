@@ -2701,7 +2701,6 @@
     const farmName = farmObj.name || "Fazenda";
     const farmLocation = farmObj.location || "Localização Indisponível";
 
-    // Unidade de medida dinâmica baseada no parâmetro
     let unit = "";
     const paramLower = param.toLowerCase();
     if (['ctc', 'ca', 'mg', 'k', 'sb', 'al', 'h'].includes(paramLower)) unit = "cmolc/dm³";
@@ -2711,63 +2710,68 @@
 
     // 2. Cálculo Inteligente da Escala Numérica
     const bounds = mapLeft.getBounds();
-    // Mede a largura real em metros do que está visível no mapa
     const mapWidthMeters = mapLeft.distance(bounds.getNorthWest(), bounds.getNorthEast());
-    // A área do mapa no PDF terá 210mm de largura (0.21 metros)
     const pdfMapWidthMeters = 210 / 1000; 
     const scaleNumeric = Math.round(mapWidthMeters / pdfMapWidthMeters);
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
-    // 3. Captura do Mapa
-    // Opcional: esconder temporariamente controles de zoom na captura
+    // ==========================================
+    // 3. CAPTURA LIMPA DO MAPA (Sem Satélite)
+    // ==========================================
     const mapContainer = document.getElementById('map-left');
-    const mapCanvas = await html2canvas(mapContainer, { useCORS: true, scale: 2 });
-    const mapImgData = mapCanvas.toDataURL('image/jpeg', 0.9);
+    const tilePane = document.querySelector('#map-left .leaflet-tile-pane');
+    const controlPane = document.querySelector('#map-left .leaflet-control-container');
+    
+    // Esconde o satélite e os controles de zoom temporariamente
+    if (tilePane) tilePane.style.display = 'none';
+    if (controlPane) controlPane.style.display = 'none';
 
-    // 4. Criação do PDF em A4 Paisagem (297 x 210 mm)
+    // Fundo branco forçado para evitar bordas transparentes/pretas
+    const mapCanvas = await html2canvas(mapContainer, { useCORS: true, scale: 2, backgroundColor: '#FFFFFF' });
+    const mapImgData = mapCanvas.toDataURL('image/jpeg', 1.0);
+
+    // Restaura o satélite e os controles na tela
+    if (tilePane) tilePane.style.display = '';
+    if (controlPane) controlPane.style.display = '';
+
+
+    // 4. Criação do PDF
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
     // ==========================================
-    // MONTAGEM DO CABEÇALHO (VERDE + BRANCO)
+    // CABEÇALHO (Centralizado)
     // ==========================================
-    // Imagem de fundo cobrindo todo o topo (largura 297mm, altura 30mm)
-    if (HEADER_BG_BASE64 && HEADER_BG_BASE64.length > 100) {
+    if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
     } else {
-        // Fallback caso esqueça o base64: pinta um retângulo verde
         doc.setFillColor(31, 89, 44);
         doc.rect(0, 0, 297, 30, 'F');
     }
 
-    // Logo na Esquerda
     const logoSrc = document.getElementById('pdf-logo-origens').src;
     if (logoSrc && logoSrc.length > 100) {
         doc.addImage(logoSrc, 'PNG', 10, 5, 40, 20);
     }
 
-    // Textos do Cabeçalho alinhados à direita (Cor Branca)
     doc.setTextColor(255, 255, 255);
+    const centerX = 148.5; // Centro exato da folha A4
     
-    // Linha 1
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("ORIGENS Parcerias Agrícolas | Rondonópolis - MT", 287, 10, { align: "right" });
+    doc.text("ORIGENS Parcerias Agrícolas | Rondonópolis - MT", centerX, 10, { align: "center" });
     
-    // Linha 2 (Destaque)
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text(`${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`, 287, 18, { align: "right" });
+    doc.text(`${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`, centerX, 18, { align: "center" });
     
-    // Linha 3
     doc.setFontSize(10);
-    doc.text(`CAMADA: ${depth} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, 287, 25, { align: "right" });
+    doc.text(`CAMADA: ${depth} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, centerX, 25, { align: "center" });
 
     // ==========================================
-    // MONTAGEM DO RODAPÉ (VERDE + BRANCO)
+    // RODAPÉ
     // ==========================================
-    // Imagem de fundo cobrindo a base (pos Y=195, altura 15mm)
-    if (FOOTER_BG_BASE64 && FOOTER_BG_BASE64.length > 100) {
+    if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
     } else {
         doc.setFillColor(31, 89, 44);
@@ -2777,62 +2781,77 @@
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    // Site à esquerda
     doc.text("ORIGENS | www.origens.agr.br", 10, 205);
-    // Escala e Sistema à direita
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // MONTAGEM DO CORPO DO LAUDO
+    // CORPO - MAPA CENTRALIZADO COM ASPECT RATIO
     // ==========================================
-    // Inserir o Mapa gerado (ocupando o centro/direita)
-    // X=75 (deixa espaço pra legenda), Y=35 (abaixo do cabeçalho), Largura=210, Altura=150
-    doc.addImage(mapImgData, 'JPEG', 75, 35, 210, 150);
-
-    // Coluna da Legenda (Esquerda)
-    doc.setTextColor(30, 41, 59); // Cinza escuro para a legenda
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(param.toUpperCase(), 10, 45);
+    const maxW = 210;
+    const maxH = 150;
+    let imgW = mapCanvas.width;
+    let imgH = mapCanvas.height;
     
+    // Calcula a proporção exata para não esticar
+    let mapW = maxW;
+    let mapH = (imgH * mapW) / imgW;
+    
+    if (mapH > maxH) {
+        mapH = maxH;
+        mapW = (imgW * mapH) / imgH;
+    }
+    
+    // Centraliza o mapa na área disponível (X base 75, Y base 35)
+    let xPos = 75 + (maxW - mapW) / 2; 
+    let yPos = 35 + (maxH - mapH) / 2; 
+    
+    doc.addImage(mapImgData, 'JPEG', xPos, yPos, mapW, mapH);
+
+    // ==========================================
+    // LEGENDA E SETA NORTE ALOCADAS ACIMA DO RODAPÉ
+    // ==========================================
+    const rules = getQGISRules(param);
+    
+    // Seta Norte Vetorizada (Desenhada matematicamente = sem borrões)
+    let northY = 175; // Posição fixa acima do rodapé
+    doc.setDrawColor(30, 41, 59);
+    doc.setFillColor(30, 41, 59);
+    doc.triangle(15, northY, 20, northY + 12, 10, northY + 12, 'F'); 
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("N", 15, northY - 2, { align: "center" });
+
+    // Calcula a posição inicial da legenda de baixo para cima
+    let endLegendaY = northY - 10; 
+    let startY = endLegendaY - (rules.length * 8);
+    
+    // Títulos da legenda
+    doc.setFontSize(16);
+    doc.text(param.toUpperCase(), 10, startY - 10);
     if (unit) {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        doc.text(`Unidade: ${unit}`, 10, 52);
+        doc.text(`Unidade: ${unit}`, 10, startY - 3);
     }
 
-    // Desenhar os quadradinhos de cores
-    const rules = getQGISRules(param);
-    let startY = 60;
-    
+    // Desenha os Níveis
     doc.setFontSize(9);
     rules.forEach(r => {
-        // Preenchimento com a cor da regra
         doc.setFillColor(r.color);
         doc.rect(10, startY, 6, 6, 'F');
-        
-        // Borda preta fina ao redor da cor
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.2);
         doc.rect(10, startY, 6, 6, 'S');
         
-        // Texto da legenda
         doc.setFont("helvetica", "normal");
         doc.text(r.label, 19, startY + 4);
-        
         startY += 8;
     });
 
-    // Adicionar Seta do Norte abaixo da legenda
-    const northSrc = document.getElementById('pdf-north-arrow').src;
-    if (northSrc && northSrc.length > 100) {
-        doc.addImage(northSrc, 'PNG', 10, startY + 10, 25, 25);
-    }
-
-    // Baixar o arquivo PDF pronto
+    // Baixa o PDF
     doc.save(`Laudo_${param}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`);
 }
-
         function initLeafletMap() {
             if (!mapLeft) {
                 mapLeft = L.map('map-left').setView([-12.592, -58.012], 13);
