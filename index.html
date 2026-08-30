@@ -2697,7 +2697,7 @@ async function exportarLaudoPDF() {
 
     const selectedFarmKey = document.getElementById('sel-farm').value;
     const param = document.getElementById('sel-param').value;
-    const depthKey = document.getElementById('sel-depth').value; // Usado na função antiga
+    const depthKey = document.getElementById('sel-depth').value;
     const depth = document.getElementById('sel-depth').value;
     const safras = getSelectedSafras();
     const activeSafra = safras.length ? safras[0] : "N/A";
@@ -2722,7 +2722,6 @@ async function exportarLaudoPDF() {
     else if (paramLower.includes('%') || paramLower.includes('sat')) unit = "%";
     else if (paramLower.includes('argila')) unit = "g/kg";
 
-    // Calcula a escala exata baseada na janela ativa para o rodapé
     const bounds = mapLeft.getBounds();
     const mapWidthMeters = mapLeft.distance(bounds.getNorthWest(), bounds.getNorthEast());
     const pdfMapWidthMeters = 210 / 1000; 
@@ -2730,9 +2729,8 @@ async function exportarLaudoPDF() {
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
     // ==========================================
-    // 1. GERAÇÃO DO MAPA (MOTOR NATIVO DO SISTEMA)
+    // 1. GERAÇÃO DO MAPA (MOTOR NATIVO ANTIGO)
     // ==========================================
-    // Aqui nós usamos a função antiga para gerar o mapa matematicamente perfeito
     const depthConfig = { key: depthKey, titleText: `${depthText}` };
     const imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
 
@@ -2742,11 +2740,25 @@ async function exportarLaudoPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // Cola a imagem perfeita gerada pelo sistema no fundo de toda a folha
+    // Cola o layout antigo inteiro no fundo
     doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
 
     // ==========================================
-    // 3. CABEÇALHO (MOLDURA SUPERIOR)
+    // 3. CORRETIVO BRANCO (APAGA AS BORDAS E LEGENDAS VELHAS)
+    // ==========================================
+    doc.setFillColor(255, 255, 255);
+    
+    // Máscara da Esquerda: Apaga a linha verde e a seta velha do canto inferior esquerdo
+    // (Deixa um espaço limpo de 60mm de largura para desenharmos a legenda nova)
+    doc.rect(0, 30, 60, 165, 'F'); 
+
+    // Máscara da Direita: Apaga a legenda velha, a linha verde e a seta do canto direito
+    // Inicia no X=215 e vai até o final da folha. 
+    // DICA: Se esse corretivo acabar cortando um pedaço da fazenda, mude o '215' para '225' ou '230'.
+    doc.rect(215, 30, 85, 165, 'F'); 
+
+    // ==========================================
+    // 4. CABEÇALHO (NOVO)
     // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
@@ -2774,7 +2786,7 @@ async function exportarLaudoPDF() {
     doc.text(`CAMADA: ${depth} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
     // ==========================================
-    // 4. RODAPÉ (MOLDURA INFERIOR)
+    // 5. RODAPÉ (NOVO)
     // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
@@ -2790,15 +2802,8 @@ async function exportarLaudoPDF() {
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 5. NOVA LEGENDA E SETA NORTE
+    // 6. LEGENDA E SETA NORTE (NOVAS)
     // ==========================================
-    
-    // NOTA: Se a função "drawCanvasForParam" velha escrever a legenda antiga 
-    // no PDF e elas se misturarem, basta descomentar as duas linhas abaixo 
-    // para pintar um quadro branco por cima da legenda velha!
-    // doc.setFillColor(255, 255, 255);
-    // doc.rect(0, 30, 50, 165, 'F'); 
-
     let northY = 175;
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
         doc.addImage(SETA_NORTE_BASE64, 'PNG', 12, northY - 3, 12, 15); 
