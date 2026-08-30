@@ -2692,20 +2692,28 @@
 
 
 async function exportarLaudoPDF() {
+    const btnText = document.getElementById('pdf-btn-text');
+    if (btnText) btnText.innerText = "Gerando PDF...";
+
     const selectedFarmKey = document.getElementById('sel-farm').value;
     const param = document.getElementById('sel-param').value;
+    const depthKey = document.getElementById('sel-depth').value; // Usado na função antiga
     const depth = document.getElementById('sel-depth').value;
     const safras = getSelectedSafras();
     const activeSafra = safras.length ? safras[0] : "N/A";
     
     if (!selectedFarmKey || !farmsDatabase[selectedFarmKey]) {
         alert("Selecione uma fazenda para exportar o laudo.");
+        if (btnText) btnText.innerText = "Exportar Laudo PDF";
         return;
     }
     
     const farmObj = farmsDatabase[selectedFarmKey];
     const farmName = farmObj.name || "Fazenda";
     const farmLocation = farmObj.location || "Localização Indisponível";
+
+    const depthText = depthKey.replace('d', '').replace('_', '-') + ' cm';
+    const rules = getQGISRules(param);
 
     let unit = "";
     const paramLower = param.toLowerCase();
@@ -2714,134 +2722,31 @@ async function exportarLaudoPDF() {
     else if (paramLower.includes('%') || paramLower.includes('sat')) unit = "%";
     else if (paramLower.includes('argila')) unit = "g/kg";
 
-    // ==========================================
-    // 1. ZOOM AUTOMÁTICO SEGURO
-    // ==========================================
-    const originalCenter = mapLeft.getCenter();
-    const originalZoom = mapLeft.getZoom();
-
-    let dataBounds = null;
-    mapLeft.eachLayer(function(layer) {
-        if (layer.getBounds && !layer._url) { 
-            if (!dataBounds) dataBounds = layer.getBounds();
-            else dataBounds.extend(layer.getBounds());
-        }
-    });
-
-    if (dataBounds && dataBounds.isValid()) {
-        // Garante que a fazenda inteira esteja visível na tela do monitor antes da foto
-        mapLeft.fitBounds(dataBounds, { padding: [60, 60], animate: false });
-    }
-
-    const mapWidthMeters = mapLeft.distance(dataBounds.getNorthWest(), dataBounds.getNorthEast());
+    // Calcula a escala exata baseada na janela ativa para o rodapé
+    const bounds = mapLeft.getBounds();
+    const mapWidthMeters = mapLeft.distance(bounds.getNorthWest(), bounds.getNorthEast());
     const pdfMapWidthMeters = 210 / 1000; 
     const scaleNumeric = Math.round(mapWidthMeters / pdfMapWidthMeters);
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
     // ==========================================
-    // 2. CAPTURA DA IMAGEM
+    // 1. GERAÇÃO DO MAPA (MOTOR NATIVO DO SISTEMA)
     // ==========================================
-    const mapContainer = document.getElementById('map-left');
-    const tilePane = document.querySelector('#map-left .leaflet-tile-pane');
-    const controlPane = document.querySelector('#map-left .leaflet-control-container');
-    
-    if (tilePane) tilePane.style.display = 'none';
-    if (controlPane) controlPane.style.display = 'none';
-
-    const originalBg = mapContainer.style.background;
-    mapContainer.style.background = '#FFFFFF';
-
-    mapLeft.invalidateSize();
-    // Pausa para renderizar
-    await new Promise(resolve => setTimeout(resolve, 800)); 
-
-    let mapCanvas = await html2canvas(mapContainer, { 
-        useCORS: true, 
-        scale: 2, 
-        backgroundColor: '#FFFFFF',
-        logging: false
-    });
+    // Aqui nós usamos a função antiga para gerar o mapa matematicamente perfeito
+    const depthConfig = { key: depthKey, titleText: `${depthText}` };
+    const imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
 
     // ==========================================
-    // 3. RECORTE AUTOMÁTICO INTELIGENTE (TRIM)
-    // ==========================================
-    function trimCanvas(canvas) {
-        const ctx = canvas.getContext('2d');
-        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-        let top = canvas.height, bottom = 0, left = canvas.width, right = 0;
-        let found = false;
-        
-        for (let y = 0; y < canvas.height; y++) {
-            for (let x = 0; x < canvas.width; x++) {
-                const i = (y * canvas.width + x) * 4;
-                // Ajuste de precisão: corta APENAS o que for 100% branco, evitando cortar polígonos claros
-                if (imgData[i] !== 255 || imgData[i+1] !== 255 || imgData[i+2] !== 255) {
-                    if (y < top) top = y;
-                    if (y > bottom) bottom = y;
-                    if (x < left) left = x;
-                    if (x > right) right = x;
-                    found = true;
-                }
-            }
-        }
-        
-        if (!found) return canvas; 
-        
-        // Aumentei a margem do recorte para 40, garantindo que as pontas não sejam decepadas
-        const pad = 40; 
-        top = Math.max(0, top - pad);
-        bottom = Math.min(canvas.height, bottom + pad);
-        left = Math.max(0, left - pad);
-        right = Math.min(canvas.width, right + pad);
-        
-        const trimW = right - left;
-        const trimH = bottom - top;
-        
-        const trimmed = document.createElement('canvas');
-        trimmed.width = trimW;
-        trimmed.height = trimH;
-        trimmed.getContext('2d').drawImage(canvas, left, top, trimW, trimH, 0, 0, trimW, trimH);
-        return trimmed;
-    }
-
-    mapCanvas = trimCanvas(mapCanvas);
-    const mapImgData = mapCanvas.toDataURL('image/jpeg', 1.0);
-
-    // Restaura a visualização da tela para o usuário
-    mapContainer.style.background = originalBg;
-    if (tilePane) tilePane.style.display = '';
-    if (controlPane) controlPane.style.display = '';
-    mapLeft.setView(originalCenter, originalZoom, { animate: false });
-
-    // ==========================================
-    // 4. INSERÇÃO CENTRALIZADA E ANCORADA NO PDF
+    // 2. CRIAÇÃO DO PDF (MAPA NO FUNDO)
     // ==========================================
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // Ajuste de Posição: Movido para a direita (X=70)
-    const pdfSafeX = 70;   
-    const pdfSafeW = 217;  // 297 - 70(esq) - 10(dir)
-    const pdfSafeH = 150;  // Espaço vertical livre
-
-    const canvasW = mapCanvas.width;
-    const canvasH = mapCanvas.height;
-
-    // Escala automática: impede que o mapa fique maior do que a área livre
-    const ratio = Math.min(pdfSafeW / canvasW, pdfSafeH / canvasH);
-    const finalW = canvasW * ratio;
-    const finalH = canvasH * ratio;
-
-    // Centraliza no eixo X disponível
-    const finalX = pdfSafeX + (pdfSafeW - finalW) / 2; 
-    
-    // Ajuste de Posição: Cola o mapa no limite inferior (Y=192), perto da faixa verde
-    const finalY = 192 - finalH; 
-
-    doc.addImage(mapImgData, 'JPEG', finalX, finalY, finalW, finalH);
+    // Cola a imagem perfeita gerada pelo sistema no fundo de toda a folha
+    doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
 
     // ==========================================
-    // 5. CABEÇALHO 
+    // 3. CABEÇALHO (MOLDURA SUPERIOR)
     // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
@@ -2869,7 +2774,7 @@ async function exportarLaudoPDF() {
     doc.text(`CAMADA: ${depth} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
     // ==========================================
-    // 6. RODAPÉ
+    // 4. RODAPÉ (MOLDURA INFERIOR)
     // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
@@ -2885,14 +2790,17 @@ async function exportarLaudoPDF() {
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 7. LEGENDA E SETA NORTE ORIGINAL
+    // 5. NOVA LEGENDA E SETA NORTE
     // ==========================================
-    const rules = getQGISRules(param);
     
+    // NOTA: Se a função "drawCanvasForParam" velha escrever a legenda antiga 
+    // no PDF e elas se misturarem, basta descomentar as duas linhas abaixo 
+    // para pintar um quadro branco por cima da legenda velha!
+    // doc.setFillColor(255, 255, 255);
+    // doc.rect(0, 30, 50, 165, 'F'); 
+
     let northY = 175;
-    
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
-        // Seta Norte original posicionada acima do rodapé
         doc.addImage(SETA_NORTE_BASE64, 'PNG', 12, northY - 3, 12, 15); 
     } else {
         doc.setDrawColor(30, 41, 59);
@@ -2930,6 +2838,8 @@ async function exportarLaudoPDF() {
     });
 
     doc.save(`Laudo_${param}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`);
+    
+    if (btnText) btnText.innerText = "Exportar Laudo PDF Atual";
 }
         function initLeafletMap() {
             if (!mapLeft) {
