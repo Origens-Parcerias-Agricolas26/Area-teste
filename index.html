@@ -2711,7 +2711,6 @@ async function exportarLaudoPDF() {
     const farmName = farmObj.name || "Fazenda";
     const farmLocation = farmObj.location || "Localização Indisponível";
 
-    // Formata o texto corretamente para sumir o 'd' e o underline
     const depthText = depthKey.replace('d', '').replace('_', '-') + ' cm';
     const rules = getQGISRules(param);
 
@@ -2744,16 +2743,16 @@ async function exportarLaudoPDF() {
     doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
 
     // ==========================================
-    // 3. CORRETIVO BRANCO (MÁSCARA CIRÚRGICA)
+    // 3. CORRETIVO BRANCO (MÁSCARA NA DIREITA)
     // ==========================================
     doc.setFillColor(255, 255, 255);
     
-    // Apaga APENAS o canto inferior esquerdo (legenda e seta velha)
-    // Assim o topo e a lateral direita ficam livres para a fazenda aparecer inteira!
-    doc.rect(0, 90, 60, 105, 'F'); 
+    // Apaga a LEGENDA VELHA e a SETA VELHA que ficam no lado DIREITO
+    // Inicia no X=225 e vai até o final da folha. Deixa 225mm livres para a fazenda!
+    doc.rect(225, 30, 72, 165, 'F'); 
 
     // ==========================================
-    // 4. CABEÇALHO (NOVO)
+    // 4. CABEÇALHO 
     // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
@@ -2778,11 +2777,10 @@ async function exportarLaudoPDF() {
     doc.text(`${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`, textX, 18, { align: "left" });
     
     doc.setFontSize(10);
-    // Usa a variável formatada depthText aqui
     doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
     // ==========================================
-    // 5. RODAPÉ (NOVO)
+    // 5. RODAPÉ 
     // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
@@ -2798,19 +2796,22 @@ async function exportarLaudoPDF() {
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 6. LEGENDA E SETA NORTE (NOVAS)
+    // 6. LEGENDA E SETA NORTE (AGORA NA DIREITA)
     // ==========================================
+    const legendX = 235; // Posição X movida para a direita
     let northY = 175;
+    
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
-        doc.addImage(SETA_NORTE_BASE64, 'PNG', 12, northY - 3, 12, 15); 
+        // Desenha a sua seta oficial na direita
+        doc.addImage(SETA_NORTE_BASE64, 'PNG', legendX, northY - 3, 12, 15); 
     } else {
         doc.setDrawColor(30, 41, 59);
         doc.setFillColor(30, 41, 59);
-        doc.triangle(15, northY, 20, northY + 12, 10, northY + 12, 'F'); 
+        doc.triangle(legendX + 5, northY, legendX + 10, northY + 12, legendX, northY + 12, 'F'); 
         doc.setTextColor(30, 41, 59);
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
-        doc.text("N", 15, northY - 2, { align: "center" });
+        doc.text("N", legendX + 5, northY - 2, { align: "center" });
     }
 
     let endLegendaY = northY - 10; 
@@ -2818,23 +2819,24 @@ async function exportarLaudoPDF() {
     
     doc.setTextColor(30, 41, 59);
     doc.setFontSize(16);
-    doc.text(param.toUpperCase(), 10, startY - 10);
+    doc.text(param.toUpperCase(), legendX, startY - 10);
+    
     if (unit) {
         doc.setFontSize(10);
         doc.setFont("helvetica", "normal");
-        doc.text(`Unidade: ${unit}`, 10, startY - 3);
+        doc.text(`Unidade: ${unit}`, legendX, startY - 3);
     }
 
     doc.setFontSize(9);
     rules.forEach(r => {
         doc.setFillColor(r.color);
-        doc.rect(10, startY, 6, 6, 'F');
+        doc.rect(legendX, startY, 6, 6, 'F');
         doc.setDrawColor(0, 0, 0);
         doc.setLineWidth(0.2);
-        doc.rect(10, startY, 6, 6, 'S');
+        doc.rect(legendX, startY, 6, 6, 'S');
         
         doc.setFont("helvetica", "normal");
-        doc.text(r.label, 19, startY + 4);
+        doc.text(r.label, legendX + 9, startY + 4); // Texto da legenda ajustado para o novo eixo X
         startY += 8;
     });
 
