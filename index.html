@@ -2714,7 +2714,12 @@ async function exportarLaudoPDF() {
     else if (paramLower.includes('%') || paramLower.includes('sat')) unit = "%";
     else if (paramLower.includes('argila')) unit = "g/kg";
 
-    // Pega os limites da fazenda para o zoom e cálculo de escala
+    // ==========================================
+    // 1. ZOOM AUTOMÁTICO SEGURO
+    // ==========================================
+    const originalCenter = mapLeft.getCenter();
+    const originalZoom = mapLeft.getZoom();
+
     let dataBounds = null;
     mapLeft.eachLayer(function(layer) {
         if (layer.getBounds && !layer._url) { 
@@ -2723,9 +2728,9 @@ async function exportarLaudoPDF() {
         }
     });
 
-    if (!dataBounds || !dataBounds.isValid()) {
-        alert("Não há polígonos visíveis no mapa para exportar.");
-        return;
+    if (dataBounds && dataBounds.isValid()) {
+        // Garante que a fazenda inteira esteja visível na tela do monitor antes da foto
+        mapLeft.fitBounds(dataBounds, { padding: [60, 60], animate: false });
     }
 
     const mapWidthMeters = mapLeft.distance(dataBounds.getNorthWest(), dataBounds.getNorthEast());
@@ -2734,7 +2739,7 @@ async function exportarLaudoPDF() {
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
     // ==========================================
-    // 1. A MOLDURA VIRTUAL (Qualidade Perfeita e Sem Cortes)
+    // 2. CAPTURA DA IMAGEM
     // ==========================================
     const mapContainer = document.getElementById('map-left');
     const tilePane = document.querySelector('#map-left .leaflet-tile-pane');
@@ -2743,75 +2748,100 @@ async function exportarLaudoPDF() {
     if (tilePane) tilePane.style.display = 'none';
     if (controlPane) controlPane.style.display = 'none';
 
-    // Salva o estado original de tudo para não bagunçar sua tela depois
-    const originalPosition = mapContainer.style.position;
-    const originalZIndex = mapContainer.style.zIndex;
-    const originalWidth = mapContainer.style.width;
-    const originalHeight = mapContainer.style.height;
     const originalBg = mapContainer.style.background;
-    const originalCenter = mapLeft.getCenter();
-    const originalZoom = mapLeft.getZoom();
-    const oldScrollX = window.scrollX;
-    const oldScrollY = window.scrollY;
-
-    // Força o contêiner do mapa a ter a proporção EXATA do espaço no PDF (222x150)
-    // Usamos 1110x750 pixels para garantir altíssima resolução na foto
-    mapContainer.style.position = 'fixed';
-    mapContainer.style.top = '0';
-    mapContainer.style.left = '0';
-    mapContainer.style.zIndex = '9999'; // Traz para frente de tudo
-    mapContainer.style.width = '1110px';
-    mapContainer.style.height = '750px';
     mapContainer.style.background = '#FFFFFF';
-    window.scrollTo(0, 0);
 
-    // Manda o mapa recalcular seu tamanho para a nova moldura
     mapLeft.invalidateSize();
-    // Dá o zoom perfeito na fazenda com um respiro de 30px nas bordas para não cortar nada
-    mapLeft.fitBounds(dataBounds, { padding: [30, 30], animate: false });
-    
-    // Pausa crucial de 1 segundo para o Leaflet renderizar os polígonos perfeitamente
-    await new Promise(resolve => setTimeout(resolve, 1000)); 
+    // Pausa para renderizar
+    await new Promise(resolve => setTimeout(resolve, 800)); 
 
-    // Tira a foto limpa, sem usar recortes manuais que quebram os pixels
-    const mapCanvas = await html2canvas(mapContainer, { 
+    let mapCanvas = await html2canvas(mapContainer, { 
         useCORS: true, 
         scale: 2, 
         backgroundColor: '#FFFFFF',
         logging: false
     });
+
+    // ==========================================
+    // 3. RECORTE AUTOMÁTICO INTELIGENTE (TRIM)
+    // ==========================================
+    function trimCanvas(canvas) {
+        const ctx = canvas.getContext('2d');
+        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+        let top = canvas.height, bottom = 0, left = canvas.width, right = 0;
+        let found = false;
+        
+        for (let y = 0; y < canvas.height; y++) {
+            for (let x = 0; x < canvas.width; x++) {
+                const i = (y * canvas.width + x) * 4;
+                // Ajuste de precisão: corta APENAS o que for 100% branco, evitando cortar polígonos claros
+                if (imgData[i] !== 255 || imgData[i+1] !== 255 || imgData[i+2] !== 255) {
+                    if (y < top) top = y;
+                    if (y > bottom) bottom = y;
+                    if (x < left) left = x;
+                    if (x > right) right = x;
+                    found = true;
+                }
+            }
+        }
+        
+        if (!found) return canvas; 
+        
+        // Aumentei a margem do recorte para 40, garantindo que as pontas não sejam decepadas
+        const pad = 40; 
+        top = Math.max(0, top - pad);
+        bottom = Math.min(canvas.height, bottom + pad);
+        left = Math.max(0, left - pad);
+        right = Math.min(canvas.width, right + pad);
+        
+        const trimW = right - left;
+        const trimH = bottom - top;
+        
+        const trimmed = document.createElement('canvas');
+        trimmed.width = trimW;
+        trimmed.height = trimH;
+        trimmed.getContext('2d').drawImage(canvas, left, top, trimW, trimH, 0, 0, trimW, trimH);
+        return trimmed;
+    }
+
+    mapCanvas = trimCanvas(mapCanvas);
     const mapImgData = mapCanvas.toDataURL('image/jpeg', 1.0);
 
-    // Devolve o mapa ao estado normal (o usuário nem vai perceber)
-    mapContainer.style.position = originalPosition;
-    mapContainer.style.top = '';
-    mapContainer.style.left = '';
-    mapContainer.style.zIndex = originalZIndex;
-    mapContainer.style.width = originalWidth;
-    mapContainer.style.height = originalHeight;
+    // Restaura a visualização da tela para o usuário
     mapContainer.style.background = originalBg;
     if (tilePane) tilePane.style.display = '';
     if (controlPane) controlPane.style.display = '';
-    mapLeft.invalidateSize();
     mapLeft.setView(originalCenter, originalZoom, { animate: false });
-    window.scrollTo(oldScrollX, oldScrollY);
 
     // ==========================================
-    // 2. INSERÇÃO NO PDF
+    // 4. INSERÇÃO CENTRALIZADA E ANCORADA NO PDF
     // ==========================================
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // Posição cravada no PDF (como a imagem já foi gerada nessa proporção, o encaixe é perfeito)
-    const pdfSafeX = 65;   // Afastado da Legenda na esquerda
-    const pdfSafeY = 42;   // Colado perto do rodapé (192 - 150)
-    const pdfSafeW = 222;  
-    const pdfSafeH = 150;  
+    // Ajuste de Posição: Movido para a direita (X=70)
+    const pdfSafeX = 70;   
+    const pdfSafeW = 217;  // 297 - 70(esq) - 10(dir)
+    const pdfSafeH = 150;  // Espaço vertical livre
 
-    doc.addImage(mapImgData, 'JPEG', pdfSafeX, pdfSafeY, pdfSafeW, pdfSafeH);
+    const canvasW = mapCanvas.width;
+    const canvasH = mapCanvas.height;
+
+    // Escala automática: impede que o mapa fique maior do que a área livre
+    const ratio = Math.min(pdfSafeW / canvasW, pdfSafeH / canvasH);
+    const finalW = canvasW * ratio;
+    const finalH = canvasH * ratio;
+
+    // Centraliza no eixo X disponível
+    const finalX = pdfSafeX + (pdfSafeW - finalW) / 2; 
+    
+    // Ajuste de Posição: Cola o mapa no limite inferior (Y=192), perto da faixa verde
+    const finalY = 192 - finalH; 
+
+    doc.addImage(mapImgData, 'JPEG', finalX, finalY, finalW, finalH);
 
     // ==========================================
-    // 3. CABEÇALHO 
+    // 5. CABEÇALHO 
     // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
@@ -2839,7 +2869,7 @@ async function exportarLaudoPDF() {
     doc.text(`CAMADA: ${depth} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
     // ==========================================
-    // 4. RODAPÉ
+    // 6. RODAPÉ
     // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
@@ -2855,14 +2885,14 @@ async function exportarLaudoPDF() {
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 5. LEGENDA E SETA NORTE
+    // 7. LEGENDA E SETA NORTE ORIGINAL
     // ==========================================
     const rules = getQGISRules(param);
     
     let northY = 175;
     
-    // Injeta a Seta Norte original
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
+        // Seta Norte original posicionada acima do rodapé
         doc.addImage(SETA_NORTE_BASE64, 'PNG', 12, northY - 3, 12, 15); 
     } else {
         doc.setDrawColor(30, 41, 59);
