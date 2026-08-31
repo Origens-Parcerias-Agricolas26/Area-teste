@@ -4425,6 +4425,7 @@ async function exportarLaudoPDF() {
         'Ca%', 'Mg%', 'K%', 'Zn', 'Cu', 'Mn', 'B'
     ];
 
+    const zip = new JSZip();
     const { jsPDF } = window.jspdf;
 
     let scaleString = "1:175.249"; 
@@ -4450,8 +4451,8 @@ async function exportarLaudoPDF() {
             
             if (batchBtnText) batchBtnText.innerText = `Processando ${count} de ${totalFiles}...`;
             
-            // Pausa de 100ms para garantir que a memória RAM tenha tempo de se recuperar entre um PDF e outro
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Pausa de respiro para o navegador não congelar a tela
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             const param = paramsList[p];
             const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
@@ -4556,13 +4557,35 @@ async function exportarLaudoPDF() {
                 startY += 8;
             });
 
-            // 7. BAIXA O ARQUIVO IMEDIATAMENTE (SEM SOBRECARREGAR A MEMÓRIA)
+            // GERA O ARQUIVO EM MEMÓRIA COMO ARRAY BUFFER E INJETA NO ZIP 
+            // (Mais leve e seguro contra travamentos)
             const pdfFileName = `Laudo_${param}_${depthConfig.key}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`;
-            doc.save(pdfFileName);
+            const pdfArrayBuffer = doc.output('arraybuffer');
+            zip.file(pdfFileName, pdfArrayBuffer);
         }
     }
 
-    if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs";
+    if (batchBtnText) batchBtnText.innerText = "Compactando Arquivos (Aguarde)...";
+    await new Promise(resolve => setTimeout(resolve, 100)); // Tempo para renderizar o botão antes do travamento da compactação
+
+    try {
+        // COMPACTA SEM COMPRESSÃO ADICIONAL (Salva muita memória, pois PDFs já são comprimidos)
+        const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
+        
+        if (window.saveAs) {
+            window.saveAs(content, `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`);
+        } else {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(content);
+            a.download = `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`;
+            a.click();
+        }
+    } catch (error) {
+        console.error("Erro na criação do ZIP:", error);
+        alert("O Lote é muito grande e excedeu o limite de memória do navegador. Tente exportar menos camadas por vez.");
+    } finally {
+        if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
+    }
 }
 
         function generateSHPFiles(geojson, baseName) {
