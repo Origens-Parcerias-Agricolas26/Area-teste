@@ -2738,7 +2738,7 @@ async function exportarLaudoPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // Deslocamos 18mm para a direita para centralizar a fazenda
+    // Deslocamos 18mm para a direita e 6mm para baixo para centralizar a fazenda
     doc.addImage(imgData, 'JPEG', 18, 6, 297, 210);
 
     // ==========================================
@@ -2750,10 +2750,10 @@ async function exportarLaudoPDF() {
     doc.rect(0, 0, 297, 37, 'F'); 
     doc.rect(0, 187, 297, 23, 'F'); 
 
-    // MÁSCARA ESQUERDA: Aumentada para 25mm para engolir a antiga listra verde que foi empurrada para X=18
+    // MÁSCARA ESQUERDA: Cobre a borda verde que foi empurrada
     doc.rect(0, 37, 25, 150, 'F'); 
 
-    // MÁSCARA DIREITA: Apaga a linha cinza e legenda velha
+    // MÁSCARA DIREITA: Apaga a linha cinza e legenda velha do sistema antigo
     doc.rect(230, 37, 67, 150, 'F'); 
 
     // ==========================================
@@ -2766,10 +2766,9 @@ async function exportarLaudoPDF() {
         doc.rect(0, 0, 297, 30, 'F');
     }
 
-    // LOGO: Proporção ajustada (35x15) para evitar achatamento. 
-    // Caso precise de um ajuste fino final, basta mudar esses dois números.
+    // LOGO COM PROPORÇÃO CORRIGIDA (28 de largura por 20 de altura)
     if (typeof LOGO_BRANCA_BASE64 !== 'undefined' && LOGO_BRANCA_BASE64.length > 100) {
-        doc.addImage(LOGO_BRANCA_BASE64, 'PNG', 10, 6, 35, 15);
+        doc.addImage(LOGO_BRANCA_BASE64, 'PNG', 10, 5, 28, 20); 
     }
 
     doc.setTextColor(255, 255, 255);
@@ -2810,7 +2809,8 @@ async function exportarLaudoPDF() {
     let northY = 188;    
     
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
-        doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 8, 12, 15); 
+        // SETA NORTE COM PROPORÇÃO CORRIGIDA (14x14 = Quadrado Perfeito)
+        doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 7, 14, 14); 
     } else {
         doc.setDrawColor(30, 41, 59);
         doc.setFillColor(30, 41, 59);
