@@ -2743,13 +2743,18 @@ async function exportarLaudoPDF() {
     doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
 
     // ==========================================
-    // 3. CORRETIVO BRANCO (MÁSCARA NA DIREITA)
+    // 3. SUPER CORRETIVO BRANCO (MÁSCARAS)
     // ==========================================
     doc.setFillColor(255, 255, 255);
     
-    // Apaga a LEGENDA VELHA e a SETA VELHA que ficam no lado DIREITO
-    // Inicia no X=225 e vai até o final da folha. Deixa 225mm livres para a fazenda!
-    doc.rect(225, 30, 72, 165, 'F'); 
+    // Máscara DIREITA: Começa mais cedo (X=200) para cobrir a caixa cinza, as cores e a seta velha
+    doc.rect(200, 30, 97, 165, 'F'); 
+
+    // Máscara ESQUERDA: Apaga a linha verde fina na margem esquerda
+    doc.rect(0, 30, 10, 165, 'F'); 
+
+    // Máscara TOPO: Apaga a linha verde horizontal que ficava sob o cabeçalho antigo
+    doc.rect(0, 30, 297, 6, 'F'); 
 
     // ==========================================
     // 4. CABEÇALHO 
@@ -2792,17 +2797,17 @@ async function exportarLaudoPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("ORIGENS | www.origens.agr.br", 40, 205);
+    doc.text("ORIGENS | www.origens.agr.br", 38, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 6. LEGENDA E SETA NORTE (AGORA NA DIREITA)
+    // 6. LEGENDA E SETA NORTE (NOVAS)
     // ==========================================
-    const legendX = 235; // Posição X movida para a direita
+    // Eixo X da legenda nova ajustado para a área limpa da direita
+    const legendX = 225; 
     let northY = 175;
     
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
-        // Desenha a sua seta oficial na direita
         doc.addImage(SETA_NORTE_BASE64, 'PNG', legendX, northY - 3, 12, 15); 
     } else {
         doc.setDrawColor(30, 41, 59);
@@ -2836,7 +2841,7 @@ async function exportarLaudoPDF() {
         doc.rect(legendX, startY, 6, 6, 'S');
         
         doc.setFont("helvetica", "normal");
-        doc.text(r.label, legendX + 9, startY + 4); // Texto da legenda ajustado para o novo eixo X
+        doc.text(r.label, legendX + 9, startY + 4);
         startY += 8;
     });
 
