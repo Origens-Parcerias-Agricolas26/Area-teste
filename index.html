@@ -2733,34 +2733,36 @@ async function exportarLaudoPDF() {
     const imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
 
     // ==========================================
-    // 2. CRIAÇÃO DO PDF E DESLOCAMENTO DO MAPA
+    // 2. CRIAÇÃO DO PDF (MAPA EXPANDIDO)
     // ==========================================
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // Aqui está a mágica: Empurramos a imagem base 15mm para a direita e 12mm para baixo!
-    const shiftX = 15;
-    const shiftY = 12;
-    doc.addImage(imgData, 'JPEG', shiftX, shiftY, 297, 210);
+    // A MÁGICA DO ZOOM: Aumentamos a imagem em 18% para ela preencher mais a folha
+    const scaleFactor = 1.18; 
+    const newW = 297 * scaleFactor;
+    const newH = 210 * scaleFactor;
+    
+    // Puxamos a imagem um pouco para a esquerda e para cima para centralizar esse "zoom"
+    const shiftX = -15; 
+    const shiftY = -12;
+    doc.addImage(imgData, 'JPEG', shiftX, shiftY, newW, newH);
 
     // ==========================================
-    // 3. MÁSCARAS BLINDADAS (SUPER CORRETIVO BRANCO)
+    // 3. MÁSCARAS BLINDADAS (LIMPANDO AS BORDAS)
     // ==========================================
     doc.setFillColor(255, 255, 255);
     
-    // MÁSCARA TOPO: Como a imagem desceu, o cabeçalho antigo também desceu. Apagamos do 0 até o 45mm.
-    // Isso também limpa a sujeira verde que estava vazando no canto superior direito.
-    doc.rect(0, 0, 297, 45, 'F'); 
-
-    // MÁSCARA RODAPÉ: Limpa o espaço onde o rodapé novo vai entrar
+    // MÁSCARA TOPO E RODAPÉ: Apaga tudo fora da área útil
+    doc.rect(0, 0, 297, 33, 'F'); 
     doc.rect(0, 192, 297, 18, 'F');
 
-    // MÁSCARA ESQUERDA: Apaga a linha verde velha que foi empurrada para X=15
-    doc.rect(0, 45, shiftX + 5, 147, 'F');
+    // MÁSCARA ESQUERDA: Apaga a seta norte velha que foi empurrada pelo zoom (margem de 15mm)
+    doc.rect(0, 33, 15, 159, 'F');
 
-    // MÁSCARA DIREITA: Apaga a legenda velha que foi empurrada mais para a direita ainda
-    // Começamos em 215mm para garantir que a fazenda não seja cortada
-    doc.rect(215, 45, 82, 147, 'F'); 
+    // MÁSCARA DIREITA: Apaga a legenda velha, mas recuamos o bloqueio para X=245.
+    // Isso libera um espaço monstruoso para a fazenda se esticar para a direita!
+    doc.rect(245, 33, 52, 159, 'F'); 
 
     // ==========================================
     // 4. CABEÇALHO (NOVO)
@@ -2803,28 +2805,30 @@ async function exportarLaudoPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("ORIGENS | www.origens.agr.br", 28, 205);
+    doc.text("ORIGENS | www.origens.agr.br", 38, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 6. LEGENDA E SETA NORTE (MAIS PARA O CANTO)
+    // 6. LEGENDA E SETA NORTE (EXTREMO DIREITO E INFERIOR)
     // ==========================================
-    const legendX = 250; 
-    let northY = 175;
+    const legendX = 262; // Empurrado bem para a direita
+    const northX = 270;  // Seta ainda mais à direita para centralizar sob a legenda
+    let northY = 186;    // Afundado até o limite do rodapé (195)
     
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
-        doc.addImage(SETA_NORTE_BASE64, 'PNG', legendX, northY - 3, 12, 15); 
+        doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 7, 12, 15); 
     } else {
         doc.setDrawColor(30, 41, 59);
         doc.setFillColor(30, 41, 59);
-        doc.triangle(legendX + 5, northY, legendX + 10, northY + 12, legendX, northY + 12, 'F'); 
+        doc.triangle(northX + 5, northY, northX + 10, northY + 12, northX, northY + 12, 'F'); 
         doc.setTextColor(30, 41, 59);
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
-        doc.text("N", legendX + 5, northY - 2, { align: "center" });
+        doc.text("N", northX + 5, northY - 2, { align: "center" });
     }
 
-    let endLegendaY = northY - 10; 
+    // Calcula de baixo para cima para a legenda colar na Seta Norte
+    let endLegendaY = northY - 12; 
     let startY = endLegendaY - (rules.length * 8);
     
     doc.setTextColor(30, 41, 59);
