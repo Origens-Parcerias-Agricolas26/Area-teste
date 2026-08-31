@@ -2727,42 +2727,39 @@ async function exportarLaudoPDF() {
     const scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
 
     // ==========================================
-    // 1. GERAÇÃO DO MAPA (MOTOR NATIVO ANTIGO)
+    // 1. GERA A IMAGEM PERFEITA (SISTEMA ANTIGO)
     // ==========================================
     const depthConfig = { key: depthKey, titleText: `${depthText}` };
     const imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
 
     // ==========================================
-    // 2. CRIAÇÃO DO PDF (MAPA EXPANDIDO)
+    // 2. CRIA O PDF E DESLOCA A IMAGEM
     // ==========================================
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // A MÁGICA DO ZOOM: Aumentamos a imagem em 18% para ela preencher mais a folha
-    const scaleFactor = 1.18; 
-    const newW = 297 * scaleFactor;
-    const newH = 210 * scaleFactor;
-    
-    // Puxamos a imagem um pouco para a esquerda e para cima para centralizar esse "zoom"
-    const shiftX = -15; 
-    const shiftY = -12;
-    doc.addImage(imgData, 'JPEG', shiftX, shiftY, newW, newH);
+    // GEOMETRIA INTÁCTA: Desenhamos na proporção exata de 297x210.
+    // O deslocamento (X=18, Y=6) empurra a fazenda certinho para o meio da folha.
+    doc.addImage(imgData, 'JPEG', 18, 6, 297, 210);
 
     // ==========================================
-    // 3. MÁSCARAS BLINDADAS (LIMPANDO AS BORDAS)
+    // 3. CORTINAS BRANCAS (APAGÃO TOTAL DA SUJEIRA)
     // ==========================================
     doc.setFillColor(255, 255, 255);
     
-    // MÁSCARA TOPO E RODAPÉ: Apaga tudo fora da área útil
-    doc.rect(0, 0, 297, 33, 'F'); 
-    doc.rect(0, 192, 297, 18, 'F');
+    // MÁSCARA TOPO: Cobre o cabeçalho velho que desceu
+    doc.rect(0, 0, 297, 37, 'F'); 
 
-    // MÁSCARA ESQUERDA: Apaga a seta norte velha que foi empurrada pelo zoom (margem de 15mm)
-    doc.rect(0, 33, 15, 159, 'F');
+    // MÁSCARA RODAPÉ: Cobre o rodapé velho e prepara o chão para o novo
+    doc.rect(0, 187, 297, 23, 'F'); 
 
-    // MÁSCARA DIREITA: Apaga a legenda velha, mas recuamos o bloqueio para X=245.
-    // Isso libera um espaço monstruoso para a fazenda se esticar para a direita!
-    doc.rect(245, 33, 52, 159, 'F'); 
+    // MÁSCARA ESQUERDA: Cobre a borda verde lateral que foi empurrada
+    doc.rect(0, 37, 20, 150, 'F'); 
+
+    // MÁSCARA DIREITA (FIM DA LINHA CINZA): 
+    // Como empurramos a imagem 18mm para a direita, a linha cinza passou da marca de 230mm.
+    // Pintamos de branco do 230mm até o fim da folha. Adeus linha cinza e legenda velha!
+    doc.rect(230, 37, 67, 150, 'F'); 
 
     // ==========================================
     // 4. CABEÇALHO (NOVO)
@@ -2809,14 +2806,14 @@ async function exportarLaudoPDF() {
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 6. LEGENDA E SETA NORTE (EXTREMO DIREITO E INFERIOR)
+    // 6. LEGENDA E SETA NORTE (CANTO DIREITO)
     // ==========================================
-    const legendX = 262; // Empurrado bem para a direita
-    const northX = 270;  // Seta ainda mais à direita para centralizar sob a legenda
-    let northY = 186;    // Afundado até o limite do rodapé (195)
+    const legendX = 262; 
+    const northX = 270;  
+    let northY = 188;    
     
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
-        doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 7, 12, 15); 
+        doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 8, 12, 15); 
     } else {
         doc.setDrawColor(30, 41, 59);
         doc.setFillColor(30, 41, 59);
@@ -2827,8 +2824,7 @@ async function exportarLaudoPDF() {
         doc.text("N", northX + 5, northY - 2, { align: "center" });
     }
 
-    // Calcula de baixo para cima para a legenda colar na Seta Norte
-    let endLegendaY = northY - 12; 
+    let endLegendaY = northY - 14; 
     let startY = endLegendaY - (rules.length * 8);
     
     doc.setTextColor(30, 41, 59);
