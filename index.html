@@ -4402,14 +4402,13 @@ async function exportarLaudoPDF() {
 
         async function generateBatchPDFs() {
     const batchBtnText = document.getElementById('pdf-batch-btn-text');
-    if (batchBtnText) batchBtnText.innerText = "Processando Lote...";
+    if (batchBtnText) batchBtnText.innerText = "Preparando Lote...";
 
     const selectedFarmKey = document.getElementById('sel-farm').value;
     const farmObj = farmsDatabase[selectedFarmKey] || { name: 'Fazenda', location: 'Brasil' };
     const farmName = farmObj.name || "Fazenda";
     const farmLocation = farmObj.location || "Localização Indisponível";
 
-    // Busca a Safra se existir
     const safras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
     const activeSafra = safras.length ? safras[0] : "N/A";
 
@@ -4429,8 +4428,7 @@ async function exportarLaudoPDF() {
     const zip = new JSZip();
     const { jsPDF } = window.jspdf;
 
-    // Calcula a escala uma vez (usada em todos os mapas do lote)
-    let scaleString = "1:175.249"; // Valor padrão caso dê erro
+    let scaleString = "1:175.249"; 
     try {
         const bounds = mapLeft.getBounds();
         const mapWidthMeters = mapLeft.distance(bounds.getNorthWest(), bounds.getNorthEast());
@@ -4441,19 +4439,29 @@ async function exportarLaudoPDF() {
         console.warn("Usando escala padrão para o lote.");
     }
 
-    // Loop 1: Passa por cada Profundidade (0-10, 10-20...)
+    // Variáveis para o contador visual
+    let totalFiles = paramsList.length * depthsList.length;
+    let count = 0;
+
     for (let d = 0; d < depthsList.length; d++) {
         const depthConfig = depthsList[d];
         const depthText = depthConfig.titleText;
 
-        // Loop 2: Passa por cada Parâmetro (Argila, MO, P, K...)
         for (let p = 0; p < paramsList.length; p++) {
+            count++; // Atualiza o contador geral
+            
+            // Dá um feedback visual no botão para o usuário saber que não travou
+            if (batchBtnText) batchBtnText.innerText = `Processando ${count} de ${totalFiles}...`;
+            
+            // O SEGREDO ANTI-TRAVAMENTO: Pausa o código por 50 milissegundos.
+            // Isso permite que o navegador atualize o texto do botão e não congele a tela!
+            await new Promise(resolve => setTimeout(resolve, 50));
+
             const param = paramsList[p];
             const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
 
-            if (!rules || rules.length === 0) continue; // Pula se não encontrar regras para o parâmetro
+            if (!rules || rules.length === 0) continue; 
 
-            // Define a Unidade dinamicamente
             let unit = "";
             const paramLower = param.toLowerCase();
             if (['ctc', 'ca', 'mg', 'k', 'sb', 'al', 'h'].includes(paramLower)) unit = "cmolc/dm³";
@@ -4461,21 +4469,17 @@ async function exportarLaudoPDF() {
             else if (paramLower.includes('%') || paramLower.includes('sat') || paramLower === 'v%') unit = "%";
             else if (paramLower.includes('argila') || paramLower.includes('mo')) unit = "g/kg";
 
-            // 1. GERA A IMAGEM PERFEITA (SISTEMA ANTIGO)
             const imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
 
-            // 2. CRIA O PDF E DESLOCA A IMAGEM
             const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
             doc.addImage(imgData, 'JPEG', 18, 6, 297, 210);
 
-            // 3. CORTINAS BRANCAS (APAGÃO TOTAL DA SUJEIRA)
             doc.setFillColor(255, 255, 255);
             doc.rect(0, 0, 297, 37, 'F'); 
             doc.rect(0, 187, 297, 23, 'F'); 
             doc.rect(0, 37, 25, 150, 'F'); 
             doc.rect(230, 37, 67, 150, 'F'); 
 
-            // 4. CABEÇALHO (NOVO)
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
                 doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
             } else {
@@ -4501,7 +4505,6 @@ async function exportarLaudoPDF() {
             doc.setFontSize(10);
             doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
-            // 5. RODAPÉ (NOVO)
             if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
                 doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
             } else {
@@ -4512,10 +4515,9 @@ async function exportarLaudoPDF() {
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
-            doc.text("ORIGENS | www.origens.agr.br", 28, 205);
+            doc.text("ORIGENS | www.origens.agr.br", 38, 205);
             doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
-            // 6. LEGENDA E SETA NORTE
             const legendX = 250; 
             const northX = 270;  
             let northY = 188;    
@@ -4558,16 +4560,14 @@ async function exportarLaudoPDF() {
                 startY += 8;
             });
 
-            // 7. ADICIONA O PDF AO ARQUIVO ZIP
-            // Ao invés de salvar um por um, injetamos no pacote JSZip
             const pdfFileName = `Laudo_${param}_${depthConfig.key}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`;
             zip.file(pdfFileName, doc.output('blob'));
         }
     }
 
-    // 8. FINALIZA E FAZ O DOWNLOAD DO ARQUIVO .ZIP
+    if (batchBtnText) batchBtnText.innerText = "Compactando Arquivos...";
+
     zip.generateAsync({ type: "blob" }).then(function(content) {
-        // Verifica se a biblioteca saveAs está disponível, senão usa método nativo
         if (window.saveAs) {
             window.saveAs(content, `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`);
         } else {
@@ -4577,7 +4577,7 @@ async function exportarLaudoPDF() {
             a.click();
         }
         
-        if (batchBtnText) batchBtnText.innerText = "Exportar Lote PDF";
+        if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
     });
 }
 
