@@ -4425,7 +4425,6 @@ async function exportarLaudoPDF() {
         'Ca%', 'Mg%', 'K%', 'Zn', 'Cu', 'Mn', 'B'
     ];
 
-    const zip = new JSZip();
     const { jsPDF } = window.jspdf;
 
     let scaleString = "1:175.249"; 
@@ -4439,7 +4438,6 @@ async function exportarLaudoPDF() {
         console.warn("Usando escala padrão para o lote.");
     }
 
-    // Variáveis para o contador visual
     let totalFiles = paramsList.length * depthsList.length;
     let count = 0;
 
@@ -4448,14 +4446,12 @@ async function exportarLaudoPDF() {
         const depthText = depthConfig.titleText;
 
         for (let p = 0; p < paramsList.length; p++) {
-            count++; // Atualiza o contador geral
+            count++; 
             
-            // Dá um feedback visual no botão para o usuário saber que não travou
             if (batchBtnText) batchBtnText.innerText = `Processando ${count} de ${totalFiles}...`;
             
-            // O SEGREDO ANTI-TRAVAMENTO: Pausa o código por 50 milissegundos.
-            // Isso permite que o navegador atualize o texto do botão e não congele a tela!
-            await new Promise(resolve => setTimeout(resolve, 50));
+            // Pausa de 100ms para garantir que a memória RAM tenha tempo de se recuperar entre um PDF e outro
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             const param = paramsList[p];
             const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
@@ -4560,25 +4556,13 @@ async function exportarLaudoPDF() {
                 startY += 8;
             });
 
+            // 7. BAIXA O ARQUIVO IMEDIATAMENTE (SEM SOBRECARREGAR A MEMÓRIA)
             const pdfFileName = `Laudo_${param}_${depthConfig.key}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`;
-            zip.file(pdfFileName, doc.output('blob'));
+            doc.save(pdfFileName);
         }
     }
 
-    if (batchBtnText) batchBtnText.innerText = "Compactando Arquivos...";
-
-    zip.generateAsync({ type: "blob" }).then(function(content) {
-        if (window.saveAs) {
-            window.saveAs(content, `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`);
-        } else {
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(content);
-            a.download = `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`;
-            a.click();
-        }
-        
-        if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
-    });
+    if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs";
 }
 
         function generateSHPFiles(geojson, baseName) {
