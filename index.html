@@ -2733,30 +2733,37 @@ async function exportarLaudoPDF() {
     const imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
 
     // ==========================================
-    // 2. CRIAÇÃO DO PDF (MAPA NO FUNDO)
+    // 2. CRIAÇÃO DO PDF E DESLOCAMENTO DO MAPA
     // ==========================================
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // Cola o layout antigo inteiro no fundo
-    doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+    // Aqui está a mágica: Empurramos a imagem base 15mm para a direita e 12mm para baixo!
+    const shiftX = 15;
+    const shiftY = 12;
+    doc.addImage(imgData, 'JPEG', shiftX, shiftY, 297, 210);
 
     // ==========================================
-    // 3. SUPER CORRETIVO BRANCO (MÁSCARAS)
+    // 3. MÁSCARAS BLINDADAS (SUPER CORRETIVO BRANCO)
     // ==========================================
     doc.setFillColor(255, 255, 255);
     
-    // Máscara DIREITA: Aumentei a altura para 166 para garantir que apague qualquer sujeirinha até encostar no rodapé novo
-    doc.rect(200, 30, 97, 166, 'F'); 
+    // MÁSCARA TOPO: Como a imagem desceu, o cabeçalho antigo também desceu. Apagamos do 0 até o 45mm.
+    // Isso também limpa a sujeira verde que estava vazando no canto superior direito.
+    doc.rect(0, 0, 297, 45, 'F'); 
 
-    // Máscara ESQUERDA: Apaga a linha verde fina na margem esquerda
-    doc.rect(0, 30, 10, 165, 'F'); 
+    // MÁSCARA RODAPÉ: Limpa o espaço onde o rodapé novo vai entrar
+    doc.rect(0, 192, 297, 18, 'F');
 
-    // Máscara TOPO: Apaga a linha verde horizontal que ficava sob o cabeçalho antigo
-    doc.rect(0, 30, 297, 6, 'F'); 
+    // MÁSCARA ESQUERDA: Apaga a linha verde velha que foi empurrada para X=15
+    doc.rect(0, 45, shiftX + 5, 147, 'F');
+
+    // MÁSCARA DIREITA: Apaga a legenda velha que foi empurrada mais para a direita ainda
+    // Começamos em 215mm para garantir que a fazenda não seja cortada
+    doc.rect(215, 45, 82, 147, 'F'); 
 
     // ==========================================
-    // 4. CABEÇALHO 
+    // 4. CABEÇALHO (NOVO)
     // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
@@ -2784,7 +2791,7 @@ async function exportarLaudoPDF() {
     doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
     // ==========================================
-    // 5. RODAPÉ 
+    // 5. RODAPÉ (NOVO)
     // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
@@ -2796,14 +2803,13 @@ async function exportarLaudoPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("ORIGENS | www.origens.agr.br", 38, 205);
+    doc.text("ORIGENS | www.origens.agr.br", 28, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
     // 6. LEGENDA E SETA NORTE (MAIS PARA O CANTO)
     // ==========================================
-    // Eixo X alterado de 225 para 260. Empurra tudo para a direita!
-    const legendX = 260; 
+    const legendX = 250; 
     let northY = 175;
     
     if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
