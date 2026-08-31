@@ -4401,62 +4401,185 @@ async function exportarLaudoPDF() {
         }
 
         async function generateBatchPDFs() {
-            const batchBtnText = document.getElementById('pdf-batch-btn-text');
-            if (batchBtnText) batchBtnText.innerText = "Processando Lote...";
+    const batchBtnText = document.getElementById('pdf-batch-btn-text');
+    if (batchBtnText) batchBtnText.innerText = "Processando Lote...";
 
-            const selectedFarmKey = document.getElementById('sel-farm').value;
-            const farmInfo = farmsDatabase[selectedFarmKey] || { name: 'Fazenda', location: 'Brasil' };
+    const selectedFarmKey = document.getElementById('sel-farm').value;
+    const farmObj = farmsDatabase[selectedFarmKey] || { name: 'Fazenda', location: 'Brasil' };
+    const farmName = farmObj.name || "Fazenda";
+    const farmLocation = farmObj.location || "Localização Indisponível";
 
-            const depthsList = [
-                { key: 'd0_10', titleText: '0-10 cm' },
-                { key: 'd10_20', titleText: '10-20 cm' },
-                { key: 'd20_40', titleText: '20-40 cm' }
-            ];
+    // Busca a Safra se existir
+    const safras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
+    const activeSafra = safras.length ? safras[0] : "N/A";
 
-            const paramsList = [
-                'Argila', 'MO', 'Classes de MO', 'pH_CaCl2', 'pH_água',
-                'P', 'Classes de P', 'K', 'Ca', 'Mg', 'S',
-                'Al', 'H', 'Sb', 'CTC', 'V%', 'Sat. Al',
-                'Ca%', 'Mg%', 'K%', 'Zn', 'Cu', 'Mn', 'B'
-            ];
+    const depthsList = [
+        { key: 'd0_10', titleText: '0-10 cm' },
+        { key: 'd10_20', titleText: '10-20 cm' },
+        { key: 'd20_40', titleText: '20-40 cm' }
+    ];
 
-            const zip = new JSZip();
-            const { jsPDF } = window.jspdf;
+    const paramsList = [
+        'Argila', 'MO', 'Classes de MO', 'pH_CaCl2', 'pH_água',
+        'P', 'Classes de P', 'K', 'Ca', 'Mg', 'S',
+        'Al', 'H', 'Sb', 'CTC', 'V%', 'Sat. Al',
+        'Ca%', 'Mg%', 'K%', 'Zn', 'Cu', 'Mn', 'B'
+    ];
 
-            let totalFiles = paramsList.length * depthsList.length;
-            let count = 0;
+    const zip = new JSZip();
+    const { jsPDF } = window.jspdf;
 
-            for (let d = 0; d < depthsList.length; d++) {
-                const depthObj = depthsList[d];
-                for (let i = 0; i < paramsList.length; i++) {
-                    const paramName = paramsList[i];
-                    count++;
-                    if (batchBtnText) batchBtnText.innerText = `Gerando (${count}/${totalFiles}) ${paramName} (${depthObj.titleText})...`;
+    // Calcula a escala uma vez (usada em todos os mapas do lote)
+    let scaleString = "1:175.249"; // Valor padrão caso dê erro
+    try {
+        const bounds = mapLeft.getBounds();
+        const mapWidthMeters = mapLeft.distance(bounds.getNorthWest(), bounds.getNorthEast());
+        const pdfMapWidthMeters = 210 / 1000; 
+        const scaleNumeric = Math.round(mapWidthMeters / pdfMapWidthMeters);
+        scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
+    } catch (e) {
+        console.warn("Usando escala padrão para o lote.");
+    }
 
-                    const rules = getQGISRules(paramName);
-                    const imgData = drawCanvasForParam(paramName, depthObj, farmInfo, rules);
+    // Loop 1: Passa por cada Profundidade (0-10, 10-20...)
+    for (let d = 0; d < depthsList.length; d++) {
+        const depthConfig = depthsList[d];
+        const depthText = depthConfig.titleText;
 
-                    const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-                    pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+        // Loop 2: Passa por cada Parâmetro (Argila, MO, P, K...)
+        for (let p = 0; p < paramsList.length; p++) {
+            const param = paramsList[p];
+            const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
 
-                    const pdfBlob = pdf.output('blob');
-                    const fileName = `Laudo_${paramName}_${depthObj.titleText.replace(/\s+/g, '')}.pdf`;
-                    zip.file(fileName, pdfBlob);
+            if (!rules || rules.length === 0) continue; // Pula se não encontrar regras para o parâmetro
 
-                    await new Promise(resolve => setTimeout(resolve, 30));
-                }
+            // Define a Unidade dinamicamente
+            let unit = "";
+            const paramLower = param.toLowerCase();
+            if (['ctc', 'ca', 'mg', 'k', 'sb', 'al', 'h'].includes(paramLower)) unit = "cmolc/dm³";
+            else if (['p', 's', 'zn', 'cu', 'mn', 'b'].includes(paramLower)) unit = "mg/dm³";
+            else if (paramLower.includes('%') || paramLower.includes('sat') || paramLower === 'v%') unit = "%";
+            else if (paramLower.includes('argila') || paramLower.includes('mo')) unit = "g/kg";
+
+            // 1. GERA A IMAGEM PERFEITA (SISTEMA ANTIGO)
+            const imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
+
+            // 2. CRIA O PDF E DESLOCA A IMAGEM
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            doc.addImage(imgData, 'JPEG', 18, 6, 297, 210);
+
+            // 3. CORTINAS BRANCAS (APAGÃO TOTAL DA SUJEIRA)
+            doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, 297, 37, 'F'); 
+            doc.rect(0, 187, 297, 23, 'F'); 
+            doc.rect(0, 37, 25, 150, 'F'); 
+            doc.rect(230, 37, 67, 150, 'F'); 
+
+            // 4. CABEÇALHO (NOVO)
+            if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
+                doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
+            } else {
+                doc.setFillColor(31, 89, 44);
+                doc.rect(0, 0, 297, 30, 'F');
             }
 
-            if (batchBtnText) batchBtnText.innerText = "Compactando ZIP...";
-            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            if (typeof LOGO_BRANCA_BASE64 !== 'undefined' && LOGO_BRANCA_BASE64.length > 100) {
+                doc.addImage(LOGO_BRANCA_BASE64, 'PNG', 10, 5, 28, 20); 
+            }
 
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(zipBlob);
-            link.download = `Lote_Completo_Laudos_${farmInfo.name.replace(/\s+/g, '_')}.zip`;
-            link.click();
+            doc.setTextColor(255, 255, 255);
+            const textX = 55; 
+            
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text("ORIGENS Parcerias Agrícolas | Rondonópolis - MT", textX, 10, { align: "left" });
+            
+            doc.setFontSize(18);
+            doc.setFont("helvetica", "bold");
+            doc.text(`${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`, textX, 18, { align: "left" });
+            
+            doc.setFontSize(10);
+            doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
-            if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
+            // 5. RODAPÉ (NOVO)
+            if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
+                doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
+            } else {
+                doc.setFillColor(31, 89, 44);
+                doc.rect(0, 195, 297, 15, 'F');
+            }
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "bold");
+            doc.text("ORIGENS | www.origens.agr.br", 28, 205);
+            doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
+
+            // 6. LEGENDA E SETA NORTE
+            const legendX = 250; 
+            const northX = 270;  
+            let northY = 188;    
+            
+            if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
+                doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 7, 14, 14); 
+            } else {
+                doc.setDrawColor(30, 41, 59);
+                doc.setFillColor(30, 41, 59);
+                doc.triangle(northX + 5, northY, northX + 10, northY + 12, northX, northY + 12, 'F'); 
+                doc.setTextColor(30, 41, 59);
+                doc.setFontSize(12);
+                doc.setFont("helvetica", "bold");
+                doc.text("N", northX + 5, northY - 2, { align: "center" });
+            }
+
+            let endLegendaY = northY - 14; 
+            let startY = endLegendaY - (rules.length * 8);
+            
+            doc.setTextColor(30, 41, 59);
+            doc.setFontSize(16);
+            doc.text(param.toUpperCase(), legendX, startY - 10);
+            
+            if (unit) {
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                doc.text(`Unidade: ${unit}`, legendX, startY - 3);
+            }
+
+            doc.setFontSize(9);
+            rules.forEach(r => {
+                doc.setFillColor(r.color);
+                doc.rect(legendX, startY, 6, 6, 'F');
+                doc.setDrawColor(0, 0, 0);
+                doc.setLineWidth(0.2);
+                doc.rect(legendX, startY, 6, 6, 'S');
+                
+                doc.setFont("helvetica", "normal");
+                doc.text(r.label, legendX + 9, startY + 4);
+                startY += 8;
+            });
+
+            // 7. ADICIONA O PDF AO ARQUIVO ZIP
+            // Ao invés de salvar um por um, injetamos no pacote JSZip
+            const pdfFileName = `Laudo_${param}_${depthConfig.key}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`;
+            zip.file(pdfFileName, doc.output('blob'));
         }
+    }
+
+    // 8. FINALIZA E FAZ O DOWNLOAD DO ARQUIVO .ZIP
+    zip.generateAsync({ type: "blob" }).then(function(content) {
+        // Verifica se a biblioteca saveAs está disponível, senão usa método nativo
+        if (window.saveAs) {
+            window.saveAs(content, `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`);
+        } else {
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(content);
+            a.download = `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`;
+            a.click();
+        }
+        
+        if (batchBtnText) batchBtnText.innerText = "Exportar Lote PDF";
+    });
+}
 
         function generateSHPFiles(geojson, baseName) {
             let prjContent = `GEOGCS["GCS_WGS_1984",DATUM["D_WGS_1984",SPHEROID["WGS_1984",6378137.0,298.257223563]],PRIMEM["Greenwich",0.0],UNIT["Degree",0.0174532925199433]]`;
