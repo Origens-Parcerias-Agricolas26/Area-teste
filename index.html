@@ -2738,8 +2738,7 @@ async function exportarLaudoPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
-    // GEOMETRIA INTÁCTA: Desenhamos na proporção exata de 297x210.
-    // O deslocamento (X=18, Y=6) empurra a fazenda certinho para o meio da folha.
+    // Deslocamos 18mm para a direita para centralizar a fazenda
     doc.addImage(imgData, 'JPEG', 18, 6, 297, 210);
 
     // ==========================================
@@ -2747,18 +2746,14 @@ async function exportarLaudoPDF() {
     // ==========================================
     doc.setFillColor(255, 255, 255);
     
-    // MÁSCARA TOPO: Cobre o cabeçalho velho que desceu
+    // MÁSCARA TOPO E RODAPÉ
     doc.rect(0, 0, 297, 37, 'F'); 
-
-    // MÁSCARA RODAPÉ: Cobre o rodapé velho e prepara o chão para o novo
     doc.rect(0, 187, 297, 23, 'F'); 
 
-    // MÁSCARA ESQUERDA: Cobre a borda verde lateral que foi empurrada
-    doc.rect(0, 37, 20, 150, 'F'); 
+    // MÁSCARA ESQUERDA: Aumentada para 25mm para engolir a antiga listra verde que foi empurrada para X=18
+    doc.rect(0, 37, 25, 150, 'F'); 
 
-    // MÁSCARA DIREITA (FIM DA LINHA CINZA): 
-    // Como empurramos a imagem 18mm para a direita, a linha cinza passou da marca de 230mm.
-    // Pintamos de branco do 230mm até o fim da folha. Adeus linha cinza e legenda velha!
+    // MÁSCARA DIREITA: Apaga a linha cinza e legenda velha
     doc.rect(230, 37, 67, 150, 'F'); 
 
     // ==========================================
@@ -2771,8 +2766,10 @@ async function exportarLaudoPDF() {
         doc.rect(0, 0, 297, 30, 'F');
     }
 
+    // LOGO: Proporção ajustada (35x15) para evitar achatamento. 
+    // Caso precise de um ajuste fino final, basta mudar esses dois números.
     if (typeof LOGO_BRANCA_BASE64 !== 'undefined' && LOGO_BRANCA_BASE64.length > 100) {
-        doc.addImage(LOGO_BRANCA_BASE64, 'PNG', 10, 5, 40, 20);
+        doc.addImage(LOGO_BRANCA_BASE64, 'PNG', 10, 6, 35, 15);
     }
 
     doc.setTextColor(255, 255, 255);
@@ -2806,9 +2803,9 @@ async function exportarLaudoPDF() {
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
     // ==========================================
-    // 6. LEGENDA E SETA NORTE (CANTO DIREITO)
+    // 6. LEGENDA E SETA NORTE
     // ==========================================
-    const legendX = 262; 
+    const legendX = 250; 
     const northX = 270;  
     let northY = 188;    
     
