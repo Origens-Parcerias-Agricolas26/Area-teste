@@ -4418,7 +4418,7 @@ async function generateBatchPDFs() {
         }
         
         // =========================================================
-// 1. FUNÇÃO DE DESENHO LIMPA (GERA APENAS O MAPA NO FUNDO BRANCO)
+// 1. FUNÇÃO DE DESENHO LIMPA (GEOMETRIA E MARGENS CORRIGIDAS)
 // =========================================================
 function drawCanvasForParam(param, depthConfig, farmInfo, rules) {
     const canvas = document.getElementById('pdf-render-canvas');
@@ -4430,7 +4430,6 @@ function drawCanvasForParam(param, depthConfig, farmInfo, rules) {
     const selectedTalhoes = getSelectedTalhoes();
     const selectedSafras = getSelectedSafras();
 
-    // Fundo Branco Puro (Sem bordas velhas)
     ctx.fillStyle = "#FFFFFF";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.textAlign = "left";
@@ -4452,8 +4451,13 @@ function drawCanvasForParam(param, depthConfig, farmInfo, rules) {
             const minY = Math.min(...allPts.map(p => p[1]));
             const maxY = Math.max(...allPts.map(p => p[1]));
 
-            // Área central do mapa redimensionada para ocupar o espaço que antes era da legenda velha
-            const mapX = 50, mapY = 50, mapW = 1400, mapH = 1000;
+            // =========================================================
+            // CORREÇÃO CRÍTICA DE MARGENS:
+            // mapY = 250: Empurra o mapa para baixo, salvando do cabeçalho.
+            // mapW = 1050: Retorna à largura original, evitando invadir a legenda.
+            // mapH = 750: Ajusta a altura para não achatar nem bater no rodapé.
+            // =========================================================
+            const mapX = 50, mapY = 250, mapW = 1050, mapH = 750;
 
             const centerLat = (minY + maxY) / 2;
             const cosScale = Math.cos(centerLat * Math.PI / 180);
