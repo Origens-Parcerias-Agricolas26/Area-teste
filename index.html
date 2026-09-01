@@ -2769,29 +2769,20 @@ async function exportarLaudoPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
     
-    // ==========================================
-    // GEOMETRIA CORRIGIDA: 82% DE ESCALA
-    // ==========================================
-    const imgW = 297 * 0.82; 
-    const imgH = 210 * 0.82; 
-    const offsetX = 5; 
-    // CRÍTICO: offsetY = 30 garante que o mapa comece EXATAMENTE abaixo do cabeçalho.
-    const offsetY = 30; 
+    const imgW = 297 * 0.90; 
+    const imgH = 210 * 0.90;
+    const offsetX = 18; 
+    const offsetY = 20; // CORREÇÃO: Rebaixado para 20 para tirar o mapa de baixo do cabeçalho
     
     doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
     imgData = null;
 
-    // ==========================================
-    // MÁSCARAS DE APAGÃO CIRÚRGICO
-    // ==========================================
     doc.setFillColor(255, 255, 255);
-    doc.rect(0, 187, 297, 23, 'F');  // Limpa o Rodapé
-    
-    // MÁSCARA DIREITA (X=195): Avança o suficiente para a esquerda para cobrir 
-    // toda a legenda velha que foi arrastada pelo zoom.
-    doc.rect(195, 30, 102, 160, 'F'); 
+    doc.rect(0, 0, 297, 30, 'F');    
+    doc.rect(0, 187, 297, 23, 'F');  
+    doc.rect(0, 30, 22, 157, 'F');   
+    doc.rect(225, 30, 72, 157, 'F'); // CORREÇÃO: Puxado para 225 para engolir a legenda velha
 
-    // CABEÇALHO (NOVO)
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
     } else {
@@ -2810,9 +2801,10 @@ async function exportarLaudoPDF() {
     doc.setFont("helvetica", "normal");
     doc.text("ORIGENS PARCERIAS AGRÍCOLAS | Rondonópolis - MT", textX, 10, { align: "left" });
     
-    let tituloCompleto = typeof nomesParametros !== 'undefined' && nomesParametros[paramLower] 
-        ? nomesParametros[paramLower] 
-        : `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
+    let tituloCompleto = nomesParametros[paramLower];
+    if (!tituloCompleto) {
+        tituloCompleto = `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
+    }
     
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
@@ -2821,7 +2813,6 @@ async function exportarLaudoPDF() {
     doc.setFontSize(10);
     doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
-    // RODAPÉ 
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
     } else {
@@ -2835,7 +2826,6 @@ async function exportarLaudoPDF() {
     doc.text("ORIGENS | www.origens.agr.br", 38, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
-    // LEGENDA E SETA NORTE
     const legendX = 250; 
     const northX = 270;  
     let northY = 188;    
@@ -2952,21 +2942,20 @@ async function generateBatchPDFs() {
             let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
             let doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
 
-            // MESMA GEOMETRIA DA FUNÇÃO INDIVIDUAL
-            const imgW = 297 * 0.82; 
-            const imgH = 210 * 0.82; 
-            const offsetX = 5; 
-            const offsetY = 30; 
+            const imgW = 297 * 0.90; 
+            const imgH = 210 * 0.90;
+            const offsetX = 18; 
+            const offsetY = 20; // CORREÇÃO APLICADA AQUI TAMBÉM
             
             doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
             imgData = null; 
 
-            // MÁSCARAS
             doc.setFillColor(255, 255, 255);
+            doc.rect(0, 0, 297, 30, 'F');    
             doc.rect(0, 187, 297, 23, 'F');  
-            doc.rect(195, 30, 102, 160, 'F'); // Mascara no 195 apaga legenda inteira
+            doc.rect(0, 30, 22, 157, 'F');   
+            doc.rect(225, 30, 72, 157, 'F'); // CORREÇÃO APLICADA AQUI TAMBÉM
 
-            // CABEÇALHO
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
                 doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
             } else {
@@ -2985,9 +2974,10 @@ async function generateBatchPDFs() {
             doc.setFont("helvetica", "normal");
             doc.text("ORIGENS PARCERIAS AGRÍCOLAS | Rondonópolis - MT", textX, 10, { align: "left" });
             
-            let tituloCompleto = typeof nomesParametros !== 'undefined' && nomesParametros[paramLower] 
-                ? nomesParametros[paramLower] 
-                : `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
+            let tituloCompleto = nomesParametros[paramLower];
+            if (!tituloCompleto) {
+                tituloCompleto = `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
+            }
             
             doc.setFontSize(18);
             doc.setFont("helvetica", "bold");
@@ -2996,7 +2986,6 @@ async function generateBatchPDFs() {
             doc.setFontSize(10);
             doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
-            // RODAPÉ
             if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
                 doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
             } else {
