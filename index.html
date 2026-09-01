@@ -2764,25 +2764,20 @@ async function exportarLaudoPDF() {
     }
 
     const depthConfig = { key: depthKey, titleText: `${depthText}` };
+    
+    // Imagem agora vem limpa (apenas mapa e fundo branco)
     let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
     
-    const imgW = 297 * 0.90; 
-    const imgH = 210 * 0.90;
-    const offsetX = 18; 
-    const offsetY = 20; // CORREÇÃO: Rebaixado para 20 para tirar o mapa de baixo do cabeçalho
-    
-    doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
+    // Cola a imagem limpa usando 100% da folha (Totalmente centralizado)
+    doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
     imgData = null;
 
-    doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, 297, 30, 'F');    
-    doc.rect(0, 187, 297, 23, 'F');  
-    doc.rect(0, 30, 22, 157, 'F');   
-    doc.rect(225, 30, 72, 157, 'F'); // CORREÇÃO: Puxado para 225 para engolir a legenda velha
-
+    // ==========================================
+    // CABEÇALHO (Sobrepõe o fundo branco)
+    // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
     } else {
@@ -2813,6 +2808,9 @@ async function exportarLaudoPDF() {
     doc.setFontSize(10);
     doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
+    // ==========================================
+    // RODAPÉ (Sobrepõe o fundo branco)
+    // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
     } else {
@@ -2826,6 +2824,9 @@ async function exportarLaudoPDF() {
     doc.text("ORIGENS | www.origens.agr.br", 38, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
+    // ==========================================
+    // LEGENDA E SETA NORTE 
+    // ==========================================
     const legendX = 250; 
     const northX = 270;  
     let northY = 188;    
@@ -2939,23 +2940,15 @@ async function generateBatchPDFs() {
             else if (paramLower.includes('%') || paramLower.includes('sat') || paramLower === 'v%') unit = "%";
             else if (paramLower.includes('argila') || paramLower.includes('mo')) unit = "g/kg";
 
+            // Imagem limpa de fábrica
             let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
             let doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
 
-            const imgW = 297 * 0.90; 
-            const imgH = 210 * 0.90;
-            const offsetX = 18; 
-            const offsetY = 20; // CORREÇÃO APLICADA AQUI TAMBÉM
-            
-            doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
+            // Cola a imagem em tela cheia no PDF
+            doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
             imgData = null; 
 
-            doc.setFillColor(255, 255, 255);
-            doc.rect(0, 0, 297, 30, 'F');    
-            doc.rect(0, 187, 297, 23, 'F');  
-            doc.rect(0, 30, 22, 157, 'F');   
-            doc.rect(225, 30, 72, 157, 'F'); // CORREÇÃO APLICADA AQUI TAMBÉM
-
+            // CABEÇALHO
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
                 doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
             } else {
@@ -2986,6 +2979,7 @@ async function generateBatchPDFs() {
             doc.setFontSize(10);
             doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
+            // RODAPÉ
             if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
                 doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
             } else {
@@ -2999,6 +2993,7 @@ async function generateBatchPDFs() {
             doc.text("ORIGENS | www.origens.agr.br", 38, 205);
             doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
+            // LEGENDA
             const legendX = 250; 
             const northX = 270;  
             let northY = 188;    
@@ -4422,204 +4417,294 @@ async function generateBatchPDFs() {
             }
         }
         
-        function drawCanvasForParam(param, depthConfig, farmInfo, rules) {
-            const canvas = document.getElementById('pdf-render-canvas');
-            const ctx = canvas.getContext('2d');
-            const currentGeoJSON = farmInfo.geojson;
-            const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
-            const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
-            
-            const selectedTalhoes = getSelectedTalhoes();
-            const selectedSafras = getSelectedSafras();
+        // =========================================================
+// 1. FUNÇÃO DE DESENHO LIMPA (GERA APENAS O MAPA NO FUNDO BRANCO)
+// =========================================================
+function drawCanvasForParam(param, depthConfig, farmInfo, rules) {
+    const canvas = document.getElementById('pdf-render-canvas');
+    const ctx = canvas.getContext('2d');
+    const currentGeoJSON = farmInfo.geojson;
+    const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
+    const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
+    
+    const selectedTalhoes = getSelectedTalhoes();
+    const selectedSafras = getSelectedSafras();
 
-            ctx.fillStyle = "#FFFFFF";
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Fundo Branco Puro (Sem bordas velhas)
+    ctx.fillStyle = "#FFFFFF";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.textAlign = "left";
 
-            ctx.strokeStyle = "#2E7D32";
-            ctx.lineWidth = 10;
-            ctx.strokeRect(20, 20, canvas.width - 40, canvas.height - 40);
+    if (currentGeoJSON && currentGeoJSON.features && currentGeoJSON.features.length) {
+        let filteredFeatures = currentGeoJSON.features.filter(f => !selectedTalhoes.length || (f.properties && selectedTalhoes.includes(String(f.properties.Talhao))));
 
-            const farmLocStr = farmInfo && farmInfo.location ? farmInfo.location.toUpperCase() : 'NÃO INFORMADA';
-
-            // Inserir Logo
-            const logoImg = document.getElementById('pdf-logo-origens');
-            if (logoImg && logoImg.src && logoImg.src.length > 100) {
-                const imgWidth = 180;
-                const imgHeight = (logoImg.height / logoImg.width) * imgWidth;
-                ctx.drawImage(logoImg, 50, 20, imgWidth, imgHeight); // Subimos a logo para Y=20
+        let allPts = [];
+        filteredFeatures.forEach(f => {
+            if (f.geometry && f.geometry.coordinates) {
+                const rings = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates.flat(1) : f.geometry.coordinates;
+                rings.forEach(ring => { if (Array.isArray(ring)) ring.forEach(pt => { if (Array.isArray(pt) && pt.length >= 2) allPts.push(pt); }); });
             }
+        });
 
-            // Textos organizados em coluna à esquerda da logo
-            ctx.fillStyle = "#1E293B";
-            ctx.font = "bold 18px Helvetica, Arial";
-            ctx.textAlign = "left";
-            ctx.fillText("ORIGENS Parcerias Agrícolas | Rondonópolis - MT", 260, 40); // Y=40
+        if (allPts.length) {
+            const minX = Math.min(...allPts.map(p => p[0]));
+            const maxX = Math.max(...allPts.map(p => p[0]));
+            const minY = Math.min(...allPts.map(p => p[1]));
+            const maxY = Math.max(...allPts.map(p => p[1]));
 
-            ctx.fillStyle = "#1E293B";
-            ctx.font = "bold 26px Helvetica, Arial";
-            ctx.textAlign = "left";
-            ctx.fillText(`${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`, 260, 70); // Y=70
+            // Área central do mapa redimensionada para ocupar o espaço que antes era da legenda velha
+            const mapX = 50, mapY = 50, mapW = 1400, mapH = 1000;
 
-            ctx.fillStyle = "#2E7D32";
-            ctx.font = "bold 18px Helvetica, Arial";
-            ctx.textAlign = "left";
-            ctx.fillText(`CAMADA: ${depthConfig.titleText} | ${farmInfo.name.toUpperCase()} - ${farmLocStr}`, 260, 95); // Y=95 (Livre do mapa!)
-            // Inserir Seta Norte
-            
-            ctx.textAlign = "left";
+            const centerLat = (minY + maxY) / 2;
+            const cosScale = Math.cos(centerLat * Math.PI / 180);
+            const spanX = (maxX - minX) * cosScale || 0.0001;
+            const spanY = (maxY - minY) || 0.0001;
 
-            if (currentGeoJSON && currentGeoJSON.features && currentGeoJSON.features.length) {
-                let filteredFeatures = currentGeoJSON.features.filter(f => !selectedTalhoes.length || (f.properties && selectedTalhoes.includes(String(f.properties.Talhao))));
+            const scale = Math.min(mapW / spanX, mapH / spanY);
+            const offsetX = mapX + (mapW - spanX * scale) / 2;
+            const offsetY = mapY + (mapH - spanY * scale) / 2;
 
-                let allPts = [];
-                filteredFeatures.forEach(f => {
-                    if (f.geometry && f.geometry.coordinates) {
-                        const rings = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates.flat(1) : f.geometry.coordinates;
-                        rings.forEach(ring => { if (Array.isArray(ring)) ring.forEach(pt => { if (Array.isArray(pt) && pt.length >= 2) allPts.push(pt); }); });
-                    }
+            filteredFeatures.forEach(f => {
+                const depthData = getFeatureDepthData(f, depthConfig.key, selectedSafras);
+                const rawVal = depthData[param];
+                const val = formatDisplayValue(rawVal);
+
+                let fillColor = "#94a3b8";
+                const matched = getMatchedRule(rawVal, rules);
+                if (matched) fillColor = matched.color;
+
+                const rings = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates.flat(1) : (f.geometry.coordinates || []);
+                let totalPx = 0, totalPy = 0, ptCount = 0;
+
+                rings.forEach(ring => {
+                    if (!Array.isArray(ring) || !ring.length) return;
+
+                    ctx.beginPath();
+                    ring.forEach((pt, index) => {
+                        const px = offsetX + (pt[0] - minX) * cosScale * scale;
+                        const py = offsetY + (maxY - pt[1]) * scale;
+                        totalPx += px;
+                        totalPy += py;
+                        ptCount++;
+
+                        if (index === 0) ctx.moveTo(px, py);
+                        else ctx.lineTo(px, py);
+                    });
+                    ctx.closePath();
+
+                    ctx.fillStyle = fillColor;
+                    ctx.fill();
+                    ctx.strokeStyle = "#1d4ed8";
+                    ctx.lineWidth = 1.2;
+                    ctx.stroke();
                 });
 
-                if (allPts.length) {
-                    const minX = Math.min(...allPts.map(p => p[0]));
-                    const maxX = Math.max(...allPts.map(p => p[0]));
-                    const minY = Math.min(...allPts.map(p => p[1]));
-                    const maxY = Math.max(...allPts.map(p => p[1]));
+                if (ptCount > 0) {
+                    const cx = totalPx / ptCount;
+                    const cy = totalPy / ptCount;
 
-                    const mapX = 50, mapY = 120, mapW = 1050, mapH = 980;
+                    let pdfLabel = "";
+                    const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || '';
+                    if (showLabels && showValues) {
+                        pdfLabel = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
+                    } else if (showLabels) {
+                        pdfLabel = subName;
+                    } else if (showValues) {
+                        pdfLabel = `${val !== null && val !== undefined ? val : 'N/A'}`;
+                    }
 
-                    const centerLat = (minY + maxY) / 2;
-                    const cosScale = Math.cos(centerLat * Math.PI / 180);
-                    const spanX = (maxX - minX) * cosScale || 0.0001;
-                    const spanY = (maxY - minY) || 0.0001;
-
-                    const scale = Math.min(mapW / spanX, mapH / spanY);
-                    const offsetX = mapX + (mapW - spanX * scale) / 2;
-                    const offsetY = mapY + (mapH - spanY * scale) / 2;
-
-                    filteredFeatures.forEach(f => {
-                        const depthData = getFeatureDepthData(f, depthConfig.key, selectedSafras);
-                        const rawVal = depthData[param];
-                        const val = formatDisplayValue(rawVal);
-
-                        let fillColor = "#94a3b8";
-                        const matched = getMatchedRule(rawVal, rules);
-                        if (matched) fillColor = matched.color;
-
-                        const rings = f.geometry.type === 'MultiPolygon' ? f.geometry.coordinates.flat(1) : (f.geometry.coordinates || []);
-
-                        let totalPx = 0, totalPy = 0, ptCount = 0;
-
-                        rings.forEach(ring => {
-                            if (!Array.isArray(ring) || !ring.length) return;
-
-                            ctx.beginPath();
-                            ring.forEach((pt, index) => {
-                                const px = offsetX + (pt[0] - minX) * cosScale * scale;
-                                const py = offsetY + (maxY - pt[1]) * scale;
-                                totalPx += px;
-                                totalPy += py;
-                                ptCount++;
-
-                                if (index === 0) ctx.moveTo(px, py);
-                                else ctx.lineTo(px, py);
-                            });
-                            ctx.closePath();
-
-                            ctx.fillStyle = fillColor;
-                            ctx.fill();
-                            ctx.strokeStyle = "#1d4ed8";
-                            ctx.lineWidth = 1.2;
-                            ctx.stroke();
-                        });
-
-                        if (ptCount > 0) {
-                            const cx = totalPx / ptCount;
-                            const cy = totalPy / ptCount;
-
-                            let pdfLabel = "";
-                            const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || '';
-                            if (showLabels && showValues) {
-                                pdfLabel = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
-                            } else if (showLabels) {
-                                pdfLabel = subName;
-                            } else if (showValues) {
-                                pdfLabel = `${val !== null && val !== undefined ? val : 'N/A'}`;
-                            }
-
-                            if (pdfLabel !== "") {
-                                ctx.fillStyle = "#000000";
-                                ctx.font = "bold 9px Helvetica, Arial";
-                                ctx.textAlign = "center";
-                                ctx.fillText(pdfLabel, cx, cy);
-                                ctx.textAlign = "left";
-                            }
-                        }
-                    });
+                    if (pdfLabel !== "") {
+                        ctx.fillStyle = "#000000";
+                        ctx.font = "bold 9px Helvetica, Arial";
+                        ctx.textAlign = "center";
+                        ctx.fillText(pdfLabel, cx, cy);
+                        ctx.textAlign = "left";
+                    }
                 }
-            }
-
-            const legX = 1180, legY = 130;
-            ctx.fillStyle = "#F8FAFC";
-            ctx.fillRect(legX, legY, 370, 900);
-            ctx.strokeStyle = "#CBD5E1";
-            ctx.lineWidth = 1.5;
-            ctx.strokeRect(legX, legY, 370, 900);
-
-            ctx.fillStyle = "#0F172A";
-            ctx.font = "bold 20px Helvetica, Arial";
-            ctx.fillText("LEGENDA DE NÍVEIS", legX + 15, legY + 35);
-
-            let currY = legY + 70;
-            rules.forEach(r => {
-                ctx.fillStyle = r.color;
-                ctx.fillRect(legX + 15, currY - 16, 22, 22);
-                ctx.strokeStyle = "#64748B";
-                ctx.lineWidth = 1;
-                ctx.strokeRect(legX + 15, currY - 16, 22, 22);
-
-                ctx.fillStyle = "#334155";
-                ctx.font = "bold 14px Helvetica, Arial";
-                ctx.fillText(r.label, legX + 48, currY);
-                currY += 38;
             });
-
-            ctx.fillStyle = "#64748B";
-            ctx.font = "14px Helvetica, Arial";
-            ctx.fillText("www.origens.agr.br", 50, canvas.height - 35);
-            ctx.textAlign = "right";
-            ctx.fillText("Escala Automática | Sistema WGS 84", canvas.width - 50, canvas.height - 35);
-            // Seta Norte (Desenhada no canto inferior direito, acima da escala)
-            const northArrowFinal = document.getElementById('pdf-north-arrow');
-            if (northArrowFinal && northArrowFinal.src && northArrowFinal.src.length > 100) {
-                ctx.drawImage(northArrowFinal, 1470, 1060, 70, 70); 
-            }
-
-            return canvas.toDataURL('image/jpeg', 0.98);
         }
+    }
 
-        function generatePerfectPDF() {
-            const btnText = document.getElementById('pdf-btn-text');
-            if (btnText) btnText.innerText = "Gerando PDF...";
+    return canvas.toDataURL('image/jpeg', 0.98);
+}
 
-            const selectedFarmKey = document.getElementById('sel-farm').value;
-            const farmInfo = farmsDatabase[selectedFarmKey] || { name: 'Fazenda', location: 'Brasil' };
-            const depthKey = document.getElementById('sel-depth').value;
-            const param = document.getElementById('sel-param').value;
-            const depthText = depthKey.replace('d', '').replace('_', '-') + ' cm';
-            const rules = getQGISRules(param);
+// ==========================================
+// 2. DICIONÁRIO DE NOMES E EXTRAÇÕES
+// ==========================================
+const nomesParametros = {
+    'al': 'ALUMÍNIO - EXTRAÇÃO: KCl 1M',
+    'p': 'FÓSFORO - EXTRAÇÃO: Mehlich 1',
+    'k': 'POTÁSSIO - EXTRAÇÃO: Mehlich 1',
+    'ca': 'CÁLCIO - EXTRAÇÃO: KCl 1M',
+    'mg': 'MAGNÉSIO - EXTRAÇÃO: KCl 1M',
+    'ctc': 'CTC - CAPACIDADE DE TROCA CATIÔNICA',
+    'mo': 'MATÉRIA ORGÂNICA - METODOLOGIA DICROMATO DE POTÁSSIO',
+    's': 'ENXOFRE - EXTRAÇÃO: FOSFATO DE CÁLCIO',
+    'v%': 'SATURAÇÃO POR BASES (V%)',
+    'm_sat': 'SATURAÇÃO POR ALUMÍNIO (m%)',
+    'argila': 'ARGILA - DISPERSÃO: NaOH',
+    'silte': 'SILTE - DISPERSÃO: NaOH',
+    'areia': 'AREIA - DISPERSÃO: NaOH',
+    'mo%': 'MATÉRIA ORGÂNICA - METODOLOGIA DICROMATO DE POTÁSSIO',
+    'ph_água': 'pH - SOLUÇÃO: H₂O',
+    'ph_cacl2': 'pH - SOLUÇÃO: CaCl₂',
+    'ca%': 'SATURAÇÃO POR CÁLCIO (Ca%)',
+    'mg%': 'SATURAÇÃO POR MAGNÉSIO (Mg%)',
+    'k%': 'SATURAÇÃO POR POTÁSSIO (K%)',
+    'zn': 'ZINCO - EXTRAÇÃO: Mehlich 1',
+    'mn': 'MANGANÊS - EXTRAÇÃO: Mehlich 1',
+    'cu': 'COBRE - EXTRAÇÃO: Mehlich 1',
+    'b': 'BORO - EXTRAÇÃO: Mehlich 1'
+};
 
-            const depthConfig = { key: depthKey, titleText: `${depthText}` };
-            const imgData = drawCanvasForParam(param, depthConfig, farmInfo, rules);
+// ==========================================
+// 3. EXPORTAR LAUDO INDIVIDUAL (Livre de máscaras, usando escala máxima)
+// ==========================================
+async function exportarLaudoPDF() {
+    const btnText = document.getElementById('pdf-btn-text');
+    if (btnText) btnText.innerText = "Gerando PDF...";
 
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
-            pdf.addImage(imgData, 'JPEG', 0, 0, 297, 210);
-            pdf.save(`Laudo_${param}_${depthText.replace(/\s+/g, '_')}_${farmInfo.name.replace(/\s+/g, '_')}.pdf`);
+    const selectedFarmKey = document.getElementById('sel-farm').value;
+    const param = document.getElementById('sel-param').value;
+    const depthKey = document.getElementById('sel-depth').value;
+    const safras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
+    const activeSafra = safras.length ? safras[0] : "N/A";
+    
+    if (!selectedFarmKey || !farmsDatabase[selectedFarmKey]) {
+        alert("Selecione uma fazenda para exportar o laudo.");
+        if (btnText) btnText.innerText = "Exportar Laudo PDF";
+        return;
+    }
+    
+    const farmObj = farmsDatabase[selectedFarmKey];
+    const farmName = farmObj.name || "Fazenda";
+    const farmLocation = farmObj.location || "Localização Indisponível";
 
-            if (btnText) btnText.innerText = "Exportar Laudo PDF Atual";
-        }
+    const depthText = depthKey.replace('d', '').replace('_', '-') + ' cm';
+    const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
 
-        async function generateBatchPDFs() {
+    let unit = "";
+    const paramLower = param.toLowerCase();
+    if (['ctc', 'ca', 'mg', 'k', 'sb', 'al', 'h'].includes(paramLower)) unit = "cmolc/dm³";
+    else if (['p', 's', 'zn', 'cu', 'mn', 'b'].includes(paramLower)) unit = "mg/dm³";
+    else if (paramLower.includes('%') || paramLower.includes('sat') || paramLower === 'v%') unit = "%";
+    else if (paramLower.includes('argila') || paramLower.includes('mo')) unit = "g/kg";
+
+    let scaleString = "1:175.249";
+    try {
+        const bounds = mapLeft.getBounds();
+        const mapWidthMeters = mapLeft.distance(bounds.getNorthWest(), bounds.getNorthEast());
+        const pdfMapWidthMeters = 210 / 1000; 
+        const scaleNumeric = Math.round(mapWidthMeters / pdfMapWidthMeters);
+        scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
+    } catch(e) {
+        console.warn("Erro ao calcular escala", e);
+    }
+
+    const depthConfig = { key: depthKey, titleText: `${depthText}` };
+    let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+    
+    // Cola o mapa na folha inteira, sem risco de cortar nada!
+    doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+    imgData = null;
+
+    if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
+        doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
+    } else {
+        doc.setFillColor(31, 89, 44);
+        doc.rect(0, 0, 297, 30, 'F');
+    }
+
+    if (typeof LOGO_BRANCA_BASE64 !== 'undefined' && LOGO_BRANCA_BASE64.length > 100) {
+        doc.addImage(LOGO_BRANCA_BASE64, 'PNG', 10, 5, 28, 20); 
+    }
+
+    doc.setTextColor(255, 255, 255);
+    const textX = 55; 
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("ORIGENS PARCERIAS AGRÍCOLAS | Rondonópolis - MT", textX, 10, { align: "left" });
+    
+    let tituloCompleto = typeof nomesParametros !== 'undefined' && nomesParametros[paramLower] 
+        ? nomesParametros[paramLower] 
+        : `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
+    
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(tituloCompleto, textX, 18, { align: "left" });
+    
+    doc.setFontSize(10);
+    doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
+
+    if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
+        doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
+    } else {
+        doc.setFillColor(31, 89, 44);
+        doc.rect(0, 195, 297, 15, 'F');
+    }
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("ORIGENS | www.origens.agr.br", 38, 205);
+    doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
+
+    const legendX = 250; 
+    const northX = 270;  
+    let northY = 188;    
+    
+    if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
+        doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 7, 14, 14); 
+    } else {
+        doc.setDrawColor(30, 41, 59);
+        doc.setFillColor(30, 41, 59);
+        doc.triangle(northX + 5, northY, northX + 10, northY + 12, northX, northY + 12, 'F'); 
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("N", northX + 5, northY - 2, { align: "center" });
+    }
+
+    let endLegendaY = northY - 14; 
+    let startY = endLegendaY - (rules.length * 8);
+    
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(16);
+    doc.text(param.toUpperCase(), legendX, startY - 10);
+    
+    if (unit) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Unidade: ${unit}`, legendX, startY - 3);
+    }
+
+    doc.setFontSize(9);
+    rules.forEach(r => {
+        doc.setFillColor(r.color);
+        doc.rect(legendX, startY, 6, 6, 'F');
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
+        doc.rect(legendX, startY, 6, 6, 'S');
+        
+        doc.setFont("helvetica", "normal");
+        doc.text(r.label, legendX + 9, startY + 4);
+        startY += 8;
+    });
+
+    doc.save(`Laudo_${param}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`);
+    
+    if (btnText) btnText.innerText = "Baixar Laudo PDF";
+}
+const generatePerfectPDF = exportarLaudoPDF; // Proteção para o caso do seu botão antigo usar esse nome
+
+// ==========================================
+// 4. EXPORTAR LOTE DE PDFS (.ZIP)
+// ==========================================
+async function generateBatchPDFs() {
     const batchBtnText = document.getElementById('pdf-batch-btn-text');
     if (batchBtnText) batchBtnText.innerText = "Preparando Lote...";
 
@@ -4682,24 +4767,12 @@ async function generateBatchPDFs() {
             else if (paramLower.includes('%') || paramLower.includes('sat') || paramLower === 'v%') unit = "%";
             else if (paramLower.includes('argila') || paramLower.includes('mo')) unit = "g/kg";
 
-            // 1. Gera o mapa (pesado em memória)
             let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
-
-            // 2. Cria o PDF COM COMPRESSÃO ATIVADA (reduz brutalmente o tamanho na RAM)
             let doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
-            doc.addImage(imgData, 'JPEG', 18, 6, 297, 210);
 
-            // LIMPEZA AGRESSIVA DE MEMÓRIA 1: Apagamos a imagem bruta logo após colar no PDF
-            imgData = null;
+            doc.addImage(imgData, 'JPEG', 0, 0, 297, 210);
+            imgData = null; 
 
-            // 3. Cortinas e Máscaras
-            doc.setFillColor(255, 255, 255);
-            doc.rect(0, 0, 297, 37, 'F'); 
-            doc.rect(0, 187, 297, 23, 'F'); 
-            doc.rect(0, 37, 25, 150, 'F'); 
-            doc.rect(230, 37, 67, 150, 'F'); 
-
-            // 4. Cabeçalho
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
                 doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
             } else {
@@ -4713,29 +4786,35 @@ async function generateBatchPDFs() {
 
             doc.setTextColor(255, 255, 255);
             const textX = 55; 
+            
             doc.setFontSize(10);
             doc.setFont("helvetica", "normal");
-            doc.text("ORIGENS Parcerias Agrícolas | Rondonópolis - MT", textX, 10, { align: "left" });
+            doc.text("ORIGENS PARCERIAS AGRÍCOLAS | Rondonópolis - MT", textX, 10, { align: "left" });
+            
+            let tituloCompleto = typeof nomesParametros !== 'undefined' && nomesParametros[paramLower] 
+                ? nomesParametros[paramLower] 
+                : `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
+            
             doc.setFontSize(18);
             doc.setFont("helvetica", "bold");
-            doc.text(`${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`, textX, 18, { align: "left" });
+            doc.text(tituloCompleto, textX, 18, { align: "left" });
+            
             doc.setFontSize(10);
             doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
-            // 5. Rodapé
             if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
                 doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
             } else {
                 doc.setFillColor(31, 89, 44);
                 doc.rect(0, 195, 297, 15, 'F');
             }
+
             doc.setTextColor(255, 255, 255);
             doc.setFontSize(10);
             doc.setFont("helvetica", "bold");
             doc.text("ORIGENS | www.origens.agr.br", 38, 205);
             doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
-            // 6. Legenda e Seta
             const legendX = 250; 
             const northX = 270;  
             let northY = 188;    
@@ -4754,14 +4833,17 @@ async function generateBatchPDFs() {
 
             let endLegendaY = northY - 14; 
             let startY = endLegendaY - (rules.length * 8);
+            
             doc.setTextColor(30, 41, 59);
             doc.setFontSize(16);
             doc.text(param.toUpperCase(), legendX, startY - 10);
+            
             if (unit) {
                 doc.setFontSize(10);
                 doc.setFont("helvetica", "normal");
                 doc.text(`Unidade: ${unit}`, legendX, startY - 3);
             }
+
             doc.setFontSize(9);
             rules.forEach(r => {
                 doc.setFillColor(r.color);
@@ -4769,35 +4851,26 @@ async function generateBatchPDFs() {
                 doc.setDrawColor(0, 0, 0);
                 doc.setLineWidth(0.2);
                 doc.rect(legendX, startY, 6, 6, 'S');
+                
                 doc.setFont("helvetica", "normal");
                 doc.text(r.label, legendX + 9, startY + 4);
                 startY += 8;
             });
 
-            // Converte o PDF para binário leve e empacota no ZIP
             const pdfFileName = `Laudo_${param}_${depthConfig.key}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`;
             const pdfArrayBuffer = doc.output('arraybuffer');
             zip.file(pdfFileName, pdfArrayBuffer);
+            doc = null; 
 
-            // LIMPEZA AGRESSIVA DE MEMÓRIA 2: Destrói o objeto PDF e o buffer
-            doc = null;
-
-            // Pausa crucial de 150ms: Avisa ao Garbage Collector do navegador que ele tem tempo
-            // para limpar a memória RAM e as variáveis mortas antes de começar o próximo mapa.
             await new Promise(resolve => setTimeout(resolve, 150));
         }
     }
 
     if (batchBtnText) batchBtnText.innerText = "Compactando Arquivos (Aguarde)...";
-    
-    // Mais uma pausa para a tela do usuário atualizar antes do travamento inevitável do empacotador Zip
     await new Promise(resolve => setTimeout(resolve, 200)); 
 
     try {
-        // Usa a compressão STORE. Como PDFs já são comprimidos, forçar compressão aqui (DEFLATE)
-        // causaria um estouro de memória no navegador.
         const content = await zip.generateAsync({ type: "blob", compression: "STORE" });
-        
         if (window.saveAs) {
             window.saveAs(content, `Lote_Laudos_Fertilidade_${farmName.replace(/\s+/g, '_')}.zip`);
         } else {
@@ -4808,7 +4881,7 @@ async function generateBatchPDFs() {
         }
     } catch (error) {
         console.error("Erro na criação do ZIP:", error);
-        alert("O Lote é muito grande e excedeu o limite de memória do navegador. Tente exportar menos camadas por vez.");
+        alert("O Lote excedeu o limite de memória. Tente exportar menos camadas por vez.");
     } finally {
         if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
     }
