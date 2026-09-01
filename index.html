@@ -2769,21 +2769,27 @@ async function exportarLaudoPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
     
-    // ESCALA 85% E POSICIONAMENTO CALCULADO
-    const imgW = 297 * 0.85; 
-    const imgH = 210 * 0.85; 
-    const offsetX = 12; 
-    const offsetY = 10; 
+    // ==========================================
+    // GEOMETRIA CORRIGIDA: 82% DE ESCALA
+    // ==========================================
+    const imgW = 297 * 0.82; 
+    const imgH = 210 * 0.82; 
+    const offsetX = 5; 
+    // CRÍTICO: offsetY = 30 garante que o mapa comece EXATAMENTE abaixo do cabeçalho.
+    const offsetY = 30; 
     
     doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
     imgData = null;
 
-    // MÁSCARAS DE APAGÃO (Matemática da escala de 85%)
+    // ==========================================
+    // MÁSCARAS DE APAGÃO CIRÚRGICO
+    // ==========================================
     doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, 297, 30, 'F');       // Topo: Esconde o cabeçalho antigo encolhido e respeita o novo
-    doc.rect(0, 170, 297, 40, 'F');     // Rodapé: Esconde textos antigos e rodape
-    doc.rect(0, 30, 28, 140, 'F');      // Esquerda: Apaga a linha verde antiga
-    doc.rect(211, 30, 86, 140, 'F');    // Direita: Vaporiza a legenda velha sem encostar na Fazenda Brasil
+    doc.rect(0, 187, 297, 23, 'F');  // Limpa o Rodapé
+    
+    // MÁSCARA DIREITA (X=195): Avança o suficiente para a esquerda para cobrir 
+    // toda a legenda velha que foi arrastada pelo zoom.
+    doc.rect(195, 30, 102, 160, 'F'); 
 
     // CABEÇALHO (NOVO)
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
@@ -2946,21 +2952,19 @@ async function generateBatchPDFs() {
             let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
             let doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
 
-            // IDÊNTICO À FUNÇÃO INDIVIDUAL (Escala 85%)
-            const imgW = 297 * 0.85; 
-            const imgH = 210 * 0.85; 
-            const offsetX = 12; 
-            const offsetY = 10; 
+            // MESMA GEOMETRIA DA FUNÇÃO INDIVIDUAL
+            const imgW = 297 * 0.82; 
+            const imgH = 210 * 0.82; 
+            const offsetX = 5; 
+            const offsetY = 30; 
             
             doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
             imgData = null; 
 
-            // MÁSCARAS DE APAGÃO (Escala 85%)
+            // MÁSCARAS
             doc.setFillColor(255, 255, 255);
-            doc.rect(0, 0, 297, 30, 'F');       
-            doc.rect(0, 170, 297, 40, 'F');     
-            doc.rect(0, 30, 28, 140, 'F');      
-            doc.rect(211, 30, 86, 140, 'F');    
+            doc.rect(0, 187, 297, 23, 'F');  
+            doc.rect(195, 30, 102, 160, 'F'); // Mascara no 195 apaga legenda inteira
 
             // CABEÇALHO
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
