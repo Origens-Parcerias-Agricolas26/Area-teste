@@ -2769,32 +2769,23 @@ async function exportarLaudoPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
     
-    // ==========================================
-    // ESCALA PERFEITA (75%)
-    // Garante que o mapa caiba inteirinho sem bater no cabeçalho
-    // ==========================================
-    const imgW = 297 * 0.75; // 222.75mm
-    const imgH = 210 * 0.75; // 157.5mm
-    const offsetX = 10;      // Espaço na margem esquerda
-    const offsetY = 30;      // COMEÇA EXATAMENTE ABAIXO DO CABEÇALHO (Impossível cortar o topo!)
+    // ESCALA 85% E POSICIONAMENTO CALCULADO
+    const imgW = 297 * 0.85; 
+    const imgH = 210 * 0.85; 
+    const offsetX = 12; 
+    const offsetY = 10; 
     
     doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
     imgData = null;
 
-    // ==========================================
-    // MÁSCARAS DE LIMPEZA BRUTAL
-    // ==========================================
+    // MÁSCARAS DE APAGÃO (Matemática da escala de 85%)
     doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, 297, 30, 'F');    // Cabeçalho 
-    doc.rect(0, 187, 297, 23, 'F');  // Rodapé
-    
-    // A legenda velha encolheu e veio parar no milímetro ~185. 
-    // Colocamos uma "parede branca" do 190 até o final da folha. Adeus legenda velha!
-    doc.rect(190, 30, 107, 157, 'F'); 
+    doc.rect(0, 0, 297, 30, 'F');       // Topo: Esconde o cabeçalho antigo encolhido e respeita o novo
+    doc.rect(0, 170, 297, 40, 'F');     // Rodapé: Esconde textos antigos e rodape
+    doc.rect(0, 30, 28, 140, 'F');      // Esquerda: Apaga a linha verde antiga
+    doc.rect(211, 30, 86, 140, 'F');    // Direita: Vaporiza a legenda velha sem encostar na Fazenda Brasil
 
-    // ==========================================
     // CABEÇALHO (NOVO)
-    // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
     } else {
@@ -2824,9 +2815,7 @@ async function exportarLaudoPDF() {
     doc.setFontSize(10);
     doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
-    // ==========================================
     // RODAPÉ 
-    // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
     } else {
@@ -2840,9 +2829,7 @@ async function exportarLaudoPDF() {
     doc.text("ORIGENS | www.origens.agr.br", 38, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
-    // ==========================================
-    // NOVA LEGENDA
-    // ==========================================
+    // LEGENDA E SETA NORTE
     const legendX = 250; 
     const northX = 270;  
     let northY = 188;    
@@ -2959,20 +2946,21 @@ async function generateBatchPDFs() {
             let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
             let doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
 
-            // IDÊNTICO À FUNÇÃO INDIVIDUAL (Escala 75%)
-            const imgW = 297 * 0.75; 
-            const imgH = 210 * 0.75; 
-            const offsetX = 10;      
-            const offsetY = 30;      
+            // IDÊNTICO À FUNÇÃO INDIVIDUAL (Escala 85%)
+            const imgW = 297 * 0.85; 
+            const imgH = 210 * 0.85; 
+            const offsetX = 12; 
+            const offsetY = 10; 
             
             doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
             imgData = null; 
 
-            // MÁSCARAS DE LIMPEZA BRUTAL
+            // MÁSCARAS DE APAGÃO (Escala 85%)
             doc.setFillColor(255, 255, 255);
-            doc.rect(0, 0, 297, 30, 'F');    
-            doc.rect(0, 187, 297, 23, 'F');  
-            doc.rect(190, 30, 107, 157, 'F'); // Tchau legenda velha!
+            doc.rect(0, 0, 297, 30, 'F');       
+            doc.rect(0, 170, 297, 40, 'F');     
+            doc.rect(0, 30, 28, 140, 'F');      
+            doc.rect(211, 30, 86, 140, 'F');    
 
             // CABEÇALHO
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
