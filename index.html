@@ -4529,35 +4529,6 @@ function drawCanvasForParam(param, depthConfig, farmInfo, rules) {
 }
 
 // ==========================================
-// 2. DICIONÁRIO DE NOMES E EXTRAÇÕES
-// ==========================================
-const nomesParametros = {
-    'al': 'ALUMÍNIO - EXTRAÇÃO: KCl 1M',
-    'p': 'FÓSFORO - EXTRAÇÃO: Mehlich 1',
-    'k': 'POTÁSSIO - EXTRAÇÃO: Mehlich 1',
-    'ca': 'CÁLCIO - EXTRAÇÃO: KCl 1M',
-    'mg': 'MAGNÉSIO - EXTRAÇÃO: KCl 1M',
-    'ctc': 'CTC - CAPACIDADE DE TROCA CATIÔNICA',
-    'mo': 'MATÉRIA ORGÂNICA - METODOLOGIA DICROMATO DE POTÁSSIO',
-    's': 'ENXOFRE - EXTRAÇÃO: FOSFATO DE CÁLCIO',
-    'v%': 'SATURAÇÃO POR BASES (V%)',
-    'm_sat': 'SATURAÇÃO POR ALUMÍNIO (m%)',
-    'argila': 'ARGILA - DISPERSÃO: NaOH',
-    'silte': 'SILTE - DISPERSÃO: NaOH',
-    'areia': 'AREIA - DISPERSÃO: NaOH',
-    'mo%': 'MATÉRIA ORGÂNICA - METODOLOGIA DICROMATO DE POTÁSSIO',
-    'ph_água': 'pH - SOLUÇÃO: H₂O',
-    'ph_cacl2': 'pH - SOLUÇÃO: CaCl₂',
-    'ca%': 'SATURAÇÃO POR CÁLCIO (Ca%)',
-    'mg%': 'SATURAÇÃO POR MAGNÉSIO (Mg%)',
-    'k%': 'SATURAÇÃO POR POTÁSSIO (K%)',
-    'zn': 'ZINCO - EXTRAÇÃO: Mehlich 1',
-    'mn': 'MANGANÊS - EXTRAÇÃO: Mehlich 1',
-    'cu': 'COBRE - EXTRAÇÃO: Mehlich 1',
-    'b': 'BORO - EXTRAÇÃO: Mehlich 1'
-};
-
-// ==========================================
 // 3. EXPORTAR LAUDO INDIVIDUAL (Livre de máscaras, usando escala máxima)
 // ==========================================
 async function exportarLaudoPDF() {
