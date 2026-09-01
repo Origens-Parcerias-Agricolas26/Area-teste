@@ -2719,6 +2719,163 @@ const nomesParametros = {
     'b': 'BORO - EXTRAÇÃO: Mehlich 1'
 };
 
+// ==========================================
+// FUNÇÃO 1: EXPORTAR LAUDO INDIVIDUAL
+// ==========================================
+async function exportarLaudoPDF() {
+    const btnText = document.getElementById('pdf-btn-text');
+    if (btnText) btnText.innerText = "Gerando PDF...";
+
+    const selectedFarmKey = document.getElementById('sel-farm').value;
+    const param = document.getElementById('sel-param').value;
+    const depthKey = document.getElementById('sel-depth').value;
+    const safras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
+    const activeSafra = safras.length ? safras[0] : "N/A";
+    
+    if (!selectedFarmKey || !farmsDatabase[selectedFarmKey]) {
+        alert("Selecione uma fazenda para exportar o laudo.");
+        if (btnText) btnText.innerText = "Exportar Laudo PDF";
+        return;
+    }
+    
+    const farmObj = farmsDatabase[selectedFarmKey];
+    const farmName = farmObj.name || "Fazenda";
+    const farmLocation = farmObj.location || "Localização Indisponível";
+
+    const depthText = depthKey.replace('d', '').replace('_', '-') + ' cm';
+    const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
+
+    let unit = "";
+    const paramLower = param.toLowerCase();
+    if (['ctc', 'ca', 'mg', 'k', 'sb', 'al', 'h'].includes(paramLower)) unit = "cmolc/dm³";
+    else if (['p', 's', 'zn', 'cu', 'mn', 'b'].includes(paramLower)) unit = "mg/dm³";
+    else if (paramLower.includes('%') || paramLower.includes('sat') || paramLower === 'v%') unit = "%";
+    else if (paramLower.includes('argila') || paramLower.includes('mo')) unit = "g/kg";
+
+    let scaleString = "1:175.249";
+    try {
+        const bounds = mapLeft.getBounds();
+        const mapWidthMeters = mapLeft.distance(bounds.getNorthWest(), bounds.getNorthEast());
+        const pdfMapWidthMeters = 210 / 1000; 
+        const scaleNumeric = Math.round(mapWidthMeters / pdfMapWidthMeters);
+        scaleString = "1:" + scaleNumeric.toLocaleString('pt-BR');
+    } catch(e) {
+        console.warn("Erro ao calcular escala", e);
+    }
+
+    const depthConfig = { key: depthKey, titleText: `${depthText}` };
+    let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
+    
+    const imgW = 297 * 0.90; 
+    const imgH = 210 * 0.90;
+    const offsetX = 18; 
+    const offsetY = 9; 
+    
+    doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
+    imgData = null;
+
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, 297, 30, 'F');    
+    doc.rect(0, 187, 297, 23, 'F');  
+    doc.rect(0, 30, 22, 157, 'F');   
+    doc.rect(228, 30, 69, 157, 'F'); 
+
+    if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
+        doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
+    } else {
+        doc.setFillColor(31, 89, 44);
+        doc.rect(0, 0, 297, 30, 'F');
+    }
+
+    if (typeof LOGO_BRANCA_BASE64 !== 'undefined' && LOGO_BRANCA_BASE64.length > 100) {
+        doc.addImage(LOGO_BRANCA_BASE64, 'PNG', 10, 5, 28, 20); 
+    }
+
+    doc.setTextColor(255, 255, 255);
+    const textX = 55; 
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text("ORIGENS Parcerias Agrícolas | Rondonópolis - MT", textX, 10, { align: "left" });
+    
+    let tituloCompleto = nomesParametros[paramLower];
+    if (!tituloCompleto) {
+        tituloCompleto = `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
+    }
+    
+    doc.setFontSize(18);
+    doc.setFont("helvetica", "bold");
+    doc.text(tituloCompleto, textX, 18, { align: "left" });
+    
+    doc.setFontSize(10);
+    doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
+
+    if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
+        doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
+    } else {
+        doc.setFillColor(31, 89, 44);
+        doc.rect(0, 195, 297, 15, 'F');
+    }
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text("ORIGENS | www.origens.agr.br", 10, 205);
+    doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
+
+    const legendX = 262; 
+    const northX = 270;  
+    let northY = 188;    
+    
+    if (typeof SETA_NORTE_BASE64 !== 'undefined' && SETA_NORTE_BASE64.length > 100) {
+        doc.addImage(SETA_NORTE_BASE64, 'PNG', northX, northY - 7, 14, 14); 
+    } else {
+        doc.setDrawColor(30, 41, 59);
+        doc.setFillColor(30, 41, 59);
+        doc.triangle(northX + 5, northY, northX + 10, northY + 12, northX, northY + 12, 'F'); 
+        doc.setTextColor(30, 41, 59);
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("N", northX + 5, northY - 2, { align: "center" });
+    }
+
+    let endLegendaY = northY - 14; 
+    let startY = endLegendaY - (rules.length * 8);
+    
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(16);
+    doc.text(param.toUpperCase(), legendX, startY - 10);
+    
+    if (unit) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Unidade: ${unit}`, legendX, startY - 3);
+    }
+
+    doc.setFontSize(9);
+    rules.forEach(r => {
+        doc.setFillColor(r.color);
+        doc.rect(legendX, startY, 6, 6, 'F');
+        doc.setDrawColor(0, 0, 0);
+        doc.setLineWidth(0.2);
+        doc.rect(legendX, startY, 6, 6, 'S');
+        
+        doc.setFont("helvetica", "normal");
+        doc.text(r.label, legendX + 9, startY + 4);
+        startY += 8;
+    });
+
+    doc.save(`Laudo_${param}_${farmName.replace(/\s+/g, '_')}_Safra_${activeSafra}.pdf`);
+    
+    if (btnText) btnText.innerText = "Baixar Laudo PDF";
+}
+
+// ==========================================
+// FUNÇÃO 2: EXPORTAR LOTE DE PDFS (.ZIP)
+// ==========================================
 async function generateBatchPDFs() {
     const batchBtnText = document.getElementById('pdf-batch-btn-text');
     if (batchBtnText) batchBtnText.innerText = "Preparando Lote...";
@@ -2785,29 +2942,20 @@ async function generateBatchPDFs() {
             let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
             let doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
 
-            // ==========================================
-            // ZOOM OUT DE 10%: Protege a fazenda de ser cortada
-            // ==========================================
             const imgW = 297 * 0.90; 
             const imgH = 210 * 0.90;
             const offsetX = 18; 
-            const offsetY = 9;  // Rebaixado levemente para afastar do cabeçalho
+            const offsetY = 9;  
             
             doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
-            imgData = null; // Limpeza de memória
+            imgData = null; 
 
-            // ==========================================
-            // CORTINAS BRANCAS REAJUSTADAS
-            // ==========================================
             doc.setFillColor(255, 255, 255);
-            doc.rect(0, 0, 297, 30, 'F');    // Topo (Respeita exatamente os 30mm do novo cabeçalho)
-            doc.rect(0, 187, 297, 23, 'F');  // Rodapé
-            doc.rect(0, 30, 22, 157, 'F');   // Esquerda
-            doc.rect(228, 30, 69, 157, 'F'); // Direita (Avança um pouco mais para cobrir a legenda velha que encolheu com o zoom)
+            doc.rect(0, 0, 297, 30, 'F');    
+            doc.rect(0, 187, 297, 23, 'F');  
+            doc.rect(0, 30, 22, 157, 'F');   
+            doc.rect(228, 30, 69, 157, 'F'); 
 
-            // ==========================================
-            // CABEÇALHO (NOVO)
-            // ==========================================
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
                 doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
             } else {
@@ -2826,8 +2974,7 @@ async function generateBatchPDFs() {
             doc.setFont("helvetica", "normal");
             doc.text("ORIGENS PARCERIAS AGRÍCOLAS | Rondonópolis - MT", textX, 10, { align: "left" });
             
-            // Busca o título correto no dicionário
-            let tituloCompleto = nomesParametros[param.toLowerCase()];
+            let tituloCompleto = nomesParametros[paramLower];
             if (!tituloCompleto) {
                 tituloCompleto = `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
             }
@@ -2839,9 +2986,6 @@ async function generateBatchPDFs() {
             doc.setFontSize(10);
             doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
-            // ==========================================
-            // RODAPÉ E LEGENDA
-            // ==========================================
             if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
                 doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
             } else {
