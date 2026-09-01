@@ -2769,20 +2769,32 @@ async function exportarLaudoPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
     
-    const imgW = 297 * 0.90; 
-    const imgH = 210 * 0.90;
-    const offsetX = 18; 
-    const offsetY = 9; 
+    // ==========================================
+    // ESCALA PERFEITA (75%)
+    // Garante que o mapa caiba inteirinho sem bater no cabeçalho
+    // ==========================================
+    const imgW = 297 * 0.75; // 222.75mm
+    const imgH = 210 * 0.75; // 157.5mm
+    const offsetX = 10;      // Espaço na margem esquerda
+    const offsetY = 30;      // COMEÇA EXATAMENTE ABAIXO DO CABEÇALHO (Impossível cortar o topo!)
     
     doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
     imgData = null;
 
+    // ==========================================
+    // MÁSCARAS DE LIMPEZA BRUTAL
+    // ==========================================
     doc.setFillColor(255, 255, 255);
-    doc.rect(0, 0, 297, 30, 'F');    
-    doc.rect(0, 187, 297, 23, 'F');  
-    doc.rect(0, 30, 22, 157, 'F');   
-    doc.rect(228, 30, 69, 157, 'F'); 
+    doc.rect(0, 0, 297, 30, 'F');    // Cabeçalho 
+    doc.rect(0, 187, 297, 23, 'F');  // Rodapé
+    
+    // A legenda velha encolheu e veio parar no milímetro ~185. 
+    // Colocamos uma "parede branca" do 190 até o final da folha. Adeus legenda velha!
+    doc.rect(190, 30, 107, 157, 'F'); 
 
+    // ==========================================
+    // CABEÇALHO (NOVO)
+    // ==========================================
     if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
         doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
     } else {
@@ -2799,12 +2811,11 @@ async function exportarLaudoPDF() {
     
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text("ORIGENS Parcerias Agrícolas | Rondonópolis - MT", textX, 10, { align: "left" });
+    doc.text("ORIGENS PARCERIAS AGRÍCOLAS | Rondonópolis - MT", textX, 10, { align: "left" });
     
-    let tituloCompleto = nomesParametros[paramLower];
-    if (!tituloCompleto) {
-        tituloCompleto = `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
-    }
+    let tituloCompleto = typeof nomesParametros !== 'undefined' && nomesParametros[paramLower] 
+        ? nomesParametros[paramLower] 
+        : `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
     
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
@@ -2813,6 +2824,9 @@ async function exportarLaudoPDF() {
     doc.setFontSize(10);
     doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
+    // ==========================================
+    // RODAPÉ 
+    // ==========================================
     if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
         doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
     } else {
@@ -2823,10 +2837,13 @@ async function exportarLaudoPDF() {
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(10);
     doc.setFont("helvetica", "bold");
-    doc.text("ORIGENS | www.origens.agr.br", 10, 205);
+    doc.text("ORIGENS | www.origens.agr.br", 38, 205);
     doc.text(`Escala: ${scaleString} | Sistema WGS 84`, 287, 205, { align: "right" });
 
-    const legendX = 262; 
+    // ==========================================
+    // NOVA LEGENDA
+    // ==========================================
+    const legendX = 250; 
     const northX = 270;  
     let northY = 188;    
     
@@ -2942,20 +2959,22 @@ async function generateBatchPDFs() {
             let imgData = drawCanvasForParam(param, depthConfig, farmObj, rules);
             let doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4', compress: true });
 
-            const imgW = 297 * 0.90; 
-            const imgH = 210 * 0.90;
-            const offsetX = 18; 
-            const offsetY = 9;  
+            // IDÊNTICO À FUNÇÃO INDIVIDUAL (Escala 75%)
+            const imgW = 297 * 0.75; 
+            const imgH = 210 * 0.75; 
+            const offsetX = 10;      
+            const offsetY = 30;      
             
             doc.addImage(imgData, 'JPEG', offsetX, offsetY, imgW, imgH);
             imgData = null; 
 
+            // MÁSCARAS DE LIMPEZA BRUTAL
             doc.setFillColor(255, 255, 255);
             doc.rect(0, 0, 297, 30, 'F');    
             doc.rect(0, 187, 297, 23, 'F');  
-            doc.rect(0, 30, 22, 157, 'F');   
-            doc.rect(228, 30, 69, 157, 'F'); 
+            doc.rect(190, 30, 107, 157, 'F'); // Tchau legenda velha!
 
+            // CABEÇALHO
             if (typeof HEADER_BG_BASE64 !== 'undefined' && HEADER_BG_BASE64.length > 100) {
                 doc.addImage(HEADER_BG_BASE64, 'JPEG', 0, 0, 297, 30);
             } else {
@@ -2974,10 +2993,9 @@ async function generateBatchPDFs() {
             doc.setFont("helvetica", "normal");
             doc.text("ORIGENS PARCERIAS AGRÍCOLAS | Rondonópolis - MT", textX, 10, { align: "left" });
             
-            let tituloCompleto = nomesParametros[paramLower];
-            if (!tituloCompleto) {
-                tituloCompleto = `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
-            }
+            let tituloCompleto = typeof nomesParametros !== 'undefined' && nomesParametros[paramLower] 
+                ? nomesParametros[paramLower] 
+                : `${param.toUpperCase()} - CARACTERIZAÇÃO DE SOLO`;
             
             doc.setFontSize(18);
             doc.setFont("helvetica", "bold");
@@ -2986,6 +3004,7 @@ async function generateBatchPDFs() {
             doc.setFontSize(10);
             doc.text(`CAMADA: ${depthText} | ${farmName.toUpperCase()} - ${farmLocation.toUpperCase()}`, textX, 25, { align: "left" });
 
+            // RODAPÉ
             if (typeof FOOTER_BG_BASE64 !== 'undefined' && FOOTER_BG_BASE64.length > 100) {
                 doc.addImage(FOOTER_BG_BASE64, 'PNG', 0, 195, 297, 15);
             } else {
