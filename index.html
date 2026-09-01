@@ -2699,7 +2699,7 @@ const nomesParametros = {
     'k': 'POTÁSSIO - EXTRAÇÃO: Mehlich 1',
     'ca': 'CÁLCIO - EXTRAÇÃO: KCl 1M',
     'mg': 'MAGNÉSIO - EXTRAÇÃO: KCl 1M',
-    'ctc': 'CAPACIDADE DE TROCA CATIÔNICA',
+    'ctc': 'CTC - CAPACIDADE DE TROCA CATIÔNICA',
     'mo': 'MATÉRIA ORGÂNICA - METODOLOGIA DICROMATO DE POTÁSSIO',
     's': 'ENXOFRE - EXTRAÇÃO: FOSFATO DE CÁLCIO',
     'v%': 'SATURAÇÃO POR BASES (V%)',
@@ -2776,14 +2776,14 @@ async function exportarLaudoPDF() {
     doc.setFillColor(255, 255, 255);
     
     // MÁSCARA TOPO E RODAPÉ
-    doc.rect(0, 0, 297, 37, 'F'); 
+    doc.rect(0, 0, 297, 30, 'F'); 
     doc.rect(0, 187, 297, 23, 'F'); 
 
     // MÁSCARA ESQUERDA: Cobre a borda verde que foi empurrada
-    doc.rect(0, 37, 25, 150, 'F'); 
+    doc.rect(0, 30, 25, 157, 'F'); 
 
     // MÁSCARA DIREITA: Apaga a linha cinza e legenda velha do sistema antigo
-    doc.rect(234, 37, 63, 150, 'F'); 
+    doc.rect(234, 30, 63, 157, 'F'); 
 
     // ==========================================
     // 4. CABEÇALHO (NOVO)
