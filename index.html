@@ -2377,6 +2377,14 @@
         if (quadMapWrapper) {
             quadMapWrapper.classList.remove('hidden');
             quadMapWrapper.classList.add('grid');
+            
+            // CORREÇÃO DA TELA CINZA: Força o Leaflet a recalcular o tamanho das 4 divs
+            setTimeout(() => {
+                if(mapQuadTL) mapQuadTL.invalidateSize();
+                if(mapQuadTR) mapQuadTR.invalidateSize();
+                if(mapQuadBL) mapQuadBL.invalidateSize();
+                if(mapQuadBR) mapQuadBR.invalidateSize();
+            }, 200);
         }
     }
 
@@ -2384,6 +2392,23 @@
     if (typeof updateGISMap === 'function') {
         updateGISMap();
     }
+}
+      function popularDropdownsDeSafra(listaDeSafras) {
+    const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
+    
+    camposSafra.forEach(id => {
+        const campo = document.getElementById(id);
+        if (!campo) return;
+        
+        campo.innerHTML = ''; 
+        
+        listaDeSafras.forEach(safra => {
+            const option = document.createElement('option');
+            option.value = safra;
+            option.textContent = safra;
+            campo.appendChild(option);
+        });
+    });
 }
             
         function initSplitSlider() {
@@ -2426,6 +2451,7 @@
                 container.innerHTML = '<span class="text-slate-400 italic">Sem safras salvas</span>';
                 renderSavedPrescriptionsList();
                 renderExtraExcelList();
+                popularDropdownsDeSafra([]);
                 return;
             }
 
@@ -2451,6 +2477,7 @@
                 renderExtraExcelList();
                 return;
             }
+            popularDropdownsDeSafra(sortedSafras);
 
             container.innerHTML = sortedSafras.map((s, idx) => `
                 <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
@@ -3131,7 +3158,9 @@ async function generateBatchPDFs() {
             if (!mapLeft) {
                 mapLeft = L.map('map-left').setView([-12.592, -58.012], 13);
                 mapRight = L.map('map-right', { zoomControl: false }).setView([-12.592, -58.012], 13);
-
+              
+                inicializarMapasQuadruplos();
+              
                 changeBasemap();
 
                 mapLeft.on('move', () => { if (!isSyncing) { isSyncing = true; mapRight.setView(mapLeft.getCenter(), mapLeft.getZoom(), { animate: false }); isSyncing = false; } });
