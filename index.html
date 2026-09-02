@@ -3442,36 +3442,43 @@ async function generateBatchPDFs() {
             const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
             const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
 
-            const buildLayer = (depthKey) => L.geoJSON(currentGeoJSON, {
-                smoothFactor: 2.5,
-                filter: f => {
-                    if (selectedTalhoes.length && !selectedTalhoes.includes(String(f.properties.Talhao))) {
-                        return false;
-                    }
-                    if (selectedSafras && selectedSafras.length) {
-                        const featureSafra = f.properties.safra_origem || extractSafra(f.properties);
-                        const hasHistorico = f.properties && f.properties.safras_historico && selectedSafras.some(s => f.properties.safras_historico[s] && f.properties.safras_historico[s][depthKey]);
-                        const hasDirectSafra = featureSafra && selectedSafras.includes(featureSafra);
-                        if (!hasHistorico && !hasDirectSafra) return false;
-                    }
-                    return true;
-                },
-                style: f => {
-                    const rawVal = getFeatureDepthData(f, depthKey, selectedSafras)[param];
-                    const matched = getMatchedRule(rawVal, rules);
-                    let color = matched ? matched.color : '#94a3b8';
+            // Adicionamos 'customSafraArray' para forçar uma safra específica quando necessário
+    const buildLayer = (depthKey, customSafraArray = null) => L.geoJSON(currentGeoJSON, {
+        smoothFactor: 2.5,
+        filter: f => {
+            if (selectedTalhoes.length && !selectedTalhoes.includes(String(f.properties.Talhao))) {
+                return false;
+            }
+            // Usa a safra do dropdown ou a global do menu lateral
+            const activeSafras = customSafraArray || selectedSafras; 
+            
+            if (activeSafras && activeSafras.length) {
+                const featuresSafra = f.properties.safra_origem || extractSafra(f.properties);
+                const hasHistorico = f.properties && f.properties.safras_historico && activeSafras.some(s => f.properties.safras_historico[s] && f.properties.safras_historico[s][depthKey]);
+                const hasDirectSafra = featuresSafra && activeSafras.includes(featuresSafra);
+                if (!hasHistorico && !hasDirectSafra) return false;
+            }
+            return true;
+        },
+        style: f => {
+            const activeSafras = customSafraArray || selectedSafras;
+            const rawVal = getFeatureDepthData(f, depthKey, activeSafras)[param];
+            const matched = getMatchedRule(rawVal, rules);
+            let color = matched ? matched.color : '#94a3b8';
 
-                    return { 
-                        fillColor: color, 
-                        fillOpacity: 0.85, 
-                        color: showBoundary ? '#1d4ed8' : 'transparent', 
-                        weight: showBoundary ? 1.5 : 0 
-                    };
-                },
-                onEachFeature: (f, layer) => {
-                    const depthData = getFeatureDepthData(f, depthKey, selectedSafras);
-                    const rawVal = depthData[param];
-                    const displayVal = formatDisplayValue(rawVal);
+            return {
+                fillColor: color,
+                fillOpacity: 0.85,
+                color: showBoundary ? '#1d4ed8' : 'transparent',
+                weight: showBoundary ? 1.5 : 0
+            };
+        },
+        onEachFeature: (f, layer) => {
+            const activeSafras = customSafraArray || selectedSafras;
+            const depthData = getFeatureDepthData(f, depthKey, activeSafras);
+            const rawVal = depthData[param];
+            const displayVal = formatDisplayValue(rawVal);
+// ... a partir daqui o seu código continua igual (const subName = ... layer.bindPopup ...)
                     const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || 'Gleba';
 
                     layer.bindPopup(`<b>${subName} (Talhão ${f.properties.Talhao || 'N/A'})</b><br>${param}: <b>${displayVal}</b>`);
@@ -3506,17 +3513,24 @@ async function generateBatchPDFs() {
         
     } else if (mode === 'sidebyside_safra') {
         const depthFixed = document.getElementById('sel-depth-fixed').value;
-        geojsonLayerLeft = buildLayer(depthFixed).addTo(mapLeft);
-        geojsonLayerRight = buildLayer(depthFixed).addTo(mapRight);
+        const safraA = document.getElementById('sel-safra-a').value;
+        const safraB = document.getElementById('sel-safra-b').value;
+        
+        // Passa a safra específica como um array [safraA] para a função
+        geojsonLayerLeft = buildLayer(depthFixed, [safraA]).addTo(mapLeft);
+        geojsonLayerRight = buildLayer(depthFixed, [safraB]).addTo(mapRight);
         
     } else if (mode === 'quad_split') {
         const depthSuperf = document.getElementById('sel-quad-depth-a').value;
         const depthProfunda = document.getElementById('sel-quad-depth-b').value;
+        const safraQuadA = document.getElementById('sel-quad-safra-a').value;
+        const safraQuadB = document.getElementById('sel-quad-safra-b').value;
         
-        geojsonLayerQuadTL = buildLayer(depthSuperf).addTo(mapQuadTL);
-        geojsonLayerQuadTR = buildLayer(depthSuperf).addTo(mapQuadTR);
-        geojsonLayerQuadBL = buildLayer(depthProfunda).addTo(mapQuadBL);
-        geojsonLayerQuadBR = buildLayer(depthProfunda).addTo(mapQuadBR);
+        // Combina as safras com as profundidades corretas para cada quadrante
+        geojsonLayerQuadTL = buildLayer(depthSuperf, [safraQuadA]).addTo(mapQuadTL);
+        geojsonLayerQuadTR = buildLayer(depthSuperf, [safraQuadB]).addTo(mapQuadTR);
+        geojsonLayerQuadBL = buildLayer(depthProfunda, [safraQuadA]).addTo(mapQuadBL);
+        geojsonLayerQuadBR = buildLayer(depthProfunda, [safraQuadB]).addTo(mapQuadBR);
     }
 
             setTimeout(() => {
