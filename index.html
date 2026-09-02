@@ -2384,37 +2384,7 @@
     if (typeof updateGISMap === 'function') {
         updateGISMap();
     }
-            const mode = document.getElementById('sel-mode').value;
-            const singleBox = document.getElementById('box-single-depth');
-            const diffBox = document.getElementById('box-diff-depth');
-            const rightPane = document.getElementById('right-map-pane');
-            const leftPane = document.getElementById('left-map-pane');
-            const divider = document.getElementById('split-divider');
-
-            if (mode === 'sidebyside') {
-                singleBox.classList.add('hidden');
-                diffBox.classList.remove('hidden');
-                rightPane.style.display = 'block';
-                divider.style.display = 'block';
-                splitPosition = 0.5;
-                divider.style.left = '50%';
-                applySplitWidths();
-                initSplitSlider();
-            } else {
-                singleBox.classList.remove('hidden');
-                diffBox.classList.add('hidden');
-                rightPane.style.display = 'none';
-                divider.style.display = 'none';
-                leftPane.style.width = '100%';
-            }
-
-            setTimeout(() => {
-                if (mapLeft) mapLeft.invalidateSize();
-                if (mapRight) mapRight.invalidateSize();
-                updateGISMap();
-            }, 100);
-        }
-
+            
         function initSplitSlider() {
             const divider = document.getElementById('split-divider');
             const container = document.getElementById('map-container');
