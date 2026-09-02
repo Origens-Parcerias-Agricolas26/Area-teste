@@ -2381,13 +2381,15 @@
             quadMapWrapper.classList.remove('hidden');
             quadMapWrapper.classList.add('grid');
             
-            // CORREÇÃO DA TELA CINZA: Força o Leaflet a recalcular o tamanho das 4 divs
-            setTimeout(() => {
-                if(mapQuadTL) mapQuadTL.invalidateSize();
-                if(mapQuadTR) mapQuadTR.invalidateSize();
-                if(mapQuadBL) mapQuadBL.invalidateSize();
-                if(mapQuadBR) mapQuadBR.invalidateSize();
-            }, 200);
+            // FORÇA O LEAFLET A RECALCULAR O TAMANHO DE TODOS OS MAPAS (Resolve o bug do Swipe)
+    setTimeout(() => {
+        if(mapLeft) mapLeft.invalidateSize();
+        if(mapRight) mapRight.invalidateSize();
+        if(typeof mapQuadTL !== 'undefined' && mapQuadTL) mapQuadTL.invalidateSize();
+        if(typeof mapQuadTR !== 'undefined' && mapQuadTR) mapQuadTR.invalidateSize();
+        if(typeof mapQuadBL !== 'undefined' && mapQuadBL) mapQuadBL.invalidateSize();
+        if(typeof mapQuadBR !== 'undefined' && mapQuadBR) mapQuadBR.invalidateSize();
+    }, 250);
         }
     }
 
@@ -3182,17 +3184,34 @@ async function generateBatchPDFs() {
         }
 
         function changeBasemap() {
-            if (!mapLeft || !mapRight) return;
-            const selectedType = document.getElementById('sel-basemap').value;
+    if (!mapLeft || !mapRight) return;
+    const selectedType = document.getElementById('sel-basemap') ? document.getElementById('sel-basemap').value : 'satellite';
 
-            if (tileLayerLeft) mapLeft.removeLayer(tileLayerLeft);
-            if (tileLayerRight) mapRight.removeLayer(tileLayerRight);
+    // 1. Limpa as camadas antigas de todos os mapas
+    if (tileLayerLeft) mapLeft.removeLayer(tileLayerLeft);
+    if (tileLayerRight) mapRight.removeLayer(tileLayerRight);
+    if (typeof tileLayerQuadTL !== 'undefined' && tileLayerQuadTL) mapQuadTL.removeLayer(tileLayerQuadTL);
+    if (typeof tileLayerQuadTR !== 'undefined' && tileLayerQuadTR) mapQuadTR.removeLayer(tileLayerQuadTR);
+    if (typeof tileLayerQuadBL !== 'undefined' && tileLayerQuadBL) mapQuadBL.removeLayer(tileLayerQuadBL);
+    if (typeof tileLayerQuadBR !== 'undefined' && tileLayerQuadBR) mapQuadBR.removeLayer(tileLayerQuadBR);
 
-            const esriUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-            tileLayerLeft = L.tileLayer(esriUrl, { attribution: 'Origens &copy; Esri', maxZoom: 18 }).addTo(mapLeft);
-            tileLayerRight = L.tileLayer(esriUrl, { attribution: 'Esri', maxZoom: 18 }).addTo(mapRight);
-            updateGISMap();
-        }
+    // 2. Adiciona o satélite em todos eles
+    const esriUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
+    
+    tileLayerLeft = L.tileLayer(esriUrl, { attribution: 'Origens &copy; Esri', maxZoom: 18 }).addTo(mapLeft);
+    tileLayerRight = L.tileLayer(esriUrl, { attribution: 'Esri', maxZoom: 18 }).addTo(mapRight);
+    
+    // Adiciona nos mapas quádruplos (se eles já existirem)
+    if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
+        tileLayerQuadTL = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadTL);
+        tileLayerQuadTR = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadTR);
+        tileLayerQuadBL = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadBL);
+        tileLayerQuadBR = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadBR);
+    }
+
+    // 3. Atualiza os dados
+    if (typeof updateGISMap === 'function') updateGISMap();
+}
 
         function getQGISRules(param) {
             if (param === 'S') {
