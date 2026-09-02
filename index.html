@@ -3496,40 +3496,50 @@ async function generateBatchPDFs() {
             });
 
             if (mode === 'single') {
-    geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
-
-} else if (mode === 'sidebyside') {
-    const depthA = document.getElementById('sel-depth-a').value;
-    const depthB = document.getElementById('sel-depth-b').value;
-    geojsonLayerLeft = buildLayer(depthA).addTo(mapLeft);
-    geojsonLayerRight = buildLayer(depthB).addTo(mapRight);
-
-} else if (mode === 'sidebyside_safra') {
-    const depthFixed = document.getElementById('sel-depth-fixed').value;
-    // In the future, you will need to modify buildLayer to accept a specific safra filter
-    // For now, this will draw the same data on both sides to prevent errors
-    geojsonLayerLeft = buildLayer(depthFixed).addTo(mapLeft);
-    geojsonLayerRight = buildLayer(depthFixed).addTo(mapRight);
-
-} else if (mode === 'quad_split') {
-    const depthSuperf = document.getElementById('sel-quad-depth-a').value;
-    const depthProfunda = document.getElementById('sel-quad-depth-b').value;
-    // In the future, you will need to modify buildLayer to accept a specific safra filter
-    // For now, this will draw the depths correctly but use the globally selected safra
-    geojsonLayerQuadTL = buildLayer(depthSuperf).addTo(mapQuadTL);
-    geojsonLayerQuadTR = buildLayer(depthSuperf).addTo(mapQuadTR);
-    geojsonLayerQuadBL = buildLayer(depthProfunda).addTo(mapQuadBL);
-    geojsonLayerQuadBR = buildLayer(depthProfunda).addTo(mapQuadBR);
-}
+        geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
+        
+    } else if (mode === 'sidebyside') {
+        const depthA = document.getElementById('sel-depth-a').value;
+        const depthB = document.getElementById('sel-depth-b').value;
+        geojsonLayerLeft = buildLayer(depthA).addTo(mapLeft);
+        geojsonLayerRight = buildLayer(depthB).addTo(mapRight);
+        
+    } else if (mode === 'sidebyside_safra') {
+        const depthFixed = document.getElementById('sel-depth-fixed').value;
+        geojsonLayerLeft = buildLayer(depthFixed).addTo(mapLeft);
+        geojsonLayerRight = buildLayer(depthFixed).addTo(mapRight);
+        
+    } else if (mode === 'quad_split') {
+        const depthSuperf = document.getElementById('sel-quad-depth-a').value;
+        const depthProfunda = document.getElementById('sel-quad-depth-b').value;
+        
+        geojsonLayerQuadTL = buildLayer(depthSuperf).addTo(mapQuadTL);
+        geojsonLayerQuadTR = buildLayer(depthSuperf).addTo(mapQuadTR);
+        geojsonLayerQuadBL = buildLayer(depthProfunda).addTo(mapQuadBL);
+        geojsonLayerQuadBR = buildLayer(depthProfunda).addTo(mapQuadBR);
+    }
 
             setTimeout(() => {
-                if (geojsonLayerLeft && geojsonLayerLeft.getBounds().isValid()) {
-                    mapLeft.fitBounds(geojsonLayerLeft.getBounds(), { padding: [20, 20], maxZoom: 16 });
-                    if ((mode === 'sidebyside' || mode === 'sidebyside_safra') && mapRight) {
-                        mapRight.fitBounds(geojsonLayerLeft.getBounds(), { padding: [20, 20], maxZoom: 16 });
-                    }
-                }
-            }, 50);
+        // Descobre qual camada usar como referência de tamanho
+        let baseLayer = (mode === 'quad_split') ? geojsonLayerQuadTL : geojsonLayerLeft;
+
+        if (baseLayer && baseLayer.getBounds().isValid()) {
+            const bounds = baseLayer.getBounds();
+            
+            if (mode === 'single' || mode === 'sidebyside' || mode === 'sidebyside_safra') {
+                if (mapLeft) mapLeft.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
+            }
+            if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
+                if (mapRight) mapRight.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
+            }
+            if (mode === 'quad_split') {
+                if (mapQuadTL) mapQuadTL.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
+                if (mapQuadTR) mapQuadTR.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
+                if (mapQuadBL) mapQuadBL.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
+                if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
+            }
+        }
+    }, 100);
 
             const hasValidData = currentGeoJSON.features.some(f => {
                 const val = getFeatureDepthData(f, depth, selectedSafras)[param];
