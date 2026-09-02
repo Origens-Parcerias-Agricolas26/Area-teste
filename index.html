@@ -3449,7 +3449,6 @@ async function generateBatchPDFs() {
             if (selectedTalhoes.length && !selectedTalhoes.includes(String(f.properties.Talhao))) {
                 return false;
             }
-            // Usa a safra do dropdown ou a global do menu lateral
             const activeSafras = customSafraArray || selectedSafras; 
             
             if (activeSafras && activeSafras.length) {
@@ -3462,8 +3461,10 @@ async function generateBatchPDFs() {
         },
         style: f => {
             const activeSafras = customSafraArray || selectedSafras;
-            const rawVal = getFeatureDepthData(f, depthKey, activeSafras)[param];
-            const matched = getMatchedRule(rawVal, rules);
+            const depthData = getFeatureDepthData(f, depthKey, activeSafras);
+            // PROTEÇÃO CONTRA CRASH: Se o dado não existir, ele não quebra o sistema
+            const rawVal = depthData ? depthData[param] : null; 
+            const matched = rawVal != null ? getMatchedRule(rawVal, rules) : null;
             let color = matched ? matched.color : '#94a3b8';
 
             return {
@@ -3476,31 +3477,31 @@ async function generateBatchPDFs() {
         onEachFeature: (f, layer) => {
             const activeSafras = customSafraArray || selectedSafras;
             const depthData = getFeatureDepthData(f, depthKey, activeSafras);
-            const rawVal = depthData[param];
+            // PROTEÇÃO CONTRA CRASH: Se o dado não existir, ele não quebra o sistema
+            const rawVal = depthData ? depthData[param] : null; 
             const displayVal = formatDisplayValue(rawVal);
-// ... a partir daqui o seu código continua igual (const subName = ... layer.bindPopup ...)
-                    const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || 'Gleba';
+            const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || 'Gleba';
 
-                    layer.bindPopup(`<b>${subName} (Talhão ${f.properties.Talhao || 'N/A'})</b><br>${param}: <b>${displayVal}</b>`);
+            layer.bindPopup(`<b>${subName}</b> (Talhão ${f.properties.Talhao || 'N/A'})<br><br>${param}: <b>${displayVal}</b>`);
 
-                    let labelText = "";
-                    if (showLabels && showValues) {
-                        labelText = `${subName}: ${displayVal}`;
-                    } else if (showLabels) {
-                        labelText = `${subName}`;
-                    } else if (showValues) {
-                        labelText = `${displayVal}`;
-                    }
+            let labelText = "";
+            if (showLabels && showValues) {
+                labelText = `${subName}: ${displayVal}`;
+            } else if (showLabels) {
+                labelText = `${subName}`;
+            } else if (showValues) {
+                labelText = `${displayVal}`;
+            }
 
-                    if (labelText !== "") {
-                        layer.bindTooltip(labelText, { 
-                            permanent: true, 
-                            direction: 'center', 
-                            className: 'bg-slate-900/80 text-white font-bold text-[10px] px-1 py-0.5 rounded shadow text-center border-0' 
-                        });
-                    }
-                }
-            });
+            if (labelText !== "") {
+                layer.bindTooltip(labelText, {
+                    permanent: true,
+                    direction: 'center',
+                    className: 'bg-slate-900/80 text-white font-bold text-[10px] px-1 py-0.5 rounded shadow text-center border-0'
+                });
+            }
+        }
+    });
 
             if (mode === 'single') {
         geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
@@ -3556,9 +3557,11 @@ async function generateBatchPDFs() {
     }, 100);
 
             const hasValidData = currentGeoJSON.features.some(f => {
-                const val = getFeatureDepthData(f, depth, selectedSafras)[param];
-                return val !== null && val !== undefined && val !== '';
-            });
+        const depthData = getFeatureDepthData(f, depth, selectedSafras);
+        // PROTEÇÃO CONTRA CRASH NA LEGENDA
+        const val = depthData ? depthData[param] : null;
+        return val !== null && val !== undefined && val !== '';
+    });
 
             legendTitle.innerText = `${param}`;
 
