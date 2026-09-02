@@ -3154,6 +3154,14 @@ async function generateBatchPDFs() {
         if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
     }
 }
+      function inicializarMapasQuadruplos() {
+    if (!mapQuadTL) { // Previne criar duas vezes
+        mapQuadTL = L.map('map-quad-tl').setView([-12.592, -58.012], 13);
+        mapQuadTR = L.map('map-quad-tr', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        mapQuadBL = L.map('map-quad-bl', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        mapQuadBR = L.map('map-quad-br', { zoomControl: false }).setView([-12.592, -58.012], 13);
+    }
+}
         function initLeafletMap() {
             if (!mapLeft) {
                 mapLeft = L.map('map-left').setView([-12.592, -58.012], 13);
