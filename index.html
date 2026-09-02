@@ -2332,6 +2332,59 @@
         }
 
         function toggleViewMode() {
+    const mode = document.getElementById('sel-mode').value;
+
+    // 1. Esconde TODAS as caixas de controle do menu primeiro
+    document.getElementById('box-single-depth').classList.add('hidden');
+    if (document.getElementById('box-diff-depth')) document.getElementById('box-diff-depth').classList.add('hidden');
+    if (document.getElementById('box-diff-safra')) document.getElementById('box-diff-safra').classList.add('hidden');
+    if (document.getElementById('box-quad-split')) document.getElementById('box-quad-split').classList.add('hidden');
+
+    // 2. Esconde os containers de mapa
+    const swipeMapWrapper = document.getElementById('swipe-map-wrapper');
+    const quadMapWrapper = document.getElementById('quad-map-wrapper');
+    
+    if (swipeMapWrapper) swipeMapWrapper.classList.add('hidden');
+    if (quadMapWrapper) quadMapWrapper.classList.add('hidden');
+
+    // 3. Mostra apenas o que o usuário selecionou
+    if (mode === 'single') {
+        document.getElementById('box-single-depth').classList.remove('hidden');
+        if (swipeMapWrapper) swipeMapWrapper.classList.remove('hidden');
+        
+        // Esconde o divisor do swipe e o mapa da direita
+        if (document.getElementById('split-divider')) document.getElementById('split-divider').classList.add('hidden');
+        if (document.getElementById('right-map-pane')) document.getElementById('right-map-pane').style.display = 'none';
+        
+    } else if (mode === 'sidebyside') {
+        if (document.getElementById('box-diff-depth')) document.getElementById('box-diff-depth').classList.remove('hidden');
+        if (swipeMapWrapper) swipeMapWrapper.classList.remove('hidden');
+        
+        // Mostra o divisor do swipe e o mapa da direita
+        if (document.getElementById('split-divider')) document.getElementById('split-divider').classList.remove('hidden');
+        if (document.getElementById('right-map-pane')) document.getElementById('right-map-pane').style.display = 'block';
+
+    } else if (mode === 'sidebyside_safra') {
+        if (document.getElementById('box-diff-safra')) document.getElementById('box-diff-safra').classList.remove('hidden');
+        if (swipeMapWrapper) swipeMapWrapper.classList.remove('hidden');
+        
+        // Mostra o divisor do swipe e o mapa da direita
+        if (document.getElementById('split-divider')) document.getElementById('split-divider').classList.remove('hidden');
+        if (document.getElementById('right-map-pane')) document.getElementById('right-map-pane').style.display = 'block';
+
+    } else if (mode === 'quad_split') {
+        if (document.getElementById('box-quad-split')) document.getElementById('box-quad-split').classList.remove('hidden');
+        if (quadMapWrapper) {
+            quadMapWrapper.classList.remove('hidden');
+            quadMapWrapper.classList.add('grid'); // Garante que o grid do Tailwind funcione
+        }
+    }
+
+    // 4. Manda o sistema redesenhar os mapas com a nova configuração
+    if (typeof updateGISMap === 'function') {
+        updateGISMap();
+    }
+}
             const mode = document.getElementById('sel-mode').value;
             const singleBox = document.getElementById('box-single-depth');
             const diffBox = document.getElementById('box-diff-depth');
