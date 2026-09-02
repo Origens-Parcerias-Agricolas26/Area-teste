@@ -3417,6 +3417,10 @@ async function generateBatchPDFs() {
 
             if (geojsonLayerLeft) mapLeft.removeLayer(geojsonLayerLeft);
             if (geojsonLayerRight) mapRight.removeLayer(geojsonLayerRight);
+            if (geojsonLayerQuadTL) mapQuadTL.removeLayer(geojsonLayerQuadTL);
+            if (geojsonLayerQuadTR) mapQuadTR.removeLayer(geojsonLayerQuadTR);
+            if (geojsonLayerQuadBL) mapQuadBL.removeLayer(geojsonLayerQuadBL);
+            if (geojsonLayerQuadBR) mapQuadBR.removeLayer(geojsonLayerQuadBR);
 
             const legendTitle = document.getElementById('legend-title');
             const legendItems = document.getElementById('legend-items');
@@ -3491,19 +3495,37 @@ async function generateBatchPDFs() {
                 }
             });
 
-            if (mode === 'sidebyside') {
-                const depthA = document.getElementById('sel-depth-a').value;
-                const depthB = document.getElementById('sel-depth-b').value;
-                geojsonLayerLeft = buildLayer(depthA).addTo(mapLeft);
-                geojsonLayerRight = buildLayer(depthB).addTo(mapRight);
-            } else {
-                geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
-            }
+            if (mode === 'single') {
+    geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
+
+} else if (mode === 'sidebyside') {
+    const depthA = document.getElementById('sel-depth-a').value;
+    const depthB = document.getElementById('sel-depth-b').value;
+    geojsonLayerLeft = buildLayer(depthA).addTo(mapLeft);
+    geojsonLayerRight = buildLayer(depthB).addTo(mapRight);
+
+} else if (mode === 'sidebyside_safra') {
+    const depthFixed = document.getElementById('sel-depth-fixed').value;
+    // In the future, you will need to modify buildLayer to accept a specific safra filter
+    // For now, this will draw the same data on both sides to prevent errors
+    geojsonLayerLeft = buildLayer(depthFixed).addTo(mapLeft);
+    geojsonLayerRight = buildLayer(depthFixed).addTo(mapRight);
+
+} else if (mode === 'quad_split') {
+    const depthSuperf = document.getElementById('sel-quad-depth-a').value;
+    const depthProfunda = document.getElementById('sel-quad-depth-b').value;
+    // In the future, you will need to modify buildLayer to accept a specific safra filter
+    // For now, this will draw the depths correctly but use the globally selected safra
+    geojsonLayerQuadTL = buildLayer(depthSuperf).addTo(mapQuadTL);
+    geojsonLayerQuadTR = buildLayer(depthSuperf).addTo(mapQuadTR);
+    geojsonLayerQuadBL = buildLayer(depthProfunda).addTo(mapQuadBL);
+    geojsonLayerQuadBR = buildLayer(depthProfunda).addTo(mapQuadBR);
+}
 
             setTimeout(() => {
                 if (geojsonLayerLeft && geojsonLayerLeft.getBounds().isValid()) {
                     mapLeft.fitBounds(geojsonLayerLeft.getBounds(), { padding: [20, 20], maxZoom: 16 });
-                    if (mode === 'sidebyside' && mapRight) {
+                    if ((mode === 'sidebyside' || mode === 'sidebyside_safra') && mapRight) {
                         mapRight.fitBounds(geojsonLayerLeft.getBounds(), { padding: [20, 20], maxZoom: 16 });
                     }
                 }
