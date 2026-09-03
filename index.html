@@ -2374,54 +2374,57 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    // 1. Esconde TODAS as caixas de controle do menu primeiro
+    // 1. Esconde todos os menus de controle (Reseta o estado)
     document.getElementById('box-single-depth').classList.add('hidden');
-    if (document.getElementById('box-diff-depth')) document.getElementById('box-diff-depth').classList.add('hidden');
-    if (document.getElementById('box-diff-safra')) document.getElementById('box-diff-safra').classList.add('hidden');
-    if (document.getElementById('box-quad-split')) document.getElementById('box-quad-split').classList.add('hidden');
+    document.getElementById('box-diff-depth').classList.add('hidden');
+    document.getElementById('box-diff-safra').classList.add('hidden');
+    document.getElementById('box-quad-split').classList.add('hidden');
 
-    // 2. Esconde os containers de mapa
-    const swipeMapWrapper = document.getElementById('swipe-map-wrapper');
-    const quadMapWrapper = document.getElementById('quad-map-wrapper');
-    
-    if (swipeMapWrapper) swipeMapWrapper.classList.add('hidden');
-    if (quadMapWrapper) quadMapWrapper.classList.add('hidden');
+    // Mapeia os elementos das telas
+    const swipeWrapper = document.getElementById('swipe-map-wrapper');
+    const quadWrapper = document.getElementById('quad-map-wrapper');
+    const rightPane = document.getElementById('right-map-pane');
+    const divider = document.getElementById('split-divider');
 
-    // 3. Mostra apenas o que o usuário selecionou
-    if (mode === 'single') {
-        document.getElementById('box-single-depth').classList.remove('hidden');
-        if (swipeMapWrapper) swipeMapWrapper.classList.remove('hidden');
+    // 2. Controla a exibição dos Mapas e dos Menus correspondentes
+    if (mode === 'quad_split') {
+        document.getElementById('box-quad-split').classList.remove('hidden');
         
-        // Esconde o divisor do swipe e o mapa da direita
-        if (document.getElementById('split-divider')) document.getElementById('split-divider').classList.add('hidden');
-        if (document.getElementById('right-map-pane')) document.getElementById('right-map-pane').style.display = 'none';
+        swipeWrapper.classList.add('hidden');
+        swipeWrapper.classList.remove('block');
         
-    } else if (mode === 'sidebyside') {
-        if (document.getElementById('box-diff-depth')) document.getElementById('box-diff-depth').classList.remove('hidden');
-        if (swipeMapWrapper) swipeMapWrapper.classList.remove('hidden');
+        quadWrapper.classList.remove('hidden');
+        quadWrapper.classList.add('grid');
+    } else {
+        quadWrapper.classList.add('hidden');
+        quadWrapper.classList.remove('grid');
         
-        // Mostra o divisor do swipe e o mapa da direita
-        if (document.getElementById('split-divider')) document.getElementById('split-divider').classList.remove('hidden');
-        if (document.getElementById('right-map-pane')) document.getElementById('right-map-pane').style.display = 'block';
+        swipeWrapper.classList.remove('hidden');
+        swipeWrapper.classList.add('block');
 
-    } else if (mode === 'sidebyside_safra') {
-        if (document.getElementById('box-diff-safra')) document.getElementById('box-diff-safra').classList.remove('hidden');
-        if (swipeMapWrapper) swipeMapWrapper.classList.remove('hidden');
-        
-        // Mostra o divisor do swipe e o mapa da direita
-        if (document.getElementById('split-divider')) document.getElementById('split-divider').classList.remove('hidden');
-        if (document.getElementById('right-map-pane')) document.getElementById('right-map-pane').style.display = 'block';
-
-    } else if (mode === 'quad_split') {
-        if (document.getElementById('box-quad-split')) document.getElementById('box-quad-split').classList.remove('hidden');
-        if (quadMapWrapper) {
-            quadMapWrapper.classList.remove('hidden');
-            quadMapWrapper.classList.add('grid');
+        if (mode === 'single') {
+            document.getElementById('box-single-depth').classList.remove('hidden');
+            rightPane.style.display = 'none'; // Desliga a tela da direita para não bloquear a da esquerda
+            if(divider) divider.classList.add('hidden');
             
-            // FORÇA O LEAFLET A RECALCULAR O TAMANHO DE TODOS OS MAPAS (Resolve o bug do Swipe)
+        } else if (mode === 'sidebyside') {
+            document.getElementById('box-diff-depth').classList.remove('hidden');
+            rightPane.style.display = 'block';
+            rightPane.style.clipPath = 'inset(0 0 0 50%)'; // Restaura o corte visual de 50%
+            if(divider) divider.classList.remove('hidden');
+            
+        } else if (mode === 'sidebyside_safra') {
+            document.getElementById('box-diff-safra').classList.remove('hidden');
+            rightPane.style.display = 'block';
+            rightPane.style.clipPath = 'inset(0 0 0 50%)'; // Restaura o corte visual de 50%
+            if(divider) divider.classList.remove('hidden');
+        }
+    }
+
+    // 3. O SEGREDO DO SUCESSO: Sincronização entre HTML e Leaflet
+    // Aguardamos 150ms para garantir que o CSS terminou de criar as telas no navegador
     setTimeout(() => {
-        // 1. FORÇAR RECALCULO DE TAMANHO (Corrige Telas não dividindo e Mapas cinzas)
-        // Avisa ao Leaflet que as telas saíram de 'escondidas' para 'visíveis'
+        // "Acorda" todos os mapas para eles preencherem as áreas cinzas
         if (mapLeft) mapLeft.invalidateSize();
         if (mapRight) mapRight.invalidateSize();
         if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
@@ -2430,30 +2433,13 @@
             mapQuadBL.invalidateSize();
             mapQuadBR.invalidateSize();
         }
-
-        // 2. CORRIGIR O ZOOM DA CÂMERA (Corrige Zoom estourado e talhões cortados)
-        // Pega os dados da fazenda inteira para criar um "molde" de câmera estável
-        const referenceLayer = L.geoJSON(currentGeoJSON);
-
-        if (referenceLayer && referenceLayer.getBounds().isValid()) {
-            const bounds = referenceLayer.getBounds();
-            
-            if (mode === 'single' || mode === 'sidebyside' || mode === 'sidebyside_safra') {
-                if (mapLeft) mapLeft.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
-            }
-            if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-                if (mapRight) mapRight.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
-            }
-            if (mode === 'quad_split') {
-                if (mapQuadTL) mapQuadTL.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
-                if (mapQuadTR) mapQuadTR.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
-                if (mapQuadBL) mapQuadBL.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
-                if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
-            }
+        
+        // APENAS AGORA, com as telas 100% prontas, mandamos pintar os polígonos coloridos
+        if (typeof updateGISMap === 'function') {
+            updateGISMap();
         }
-    }, 250); // 250ms garante que o navegador desenhou as telas antes de aplicar o zoom
-        }
-    }
+    }, 150);
+}
 
     // 4. Manda o sistema redesenhar os mapas com a nova configuração
     if (typeof updateGISMap === 'function') {
