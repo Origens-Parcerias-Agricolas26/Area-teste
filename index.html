@@ -7887,7 +7887,7 @@ async function generateBatchPDFs() {
             }
         };
       // ==========================================
-// MOTOR DA BARRA DE SWIPE (ARRASTAR) BLINDADO
+// MOTOR DA BARRA DE SWIPE BLINDADO CONTRA O MAPA
 // ==========================================
 (function initSwipe() {
     const divider = document.getElementById('split-divider');
@@ -7895,19 +7895,30 @@ async function generateBatchPDFs() {
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
 
     if (!divider || !rightPane || !swipeWrapper) {
-        setTimeout(initSwipe, 500); // Tenta conectar novamente se o HTML estiver carregando
+        setTimeout(initSwipe, 500); // Aguarda o HTML carregar
         return;
     }
 
     let isDragging = false;
     
+    // Cria uma película invisível para o Leaflet não roubar o mouse durante o arrasto
+    let glassPane = document.createElement('div');
+    glassPane.style.position = 'absolute';
+    glassPane.style.inset = '0';
+    glassPane.style.zIndex = '9999';
+    glassPane.style.cursor = 'col-resize';
+    glassPane.style.display = 'none';
+    swipeWrapper.appendChild(glassPane);
+
     divider.addEventListener('mousedown', (e) => { 
         isDragging = true; 
+        glassPane.style.display = 'block'; // Liga a película ao clicar na barra
         e.preventDefault(); 
     });
     
     window.addEventListener('mouseup', () => { 
         isDragging = false; 
+        glassPane.style.display = 'none'; // Desliga a película ao soltar o clique
     });
     
     window.addEventListener('mousemove', (e) => {
@@ -7916,11 +7927,12 @@ async function generateBatchPDFs() {
         const rect = swipeWrapper.getBoundingClientRect();
         let position = ((e.clientX - rect.left) / rect.width) * 100;
         
-        // Mantém a barra dentro dos limites da tela
+        // Mantém a barra dentro dos limites da tela (2% a 98%)
         if (position < 2) position = 2;
         if (position > 98) position = 98;
         
         divider.style.left = position + '%';
+        // Corta a tela da direita no exato local da barra
         rightPane.style.clipPath = `inset(0 0 0 ${position}%)`;
     });
 })();
