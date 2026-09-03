@@ -3440,148 +3440,184 @@ async function generateBatchPDFs() {
         }
 
         function updateGISMap() {
-    const farmKey = document.getElementById('sel-farm') ? document.getElementById('sel-farm').value : null;
-    if (!farmKey || typeof farmsDatabase === 'undefined' || !farmsDatabase[farmKey] || !farmsDatabase[farmKey].geojson) return;
+    try {
+        const mapLeftEl = document.getElementById('map-left');
+        if (!mapLeftEl) return; 
 
-    const param = document.getElementById('sel-param') ? document.getElementById('sel-param').value : null;
-    const mode = document.getElementById('sel-mode') ? document.getElementById('sel-mode').value : 'single';
-    const currentGeoJSON = farmsDatabase[farmKey].geojson;
-    const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
+        const farmSelect = document.getElementById('sel-farm');
+        const farmKey = farmSelect ? farmSelect.value : null;
+        const legendItems = document.getElementById('legend-items');
+        const legendTitle = document.getElementById('legend-title');
 
-    const showBoundary = document.getElementById('chk-boundary') ? document.getElementById('chk-boundary').checked : true;
-    const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
-    const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
+        // Removido o window. e voltando para a variável original farmsDatabase
+        if (!farmKey || typeof farmsDatabase === 'undefined' || !farmsDatabase[farmKey] || !farmsDatabase[farmKey].geojson) {
+            if(legendItems) legendItems.innerHTML = `<span class="text-amber-600 font-bold block text-xs">Nenhum projeto importado para esta fazenda.</span>`;
+            return;
+        }
 
-    const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
-    const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
+        const param = document.getElementById('sel-param') ? document.getElementById('sel-param').value : null;
+        const mode = document.getElementById('sel-mode') ? document.getElementById('sel-mode').value : 'single';
+        const currentGeoJSON = farmsDatabase[farmKey].geojson;
+        const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
 
-    // 1. Limpa todas as camadas coloridas antigas
-    if (typeof geojsonLayerLeft !== 'undefined' && geojsonLayerLeft && mapLeft) { mapLeft.removeLayer(geojsonLayerLeft); geojsonLayerLeft = null; }
-    if (typeof geojsonLayerRight !== 'undefined' && geojsonLayerRight && mapRight) { mapRight.removeLayer(geojsonLayerRight); geojsonLayerRight = null; }
-    if (typeof geojsonLayerQuadTL !== 'undefined' && geojsonLayerQuadTL && mapQuadTL) { mapQuadTL.removeLayer(geojsonLayerQuadTL); geojsonLayerQuadTL = null; }
-    if (typeof geojsonLayerQuadTR !== 'undefined' && geojsonLayerQuadTR && mapQuadTR) { mapQuadTR.removeLayer(geojsonLayerQuadTR); geojsonLayerQuadTR = null; }
-    if (typeof geojsonLayerQuadBL !== 'undefined' && geojsonLayerQuadBL && mapQuadBL) { mapQuadBL.removeLayer(geojsonLayerQuadBL); geojsonLayerQuadBL = null; }
-    if (typeof geojsonLayerQuadBR !== 'undefined' && geojsonLayerQuadBR && mapQuadBR) { mapQuadBR.removeLayer(geojsonLayerQuadBR); geojsonLayerQuadBR = null; }
+        const showBoundary = document.getElementById('chk-boundary') ? document.getElementById('chk-boundary').checked : true;
+        const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
+        const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
 
-    // 2. Define a configuração exata (Profundidade e Safra) para CADA painel de mapa ativo
-    let configs = [];
+        const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
+        const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
 
-    if (mode === 'single') {
-        const depth = document.getElementById('sel-depth') ? document.getElementById('sel-depth').value : 'd0_10';
-        configs.push({ id: 'left', depth: depth, safras: globalSafras, mapObj: mapLeft });
-    } 
-    else if (mode === 'sidebyside') {
-        const depthA = document.getElementById('sel-depth-a') ? document.getElementById('sel-depth-a').value : 'd0_10';
-        const depthB = document.getElementById('sel-depth-b') ? document.getElementById('sel-depth-b').value : 'd10_20';
-        configs.push({ id: 'left', depth: depthA, safras: globalSafras, mapObj: mapLeft });
-        configs.push({ id: 'right', depth: depthB, safras: globalSafras, mapObj: mapRight });
-    } 
-    else if (mode === 'sidebyside_safra') {
-        const dFix = document.getElementById('sel-depth-fixed') ? document.getElementById('sel-depth-fixed').value : 'd0_10';
-        const sA = document.getElementById('sel-safra-a') ? document.getElementById('sel-safra-a').value : null;
-        const sB = document.getElementById('sel-safra-b') ? document.getElementById('sel-safra-b').value : null;
-        configs.push({ id: 'left', depth: dFix, safras: sA ? [sA] : globalSafras, mapObj: mapLeft });
-        configs.push({ id: 'right', depth: dFix, safras: sB ? [sB] : globalSafras, mapObj: mapRight });
-    } 
-    else if (mode === 'quad_split') {
-        const sA = document.getElementById('sel-quad-safra-a') ? document.getElementById('sel-quad-safra-a').value : null;
-        const sB = document.getElementById('sel-quad-safra-b') ? document.getElementById('sel-quad-safra-b').value : null;
-        const dA = document.getElementById('sel-quad-depth-a') ? document.getElementById('sel-quad-depth-a').value : 'd0_10';
-        const dB = document.getElementById('sel-quad-depth-b') ? document.getElementById('sel-quad-depth-b').value : 'd10_20';
+        // 1. Limpa camadas antigas de forma segura
+        if (typeof geojsonLayerLeft !== 'undefined' && geojsonLayerLeft && typeof mapLeft !== 'undefined' && mapLeft) { mapLeft.removeLayer(geojsonLayerLeft); geojsonLayerLeft = null; }
+        if (typeof geojsonLayerRight !== 'undefined' && geojsonLayerRight && typeof mapRight !== 'undefined' && mapRight) { mapRight.removeLayer(geojsonLayerRight); geojsonLayerRight = null; }
+        if (typeof geojsonLayerQuadTL !== 'undefined' && geojsonLayerQuadTL && typeof mapQuadTL !== 'undefined' && mapQuadTL) { mapQuadTL.removeLayer(geojsonLayerQuadTL); geojsonLayerQuadTL = null; }
+        if (typeof geojsonLayerQuadTR !== 'undefined' && geojsonLayerQuadTR && typeof mapQuadTR !== 'undefined' && mapQuadTR) { mapQuadTR.removeLayer(geojsonLayerQuadTR); geojsonLayerQuadTR = null; }
+        if (typeof geojsonLayerQuadBL !== 'undefined' && geojsonLayerQuadBL && typeof mapQuadBL !== 'undefined' && mapQuadBL) { mapQuadBL.removeLayer(geojsonLayerQuadBL); geojsonLayerQuadBL = null; }
+        if (typeof geojsonLayerQuadBR !== 'undefined' && geojsonLayerQuadBR && typeof mapQuadBR !== 'undefined' && mapQuadBR) { mapQuadBR.removeLayer(geojsonLayerQuadBR); geojsonLayerQuadBR = null; }
 
-        configs.push({ id: 'qTL', depth: dA, safras: sA ? [sA] : globalSafras, mapObj: mapQuadTL });
-        configs.push({ id: 'qTR', depth: dA, safras: sB ? [sB] : globalSafras, mapObj: mapQuadTR });
-        configs.push({ id: 'qBL', depth: dB, safras: sA ? [sA] : globalSafras, mapObj: mapQuadBL });
-        configs.push({ id: 'qBR', depth: dB, safras: sB ? [sB] : globalSafras, mapObj: mapQuadBR });
-    }
+        // 2. Configurações de cada tela
+        let configs = [];
 
-    // 3. Desenha os polígonos para cada mapa baseado em sua configuração específica
-    configs.forEach(cfg => {
-        if (!cfg.mapObj) return;
+        if (mode === 'single') {
+            const depth = document.getElementById('sel-depth') ? document.getElementById('sel-depth').value : 'd0_10';
+            if (typeof mapLeft !== 'undefined') configs.push({ id: 'left', depth: depth, safras: globalSafras, mapObj: mapLeft });
+        } 
+        else if (mode === 'sidebyside') {
+            const depthA = document.getElementById('sel-depth-a') ? document.getElementById('sel-depth-a').value : 'd0_10';
+            const depthB = document.getElementById('sel-depth-b') ? document.getElementById('sel-depth-b').value : 'd10_20';
+            if (typeof mapLeft !== 'undefined') configs.push({ id: 'left', depth: depthA, safras: globalSafras, mapObj: mapLeft });
+            if (typeof mapRight !== 'undefined') configs.push({ id: 'right', depth: depthB, safras: globalSafras, mapObj: mapRight });
+        } 
+        else if (mode === 'sidebyside_safra') {
+            const dFix = document.getElementById('sel-depth-fixed') ? document.getElementById('sel-depth-fixed').value : 'd0_10';
+            const sA = document.getElementById('sel-safra-a') ? document.getElementById('sel-safra-a').value : null;
+            const sB = document.getElementById('sel-safra-b') ? document.getElementById('sel-safra-b').value : null;
+            if (typeof mapLeft !== 'undefined') configs.push({ id: 'left', depth: dFix, safras: sA ? [sA] : globalSafras, mapObj: mapLeft });
+            if (typeof mapRight !== 'undefined') configs.push({ id: 'right', depth: dFix, safras: sB ? [sB] : globalSafras, mapObj: mapRight });
+        } 
+        else if (mode === 'quad_split') {
+            const sA = document.getElementById('sel-quad-safra-a') ? document.getElementById('sel-quad-safra-a').value : null;
+            const sB = document.getElementById('sel-quad-safra-b') ? document.getElementById('sel-quad-safra-b').value : null;
+            const dA = document.getElementById('sel-quad-depth-a') ? document.getElementById('sel-quad-depth-a').value : 'd0_10';
+            const dB = document.getElementById('sel-quad-depth-b') ? document.getElementById('sel-quad-depth-b').value : 'd10_20';
 
-        const layer = L.geoJSON(currentGeoJSON, {
-            filter: function(feature) {
-                if (!selectedTalhoes.length) return true;
-                return feature.properties && selectedTalhoes.includes(String(feature.properties.Talhao));
-            },
-            style: function(feature) {
-                // Aqui a inteligência: ele puxa a safra exata do dropdown que mapeamos acima
-                const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
-                const val = depthData[param];
-                
-                let fillColor = 'transparent';
-                let fillOpacity = 0;
+            if (typeof mapQuadTL !== 'undefined') configs.push({ id: 'qTL', depth: dA, safras: sA ? [sA] : globalSafras, mapObj: mapQuadTL });
+            if (typeof mapQuadTR !== 'undefined') configs.push({ id: 'qTR', depth: dA, safras: sB ? [sB] : globalSafras, mapObj: mapQuadTR });
+            if (typeof mapQuadBL !== 'undefined') configs.push({ id: 'qBL', depth: dB, safras: sA ? [sA] : globalSafras, mapObj: mapQuadBL });
+            if (typeof mapQuadBR !== 'undefined') configs.push({ id: 'qBR', depth: dB, safras: sB ? [sB] : globalSafras, mapObj: mapQuadBR });
+        }
 
-                if (val !== null && val !== undefined && val !== '') {
-                    const matched = typeof getMatchedRule === 'function' ? getMatchedRule(val, rules) : null;
-                    if (matched) {
-                        fillColor = matched.color;
-                        fillOpacity = 0.8;
-                    } else {
-                        fillColor = '#94a3b8'; // Cor padrão cinza se tiver valor mas não cair na regra
-                        fillOpacity = 0.5;
+        let hasValidDataForLegend = false;
+
+        // 3. Desenha os mapas com as cores corretas
+        configs.forEach(cfg => {
+            if (!cfg.mapObj) return;
+
+            const layer = L.geoJSON(currentGeoJSON, {
+                filter: function(feature) {
+                    try {
+                        if (!selectedTalhoes || selectedTalhoes.length === 0) return true;
+                        // Ignora "Selecionar Todos" sem quebrar
+                        const hasAll = selectedTalhoes.some(t => String(t).toLowerCase().includes('todos') || String(t).toLowerCase() === 'all');
+                        if (hasAll) return true;
+                        
+                        const featureTalhao = String(feature.properties.Talhao || feature.properties.name || feature.properties.Name || feature.properties.Nome || feature.properties.Subdivisao || '').trim();
+                        return selectedTalhoes.includes(featureTalhao);
+                    } catch(err) { return true; }
+                },
+                style: function(feature) {
+                    let val = null;
+                    try {
+                        const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                        val = depthData ? depthData[param] : null;
+                    } catch(e) {}
+                    
+                    let fillColor = '#cbd5e1'; // Cinza base
+                    let fillOpacity = 0.4;
+
+                    if (val !== null && val !== undefined && val !== '') {
+                        hasValidDataForLegend = true;
+                        const matched = typeof getMatchedRule === 'function' ? getMatchedRule(val, rules) : null;
+                        if (matched) {
+                            fillColor = matched.color;
+                            fillOpacity = 0.8;
+                        } else {
+                            fillColor = '#94a3b8';
+                            fillOpacity = 0.5;
+                        }
+                    }
+
+                    return {
+                        fillColor: fillColor,
+                        weight: showBoundary ? 1.5 : 0,
+                        opacity: 1,
+                        color: showBoundary ? '#1e293b' : 'transparent',
+                        fillOpacity: fillOpacity
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    let val = null;
+                    try {
+                        const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                        const rawVal = depthData ? depthData[param] : null;
+                        val = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
+                    } catch(e) {}
+
+                    const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
+                    
+                    if (typeof layer.bindPopup === 'function') {
+                        layer.bindPopup(`<b>${subName}</b> (Talhão ${feature.properties.Talhao || 'N/A'})<br><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
+                    }
+
+                    if (!showLabels && !showValues) return;
+
+                    let labelText = '';
+                    if (showLabels && showValues) {
+                        labelText = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
+                    } else if (showLabels) {
+                        labelText = subName;
+                    } else if (showValues) {
+                        labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
+                    }
+
+                    if (labelText && typeof layer.bindTooltip === 'function') {
+                        layer.bindTooltip(labelText, {
+                            permanent: true,
+                            direction: 'center',
+                            className: 'bg-white/80 text-slate-800 font-bold text-[9px] px-1 py-0.5 rounded border border-slate-300 shadow-sm'
+                        });
                     }
                 }
+            });
 
-                return {
-                    fillColor: fillColor,
-                    weight: showBoundary ? 1.5 : 0,
-                    opacity: 1,
-                    color: showBoundary ? '#1e293b' : 'transparent',
-                    fillOpacity: fillOpacity
-                };
-            },
-            onEachFeature: function(feature, layer) {
-                if (!showLabels && !showValues) return;
+            layer.addTo(cfg.mapObj);
 
-                const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
-                const rawVal = depthData[param];
-                const val = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
-
-                let labelText = '';
-                const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
-
-                if (showLabels && showValues) {
-                    labelText = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
-                } else if (showLabels) {
-                    labelText = subName;
-                } else if (showValues) {
-                    labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
-                }
-
-                if (labelText && layer.getBounds) {
-                    layer.bindTooltip(labelText, {
-                        permanent: true,
-                        direction: 'center',
-                        className: 'bg-white/80 text-slate-800 font-bold text-[9px] px-1 py-0.5 rounded border border-slate-300 shadow-sm'
-                    });
-                }
-            }
+            if (cfg.id === 'left') geojsonLayerLeft = layer;
+            if (cfg.id === 'right') geojsonLayerRight = layer;
+            if (cfg.id === 'qTL') geojsonLayerQuadTL = layer;
+            if (cfg.id === 'qTR') geojsonLayerQuadTR = layer;
+            if (cfg.id === 'qBL') geojsonLayerQuadBL = layer;
+            if (cfg.id === 'qBR') geojsonLayerQuadBR = layer;
         });
 
-        layer.addTo(cfg.mapObj);
+        // 4. Atualiza a legenda dinamicamente
+        if (legendTitle) legendTitle.innerText = `${param}`;
 
-        // Salva a camada recém desenhada na variável global correspondente
-        if (cfg.id === 'left') geojsonLayerLeft = layer;
-        if (cfg.id === 'right') geojsonLayerRight = layer;
-        if (cfg.id === 'qTL') geojsonLayerQuadTL = layer;
-        if (cfg.id === 'qTR') geojsonLayerQuadTR = layer;
-        if (cfg.id === 'qBL') geojsonLayerQuadBL = layer;
-        if (cfg.id === 'qBR') geojsonLayerQuadBR = layer;
-    });
-
-    // 4. Atualiza a legenda e títulos
-    const legendTitle = document.getElementById('legend-title');
-    const legendItems = document.getElementById('legend-items');
-    const farmObj = farmsDatabase[farmKey];
-
-    if (legendTitle) legendTitle.innerText = `${farmObj ? farmObj.name : 'Fazenda'}`;
-    if (legendItems && (!currentGeoJSON.features || !currentGeoJSON.features.length)) {
-        legendItems.innerHTML = `<span class="text-amber-600 font-bold block text-xs">Nenhum projeto importado.</span>`;
-        return;
+        if (legendItems) {
+            if (!hasValidDataForLegend) {
+                legendItems.innerHTML = `
+                    <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
+                        <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
+                        <span>Nenhum polígono nesta safra possui valores. Tente trocar de Safra ou Parâmetro.</span>
+                    </div>
+                `;
+            } else if (rules && rules.length > 0) {
+                legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded border border-slate-300 shadow-sm" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
+            }
+        }
+    } catch (error) {
+        console.error("Erro ao desenhar o mapa:", error);
     }
-
-    if (typeof updateLegend === 'function') updateLegend(param, rules);
 }
 
         // =========================================================================
