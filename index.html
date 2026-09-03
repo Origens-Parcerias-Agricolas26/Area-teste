@@ -440,17 +440,15 @@
 
                     <!-- Container do Mapa -->
                     <div id="map-container" class="flex-1 bg-white rounded-2xl border border-slate-200 relative overflow-hidden shadow-sm flex flex-col z-10">
-                        
-                        <!-- MAPAS PARA SWIPE (Individual e Side-by-Side) -->
-                        <div id="swipe-map-wrapper" class="absolute inset-0 z-10 block">
-                            <div id="left-map-pane" class="absolute inset-0"><div id="map-left" class="w-full h-full"></div></div>
-                            <div id="right-map-pane" class="absolute inset-0" style="clip-path: inset(0 0 0 50%);"><div id="map-right" class="w-full h-full"></div></div>
-                            <div id="split-divider" class="absolute top-0 bottom-0 left-1/2 w-1 bg-slate-800 cursor-col-resize z-30 flex items-center justify-center hidden">
-                                <div id="split-divider-handle" class="w-8 h-8 bg-white border-2 border-slate-800 rounded-full flex items-center justify-center text-slate-800 shadow">
-                                    <i class="fa-solid fa-arrows-left-right"></i>
-                                </div>
-                            </div>
-                        </div>
+                       
+                      <div id="swipe-map-wrapper" class="absolute inset-0 z-10 flex gap-1 bg-slate-300">
+                          <div id="left-map-pane" class="relative flex-1 h-full bg-white">
+                          <div id="map-left" class="w-full h-full"></div>
+                     </div>
+                          <div id="right-map-pane" class="relative flex-1 h-full bg-white hidden">
+                          <div id="map-right" class="w-full h-full"></div>
+                     </div>
+                   </div>
 
                         <!-- MAPAS PARA QUAD SPLIT (Oculto por Padrão) -->
                         <div id="quad-map-wrapper" class="absolute inset-0 z-20 hidden grid grid-cols-2 grid-rows-2 gap-1 bg-slate-300">
@@ -2374,7 +2372,7 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    // 1. Esconde todos os menus de controle (Reseta o estado)
+    // 1. Esconde todos os menus
     document.getElementById('box-single-depth').classList.add('hidden');
     document.getElementById('box-diff-depth').classList.add('hidden');
     document.getElementById('box-diff-safra').classList.add('hidden');
@@ -2383,86 +2381,58 @@
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
     const quadWrapper = document.getElementById('quad-map-wrapper');
     const rightPane = document.getElementById('right-map-pane');
-    const divider = document.getElementById('split-divider');
 
-    // 2. Controla a exibição dos Mapas e dos Menus correspondentes
+    // 2. Controla o layout (Flex/Grid)
     if (mode === 'quad_split') {
         document.getElementById('box-quad-split').classList.remove('hidden');
         swipeWrapper.classList.add('hidden');
-        swipeWrapper.classList.remove('block');
+        swipeWrapper.classList.remove('flex');
         quadWrapper.classList.remove('hidden');
         quadWrapper.classList.add('grid');
     } else {
         quadWrapper.classList.add('hidden');
         quadWrapper.classList.remove('grid');
         swipeWrapper.classList.remove('hidden');
-        swipeWrapper.classList.add('block');
-
-        // Garante que a barra divisória volte para o meio ao trocar de aba
-        if(divider) divider.style.left = '50%';
+        swipeWrapper.classList.add('flex');
 
         if (mode === 'single') {
             document.getElementById('box-single-depth').classList.remove('hidden');
-            rightPane.style.display = 'none'; 
-            if(divider) divider.style.display = 'none';
+            if(rightPane) rightPane.classList.add('hidden'); // Esconde a direita
             
-        } else if (mode === 'sidebyside') {
-            document.getElementById('box-diff-depth').classList.remove('hidden');
-            rightPane.style.display = 'block';
-            rightPane.style.clipPath = 'inset(0 0 0 50%)'; 
-            if(divider) {
-                divider.style.display = 'flex';
-                divider.style.zIndex = '1000'; // FORÇA A BARRA A FICAR ACIMA DO MAPA
-            }
+        } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
+            if (mode === 'sidebyside') document.getElementById('box-diff-depth').classList.remove('hidden');
+            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').classList.remove('hidden');
             
-        } else if (mode === 'sidebyside_safra') {
-            document.getElementById('box-diff-safra').classList.remove('hidden');
-            rightPane.style.display = 'block';
-            rightPane.style.clipPath = 'inset(0 0 0 50%)'; 
-            if(divider) {
-                divider.style.display = 'flex';
-                divider.style.zIndex = '1000'; // FORÇA A BARRA A FICAR ACIMA DO MAPA
-            }
+            if(rightPane) rightPane.classList.remove('hidden'); // Mostra a direita
         }
     }
 
-    // 3. Sincronização entre HTML e Leaflet
-    // ... (resto do código da sua função updateGISMap)
+    // 3. Acorda os mapas e força a câmera a ir para o lugar certo
+    setTimeout(() => {
+        const currentCenter = mapLeft.getCenter();
+        const currentZoom = mapLeft.getZoom();
 
-        // BEM NO FINAL DA FUNÇÃO, SUBSTITUA O SETTIMEOUT:
-        setTimeout(() => {
-            // 1. Acorda todas as telas do Leaflet para acabar com o fundo cinza
-            if (mapLeft) mapLeft.invalidateSize(true);
-            if (mapRight) mapRight.invalidateSize(true);
-            if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
-                mapQuadTL.invalidateSize(true);
-                mapQuadTR.invalidateSize(true);
-                mapQuadBL.invalidateSize(true);
-                mapQuadBR.invalidateSize(true);
+        if (mapLeft) mapLeft.invalidateSize(true);
+        
+        if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
+            if (mapRight) {
+                mapRight.invalidateSize(true);
+                mapRight.setView(currentCenter, currentZoom, { animate: false });
             }
-
-            // 2. Calcula as bordas reais da fazenda para enquadramento perfeito
-            const referenceLayer = L.geoJSON(currentGeoJSON);
-            
-            if (referenceLayer && referenceLayer.getBounds().isValid()) {
-                const bounds = referenceLayer.getBounds();
-                const fitOptions = { padding: [40, 40], maxZoom: 15 }; 
-                
-                // Manda cada tela visível viajar até a fazenda
-                if (mode === 'single') {
-                    if (mapLeft) mapLeft.fitBounds(bounds, fitOptions);
-                } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-                    if (mapLeft) mapLeft.fitBounds(bounds, fitOptions);
-                    if (mapRight) mapRight.fitBounds(bounds, fitOptions);
-                } else if (mode === 'quad_split') {
-                    if (mapQuadTL) mapQuadTL.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-                    if (mapQuadTR) mapQuadTR.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-                    if (mapQuadBL) mapQuadBL.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-                    if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-                }
-            }
-        }, 300); // 300 milissegundos dão folga para navegadores mais lentos
-    } // <--- NÃO APAGUE: esta é a chave que encerra a função updateGISMap()
+        }
+        
+        if (mode === 'quad_split' && typeof mapQuadTL !== 'undefined' && mapQuadTL) {
+            mapQuadTL.invalidateSize(true); mapQuadTL.setView(currentCenter, currentZoom, { animate: false });
+            mapQuadTR.invalidateSize(true); mapQuadTR.setView(currentCenter, currentZoom, { animate: false });
+            mapQuadBL.invalidateSize(true); mapQuadBL.setView(currentCenter, currentZoom, { animate: false });
+            mapQuadBR.invalidateSize(true); mapQuadBR.setView(currentCenter, currentZoom, { animate: false });
+        }
+        
+        if (typeof updateGISMap === 'function') {
+            updateGISMap();
+        }
+    }, 200);
+}
       function popularDropdownsDeSafra(listaDeSafras) {
     const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
     
@@ -7885,57 +7855,7 @@ async function generateBatchPDFs() {
             else if (isVisible('evolucao')) {
                 if (typeof renderEvoCharts === 'function') renderEvoCharts();
             }
-        };
-      // ==========================================
-// MOTOR DA BARRA DE SWIPE BLINDADO CONTRA O MAPA
-// ==========================================
-(function initSwipe() {
-    const divider = document.getElementById('split-divider');
-    const rightPane = document.getElementById('right-map-pane');
-    const swipeWrapper = document.getElementById('swipe-map-wrapper');
-
-    if (!divider || !rightPane || !swipeWrapper) {
-        setTimeout(initSwipe, 500); // Aguarda o HTML carregar
-        return;
-    }
-
-    let isDragging = false;
-    
-    // Cria uma película invisível para o Leaflet não roubar o mouse durante o arrasto
-    let glassPane = document.createElement('div');
-    glassPane.style.position = 'absolute';
-    glassPane.style.inset = '0';
-    glassPane.style.zIndex = '9999';
-    glassPane.style.cursor = 'col-resize';
-    glassPane.style.display = 'none';
-    swipeWrapper.appendChild(glassPane);
-
-    divider.addEventListener('mousedown', (e) => { 
-        isDragging = true; 
-        glassPane.style.display = 'block'; // Liga a película ao clicar na barra
-        e.preventDefault(); 
-    });
-    
-    window.addEventListener('mouseup', () => { 
-        isDragging = false; 
-        glassPane.style.display = 'none'; // Desliga a película ao soltar o clique
-    });
-    
-    window.addEventListener('mousemove', (e) => {
-        if (!isDragging) return;
-        
-        const rect = swipeWrapper.getBoundingClientRect();
-        let position = ((e.clientX - rect.left) / rect.width) * 100;
-        
-        // Mantém a barra dentro dos limites da tela (2% a 98%)
-        if (position < 2) position = 2;
-        if (position > 98) position = 98;
-        
-        divider.style.left = position + '%';
-        // Corta a tela da direita no exato local da barra
-        rightPane.style.clipPath = `inset(0 0 0 ${position}%)`;
-    });
-})();
+        };    
     </script>
 </body>
 </html>
