@@ -7829,8 +7829,8 @@ async function generateBatchPDFs() {
             }
         };
       // ==========================================
-// FUNÇÕES ATUALIZADAS PARA PREENCHER AS SAFRAS NOS MENUS DE COMPARAÇÃO
-// ==========================================
+    // FUNÇÕES ATUALIZADAS PARA PREENCHER AS SAFRAS NOS MENUS DE COMPARAÇÃO
+    // ==========================================
 
 function popularDropdownsDeSafra(listaDeSafras) {
     const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
@@ -8027,6 +8027,10 @@ window.populateSafraSelector = function() {
     if (typeof renderExtraExcelList === 'function') renderExtraExcelList();
 };
 
+// =========================================================================
+// CORREÇÃO: DESENHO DOS MAPAS E FILTRO INTELIGENTE DE TALHÕES
+// =========================================================================
+
 window.updateGISMap = function() {
     const mapLeftEl = document.getElementById('map-left');
     if (!mapLeftEl) return; 
@@ -8100,12 +8104,29 @@ window.updateGISMap = function() {
 
         const layer = L.geoJSON(currentGeoJSON, {
             filter: function(feature) {
-                // Desenha todos os talhões selecionados no filtro lateral (não esconde a geometria por safra)
-                if (!selectedTalhoes.length) return true;
-                return feature.properties && selectedTalhoes.includes(String(feature.properties.Talhao));
+                // Filtro ultra-robusto: Ignora "Selecionar Todos" e não quebra os polígonos
+                if (selectedTalhoes && selectedTalhoes.length > 0) {
+                    const isTodos = selectedTalhoes.some(t => String(t).toLowerCase().includes('todos'));
+                    if (!isTodos) {
+                        const featureTalhao = String(feature.properties.Talhao || feature.properties.name || feature.properties.Name || feature.properties.Nome || feature.properties.Subdivisao || '').trim().toLowerCase();
+                        const match = selectedTalhoes.some(t => {
+                            const tClean = String(t).toLowerCase().replace(/talh[aã]o\s*/i, '').trim();
+                            return featureTalhao === tClean || featureTalhao.includes(tClean) || tClean.includes(featureTalhao);
+                        });
+                        if (!match) return false;
+                    }
+                }
+                return true;
             },
             style: function(feature) {
-                const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                let depthData = {};
+                try {
+                    // Tenta puxar a informação da safra sem quebrar a execução
+                    if (typeof getFeatureDepthData === 'function') {
+                        depthData = getFeatureDepthData(feature, cfg.depth, cfg.safras) || {};
+                    }
+                } catch(e) {}
+                
                 const val = depthData[param];
                 
                 let fillColor = 'transparent';
@@ -8122,7 +8143,7 @@ window.updateGISMap = function() {
                         fillOpacity = 0.5;
                     }
                 } else {
-                    // Sem dados, pinta de cinza
+                    // Sem dados encontrados, pinta o polígono de cinza
                     fillColor = '#cbd5e1';
                     fillOpacity = 0.4;
                 }
@@ -8136,13 +8157,19 @@ window.updateGISMap = function() {
                 };
             },
             onEachFeature: function(feature, layer) {
-                const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                let depthData = {};
+                try {
+                    if (typeof getFeatureDepthData === 'function') {
+                        depthData = getFeatureDepthData(feature, cfg.depth, cfg.safras) || {};
+                    }
+                } catch(e) {}
+                
                 const rawVal = depthData[param];
                 const val = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
 
                 const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
                 
-                if (layer.bindPopup) {
+                if (typeof layer.bindPopup === 'function') {
                     layer.bindPopup(`<b>${subName}</b> (Talhão ${feature.properties.Talhao || 'N/A'})<br><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
                 }
 
@@ -8157,7 +8184,7 @@ window.updateGISMap = function() {
                     labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
                 }
 
-                if (labelText && layer.bindTooltip) {
+                if (labelText && typeof layer.bindTooltip === 'function') {
                     layer.bindTooltip(labelText, {
                         permanent: true,
                         direction: 'center',
@@ -8185,7 +8212,7 @@ window.updateGISMap = function() {
             legendItems.innerHTML = `
                 <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
                     <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
-                    <span>Nenhum polígono nesta safra possui valores para este parâmetro. Tente trocar de Safra, Camada ou Parâmetro de Solo (como CTC ou Argila).</span>
+                    <span>Nenhum polígono nesta safra possui valores para este parâmetro. Tente trocar de Safra, Camada ou Parâmetro de Solo.</span>
                 </div>
             `;
         } else {
