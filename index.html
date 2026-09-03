@@ -2374,7 +2374,7 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    // 1. Esconde todos os menus de controle (Reseta o estado)
+    // 1. Esconde todos os menus
     document.getElementById('box-single-depth').classList.add('hidden');
     document.getElementById('box-diff-depth').classList.add('hidden');
     document.getElementById('box-diff-safra').classList.add('hidden');
@@ -2385,7 +2385,7 @@
     const rightPane = document.getElementById('right-map-pane');
     const divider = document.getElementById('split-divider');
 
-    // 2. Controla a exibição dos Mapas e dos Menus correspondentes
+    // 2. Ajusta a exibição das telas de mapa
     if (mode === 'quad_split') {
         document.getElementById('box-quad-split').classList.remove('hidden');
         swipeWrapper.classList.add('hidden');
@@ -2398,61 +2398,33 @@
         swipeWrapper.classList.remove('hidden');
         swipeWrapper.classList.add('block');
 
-        // Garante que a barra divisória volte para o meio ao trocar de aba
-        if(divider) divider.style.left = '50%';
+        if(divider) divider.style.left = '50%'; // Retorna a barra pro meio
 
         if (mode === 'single') {
             document.getElementById('box-single-depth').classList.remove('hidden');
-            rightPane.style.display = 'none'; 
+            if(rightPane) rightPane.style.display = 'none'; 
             if(divider) divider.style.display = 'none';
             
-        } else if (mode === 'sidebyside') {
-            document.getElementById('box-diff-depth').classList.remove('hidden');
-            rightPane.style.display = 'block';
-            rightPane.style.clipPath = 'inset(0 0 0 50%)'; 
-            if(divider) {
-                divider.style.display = 'flex';
-                divider.style.zIndex = '1000'; // FORÇA A BARRA A FICAR ACIMA DO MAPA
-            }
+        } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
+            if (mode === 'sidebyside') document.getElementById('box-diff-depth').classList.remove('hidden');
+            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').classList.remove('hidden');
             
-        } else if (mode === 'sidebyside_safra') {
-            document.getElementById('box-diff-safra').classList.remove('hidden');
-            rightPane.style.display = 'block';
-            rightPane.style.clipPath = 'inset(0 0 0 50%)'; 
+            if(rightPane) {
+                rightPane.style.display = 'block';
+                rightPane.style.zIndex = '50';
+                rightPane.style.clipPath = 'inset(0 0 0 50%)'; 
+            }
             if(divider) {
                 divider.style.display = 'flex';
-                divider.style.zIndex = '1000'; // FORÇA A BARRA A FICAR ACIMA DO MAPA
+                divider.style.zIndex = '1000';
             }
         }
     }
 
-    // 3. Sincronização entre HTML e Leaflet
-    setTimeout(() => {
-        if (mapLeft) mapLeft.invalidateSize();
-        if (mapRight) mapRight.invalidateSize();
-
-        // O 'molde' usa a fazenda toda para evitar cortes
-        const referenceLayer = L.geoJSON(currentGeoJSON);
-
-        if (referenceLayer && referenceLayer.getBounds().isValid()) {
-            const bounds = referenceLayer.getBounds();
-            // Aumentamos o padding de 20 para 40 para criar uma margem confortável ao redor da fazenda
-            const fitOptions = { padding: [40, 40], maxZoom: 15 }; 
-            
-            if (mode === 'single') {
-                if (mapLeft) mapLeft.fitBounds(bounds, fitOptions);
-            } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-                if (mapLeft) mapLeft.fitBounds(bounds, fitOptions);
-                if (mapRight) mapRight.fitBounds(bounds, fitOptions);
-            } else if (mode === 'quad_split') {
-                // A quádrupla tem padding menor pois os quadrados são pequenos
-                if (mapQuadTL) mapQuadTL.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-                if (mapQuadTR) mapQuadTR.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-                if (mapQuadBL) mapQuadBL.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-                if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
-            }
-        }
-    }, 250);
+    // 3. Aguarda o HTML se desenhar e manda atualizar os mapas
+    if (typeof updateGISMap === 'function') {
+        setTimeout(updateGISMap, 150);
+    }
 }
       function popularDropdownsDeSafra(listaDeSafras) {
     const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
