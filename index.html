@@ -2372,43 +2372,61 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    // 1. Esconde os menus forçando via estilo direto (ignora o CSS antigo)
-    document.getElementById('box-single-depth').style.display = 'none';
-    document.getElementById('box-diff-depth').style.display = 'none';
-    document.getElementById('box-diff-safra').style.display = 'none';
-    document.getElementById('box-quad-split').style.display = 'none';
-
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
     const quadWrapper = document.getElementById('quad-map-wrapper');
     const rightPane = document.getElementById('right-map-pane');
+    const boxSingle = document.getElementById('box-single-depth');
+    const boxDiffDepth = document.getElementById('box-diff-depth');
+    const boxDiffSafra = document.getElementById('box-diff-safra');
+    const boxQuad = document.getElementById('box-quad-split');
 
-    // 2. Controla as telas forçando o Flexbox e apagando a classe "hidden"
+    // 1. O SEGREDO: Limpar os "cadeados" (estilos inline) que estavam quebrando os outros módulos
+    swipeWrapper.removeAttribute("style");
+    quadWrapper.removeAttribute("style");
+    if(rightPane) rightPane.removeAttribute("style");
+    boxSingle.removeAttribute("style");
+    boxDiffDepth.removeAttribute("style");
+    boxDiffSafra.removeAttribute("style");
+    boxQuad.removeAttribute("style");
+
+    // 2. Reseta o estado dos menus via Tailwind (classList)
+    boxSingle.classList.add('hidden');
+    boxDiffDepth.classList.add('hidden');
+    boxDiffSafra.classList.add('hidden');
+    boxQuad.classList.add('hidden');
+
+    // 3. Controla as telas de forma amigável com o Tailwind
     if (mode === 'quad_split') {
-        document.getElementById('box-quad-split').style.display = 'block';
-        swipeWrapper.style.display = 'none';
-        quadWrapper.style.display = 'grid';
+        boxQuad.classList.remove('hidden');
+        
+        swipeWrapper.classList.add('hidden');
+        swipeWrapper.classList.remove('flex');
+        
+        quadWrapper.classList.remove('hidden');
+        quadWrapper.classList.add('grid');
     } else {
-        quadWrapper.style.display = 'none';
-        swipeWrapper.style.display = 'flex'; // Força a tela a virar Flexbox 50/50
+        quadWrapper.classList.add('hidden');
+        quadWrapper.classList.remove('grid');
+        
+        swipeWrapper.classList.remove('hidden');
+        swipeWrapper.classList.add('flex');
 
         if (mode === 'single') {
-            document.getElementById('box-single-depth').style.display = 'block';
+            boxSingle.classList.remove('hidden');
             if(rightPane) {
-                rightPane.style.display = 'none'; // Desliga a direita
+                rightPane.classList.add('hidden'); 
             }
         } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-            if (mode === 'sidebyside') document.getElementById('box-diff-depth').style.display = 'block';
-            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').style.display = 'block';
+            if (mode === 'sidebyside') boxDiffDepth.classList.remove('hidden');
+            if (mode === 'sidebyside_safra') boxDiffSafra.classList.remove('hidden');
             
             if(rightPane) {
-                rightPane.classList.remove('hidden'); // Limpa sujeiras do CSS
-                rightPane.style.display = 'block'; // Liga a direita na marra
-                rightPane.style.width = '100%'; // Garante a proporção
+                rightPane.classList.remove('hidden');
             }
         }
     }
 
-    // 3. Atualiza os mapas e a câmera de forma sincronizada
+    // 4. Atualiza os mapas e a câmera de forma sincronizada
     setTimeout(() => {
         const currentCenter = mapLeft.getCenter();
         const currentZoom = mapLeft.getZoom();
@@ -2418,7 +2436,6 @@
         if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
             if (mapRight) {
                 mapRight.invalidateSize(true);
-                // "Copia" a câmera da esquerda para a direita para não nascer cinza
                 mapRight.setView(currentCenter, currentZoom, { animate: false });
             }
         }
@@ -2430,7 +2447,6 @@
             mapQuadBR.invalidateSize(true); mapQuadBR.setView(currentCenter, currentZoom, { animate: false });
         }
         
-        // Manda desenhar os polígonos coloridos
         if (typeof updateGISMap === 'function') {
             updateGISMap();
         }
