@@ -2341,10 +2341,7 @@
             if (elemento) elemento.style.display = ''; 
         });
 
-        // 👇 AQUI ESTÁ A CORREÇÃO: O 'visit' foi adicionado na lista!
-        ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
-            const el = document.getElementById(`content-${t}`);
-          
+       
             // 👇 AQUI ESTÁ A CORREÇÃO: O 'visit' foi adicionado na lista!
             ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
                 const el = document.getElementById(`content-${t}`);
