@@ -7916,20 +7916,24 @@ function populateSafraSelector() {
     if (typeof renderExtraExcelList === 'function') renderExtraExcelList();
 }
       // =========================================================================
-// CORREÇÃO: MEMÓRIA INTELIGENTE PARA OS DROPDOWNS DE SAFRAS (SWIPE E QUAD)
+// INTELIGÊNCIA DOS MAPAS E MENUS DE SAFRA (SWIPE E QUAD SPLIT)
 // =========================================================================
 
-// Variável global para guardar a memória das escolhas do usuário
 window.memoriaSafras = window.memoriaSafras || {};
 
-function popularDropdownsDeSafra(listaDeSafras) {
-    if (!listaDeSafras || !Array.isArray(listaDeSafras)) return;
+window.popularDropdownsDeSafra = function(listaDeSafras) {
+    const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
     
-    // Converte as safras para texto limpo e seguro
-    const safrasSeguras = listaDeSafras.map(s => String(s).trim()).filter(s => s !== '');
-    if (safrasSeguras.length === 0) return;
+    if (!listaDeSafras || !Array.isArray(listaDeSafras) || listaDeSafras.length === 0) {
+        camposSafra.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.innerHTML = '';
+        });
+        return;
+    }
 
-    // Configuração de onde cada dropdown deve buscar sua safra padrão
+    const safrasSeguras = listaDeSafras.map(s => String(s).trim()).filter(s => s !== '');
+
     const camposConfig = [
         { id: 'sel-safra-a', defaultIndex: 0 },
         { id: 'sel-safra-b', defaultIndex: safrasSeguras.length > 1 ? 1 : 0 },
@@ -7941,35 +7945,31 @@ function popularDropdownsDeSafra(listaDeSafras) {
         const selectEl = document.getElementById(cfg.id);
         if (!selectEl) return;
 
-        // Resgata a safra que estava selecionada antes (ou puxa da memória)
         let selecionado = selectEl.value || window.memoriaSafras[cfg.id];
 
-        // Recria as opções do select no HTML
         let html = '';
         safrasSeguras.forEach(safra => {
             html += `<option value="${safra}">${safra}</option>`;
         });
         selectEl.innerHTML = html;
 
-        // Restaura a seleção de forma inteligente
         if (selecionado && safrasSeguras.includes(selecionado)) {
             selectEl.value = selecionado;
         } else {
-            selectEl.value = safrasSeguras[cfg.defaultIndex]; // Seleciona safras diferentes (esquerda x direita)
+            selectEl.value = safrasSeguras[cfg.defaultIndex];
         }
 
-        // Salva a escolha na memória para não perder no próximo clique
         window.memoriaSafras[cfg.id] = selectEl.value;
 
-        // Garante que o mapa atualize e salve a memória ao trocar de safra
+        // Ao alterar o menu de safra, salva na memória e atualiza o mapa
         selectEl.onchange = function(e) {
             window.memoriaSafras[e.target.id] = e.target.value;
             if (typeof updateGISMap === 'function') updateGISMap();
         };
     });
-}
+};
 
-function populateSafraSelector() {
+window.populateSafraSelector = function() {
     const farmSelect = document.getElementById('sel-farm');
     if (!farmSelect) return;
     
@@ -7979,6 +7979,7 @@ function populateSafraSelector() {
 
     if (!selectedFarmKey || typeof farmsDatabase === 'undefined' || !farmsDatabase[selectedFarmKey]) {
         container.innerHTML = '<span class="text-slate-400 italic">Sem safras salvas</span>';
+        if (typeof popularDropdownsDeSafra === 'function') popularDropdownsDeSafra([]);
         return;
     }
 
@@ -8003,20 +8004,18 @@ function populateSafraSelector() {
     }
 
     const sortedSafras = Array.from(safrasSet).sort().reverse();
-    
-    // SEGURANÇA MÁXIMA: Tenta popular os dropdowns de comparação isoladamente
-    try {
-        popularDropdownsDeSafra(sortedSafras);
-    } catch(e) {
-        console.error("Erro ao montar dropdowns:", e);
-    }
 
     if (!sortedSafras.length) {
         container.innerHTML = '<span class="text-slate-400 italic">Sem safras salvas</span>';
+        if (typeof popularDropdownsDeSafra === 'function') popularDropdownsDeSafra([]);
         return;
     }
+    
+    // Alimenta os menus suspensos das 4 telas e Lado a Lado
+    if (typeof popularDropdownsDeSafra === 'function') {
+        popularDropdownsDeSafra(sortedSafras);
+    }
 
-    // Recria os checkboxes de Safras Ativas do lado esquerdo
     container.innerHTML = sortedSafras.map((s, idx) => `
         <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
             <input type="checkbox" name="chk-safra-item" value="${s}" ${idx === 0 ? 'checked' : ''} onchange="if(typeof updateGISMap === 'function') updateGISMap(); if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector();" class="chk-safra-item h-3.5 w-3.5 text-origens-green rounded">
@@ -8026,7 +8025,173 @@ function populateSafraSelector() {
 
     if (typeof renderSavedPrescriptionsList === 'function') renderSavedPrescriptionsList();
     if (typeof renderExtraExcelList === 'function') renderExtraExcelList();
-}
+};
+
+window.updateGISMap = function() {
+    const mapLeftEl = document.getElementById('map-left');
+    if (!mapLeftEl) return; 
+
+    const farmKey = document.getElementById('sel-farm') ? document.getElementById('sel-farm').value : null;
+    const legendItems = document.getElementById('legend-items');
+    const legendTitle = document.getElementById('legend-title');
+
+    if (!farmKey || typeof farmsDatabase === 'undefined' || !farmsDatabase[farmKey] || !farmsDatabase[farmKey].geojson) {
+        if(legendItems) legendItems.innerHTML = `<span class="text-amber-600 font-bold block text-xs">Nenhum projeto importado para esta fazenda.</span>`;
+        return;
+    }
+
+    const param = document.getElementById('sel-param') ? document.getElementById('sel-param').value : null;
+    const mode = document.getElementById('sel-mode') ? document.getElementById('sel-mode').value : 'single';
+    const currentGeoJSON = farmsDatabase[farmKey].geojson;
+    const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
+
+    const showBoundary = document.getElementById('chk-boundary') ? document.getElementById('chk-boundary').checked : true;
+    const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
+    const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
+
+    const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
+    const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
+
+    // 1. Limpa camadas antigas
+    if (typeof geojsonLayerLeft !== 'undefined' && geojsonLayerLeft && mapLeft) { mapLeft.removeLayer(geojsonLayerLeft); }
+    if (typeof geojsonLayerRight !== 'undefined' && geojsonLayerRight && mapRight) { mapRight.removeLayer(geojsonLayerRight); }
+    if (typeof geojsonLayerQuadTL !== 'undefined' && geojsonLayerQuadTL && mapQuadTL) { mapQuadTL.removeLayer(geojsonLayerQuadTL); }
+    if (typeof geojsonLayerQuadTR !== 'undefined' && geojsonLayerQuadTR && mapQuadTR) { mapQuadTR.removeLayer(geojsonLayerQuadTR); }
+    if (typeof geojsonLayerQuadBL !== 'undefined' && geojsonLayerQuadBL && mapQuadBL) { mapQuadBL.removeLayer(geojsonLayerQuadBL); }
+    if (typeof geojsonLayerQuadBR !== 'undefined' && geojsonLayerQuadBR && mapQuadBR) { mapQuadBR.removeLayer(geojsonLayerQuadBR); }
+
+    // 2. Configurações de cada tela
+    let configs = [];
+
+    if (mode === 'single') {
+        const depth = document.getElementById('sel-depth') ? document.getElementById('sel-depth').value : 'd0_10';
+        configs.push({ id: 'left', depth: depth, safras: globalSafras, mapObj: mapLeft });
+    } 
+    else if (mode === 'sidebyside') {
+        const depthA = document.getElementById('sel-depth-a') ? document.getElementById('sel-depth-a').value : 'd0_10';
+        const depthB = document.getElementById('sel-depth-b') ? document.getElementById('sel-depth-b').value : 'd10_20';
+        configs.push({ id: 'left', depth: depthA, safras: globalSafras, mapObj: mapLeft });
+        configs.push({ id: 'right', depth: depthB, safras: globalSafras, mapObj: mapRight });
+    } 
+    else if (mode === 'sidebyside_safra') {
+        const dFix = document.getElementById('sel-depth-fixed') ? document.getElementById('sel-depth-fixed').value : 'd0_10';
+        const sA = document.getElementById('sel-safra-a') ? document.getElementById('sel-safra-a').value : null;
+        const sB = document.getElementById('sel-safra-b') ? document.getElementById('sel-safra-b').value : null;
+        configs.push({ id: 'left', depth: dFix, safras: sA ? [sA] : globalSafras, mapObj: mapLeft });
+        configs.push({ id: 'right', depth: dFix, safras: sB ? [sB] : globalSafras, mapObj: mapRight });
+    } 
+    else if (mode === 'quad_split') {
+        const sA = document.getElementById('sel-quad-safra-a') ? document.getElementById('sel-quad-safra-a').value : null;
+        const sB = document.getElementById('sel-quad-safra-b') ? document.getElementById('sel-quad-safra-b').value : null;
+        const dA = document.getElementById('sel-quad-depth-a') ? document.getElementById('sel-quad-depth-a').value : 'd0_10';
+        const dB = document.getElementById('sel-quad-depth-b') ? document.getElementById('sel-quad-depth-b').value : 'd10_20';
+
+        configs.push({ id: 'qTL', depth: dA, safras: sA ? [sA] : globalSafras, mapObj: mapQuadTL });
+        configs.push({ id: 'qTR', depth: dA, safras: sB ? [sB] : globalSafras, mapObj: mapQuadTR });
+        configs.push({ id: 'qBL', depth: dB, safras: sA ? [sA] : globalSafras, mapObj: mapQuadBL });
+        configs.push({ id: 'qBR', depth: dB, safras: sB ? [sB] : globalSafras, mapObj: mapQuadBR });
+    }
+
+    let hasValidDataForLegend = false;
+
+    // 3. Desenha os mapas com as cores corretas
+    configs.forEach(cfg => {
+        if (!cfg.mapObj) return;
+
+        const layer = L.geoJSON(currentGeoJSON, {
+            filter: function(feature) {
+                if (selectedTalhoes.length && !selectedTalhoes.includes(String(feature.properties.Talhao))) return false;
+                
+                if (cfg.safras && cfg.safras.length) {
+                    const featuresSafra = feature.properties.safra_origem || (typeof extractSafra === 'function' ? extractSafra(feature.properties) : null);
+                    const hasHistorico = feature.properties.safras_historico && cfg.safras.some(s => feature.properties.safras_historico[s] && feature.properties.safras_historico[s][cfg.depth]);
+                    const hasDirectSafra = featuresSafra && cfg.safras.includes(featuresSafra);
+                    if (!hasHistorico && !hasDirectSafra) return false;
+                }
+                return true;
+            },
+            style: function(feature) {
+                const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                const val = depthData[param];
+                
+                let fillColor = 'transparent';
+                let fillOpacity = 0;
+
+                if (val !== null && val !== undefined && val !== '') {
+                    hasValidDataForLegend = true;
+                    const matched = typeof getMatchedRule === 'function' ? getMatchedRule(val, rules) : null;
+                    if (matched) {
+                        fillColor = matched.color;
+                        fillOpacity = 0.8;
+                    } else {
+                        fillColor = '#94a3b8';
+                        fillOpacity = 0.5;
+                    }
+                }
+
+                return {
+                    fillColor: fillColor,
+                    weight: showBoundary ? 1.5 : 0,
+                    opacity: 1,
+                    color: showBoundary ? '#1e293b' : 'transparent',
+                    fillOpacity: fillOpacity
+                };
+            },
+            onEachFeature: function(feature, layer) {
+                const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                const rawVal = depthData[param];
+                const val = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
+
+                const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
+                layer.bindPopup(`<b>${subName}</b> (Talhão ${feature.properties.Talhao || 'N/A'})<br><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
+
+                if (!showLabels && !showValues) return;
+
+                let labelText = '';
+                if (showLabels && showValues) {
+                    labelText = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
+                } else if (showLabels) {
+                    labelText = subName;
+                } else if (showValues) {
+                    labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
+                }
+
+                if (labelText) {
+                    layer.bindTooltip(labelText, {
+                        permanent: true,
+                        direction: 'center',
+                        className: 'bg-white/80 text-slate-800 font-bold text-[9px] px-1 py-0.5 rounded border border-slate-300 shadow-sm'
+                    });
+                }
+            }
+        });
+
+        layer.addTo(cfg.mapObj);
+
+        if (cfg.id === 'left') geojsonLayerLeft = layer;
+        if (cfg.id === 'right') geojsonLayerRight = layer;
+        if (cfg.id === 'qTL') geojsonLayerQuadTL = layer;
+        if (cfg.id === 'qTR') geojsonLayerQuadTR = layer;
+        if (cfg.id === 'qBL') geojsonLayerQuadBL = layer;
+        if (cfg.id === 'qBR') geojsonLayerQuadBR = layer;
+    });
+
+    // 4. Atualiza a legenda dinamicamente
+    if (legendTitle) legendTitle.innerText = `${param}`;
+
+    if (legendItems) {
+        if (!hasValidDataForLegend) {
+            legendItems.innerHTML = `
+                <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
+                    <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
+                    <span>Nenhum polígono nesta safra possui valores para este parâmetro. Tente trocar de Safra, Camada ou Parâmetro de Solo (como CTC ou Argila).</span>
+                </div>
+            `;
+        } else {
+            legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded border border-slate-300 shadow-sm" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
+        }
+    }
+};
     </script>
 </body>
 </html>
