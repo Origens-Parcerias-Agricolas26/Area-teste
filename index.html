@@ -2372,49 +2372,54 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    // 1. Limpa qualquer regra absoluta antiga que esteja quebrando os outros módulos
-    const idsToClean = ['box-single-depth', 'box-diff-depth', 'box-diff-safra', 'box-quad-split', 'swipe-map-wrapper', 'quad-map-wrapper', 'right-map-pane'];
-    idsToClean.forEach(id => {
-        const el = document.getElementById(id);
-        if(el) {
-            el.style.display = ''; // Remove o "cadeado" do inline style
-            el.classList.add('hidden'); // Esconde tudo por padrão usando a classe CSS
-        }
-    });
-
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
     const quadWrapper = document.getElementById('quad-map-wrapper');
     const rightPane = document.getElementById('right-map-pane');
 
-    // 2. Controla as telas ligando e desligando as classes do Tailwind
+    // 1. Limpamos os estilos apenas dos Wrappers (Isso impede que o mapa fique "fantasma" quebrando outros módulos)
+    if (swipeWrapper) swipeWrapper.style.display = '';
+    if (quadWrapper) quadWrapper.style.display = '';
+
+    // 2. Esconde os menus internos forçando via estilo direto (como no seu código que funcionou)
+    document.getElementById('box-single-depth').style.display = 'none';
+    document.getElementById('box-diff-depth').style.display = 'none';
+    document.getElementById('box-diff-safra').style.display = 'none';
+    document.getElementById('box-quad-split').style.display = 'none';
+
+    // 3. Controla a divisão das telas
     if (mode === 'quad_split') {
-        document.getElementById('box-quad-split').classList.remove('hidden');
+        document.getElementById('box-quad-split').style.display = 'block';
         
-        swipeWrapper.classList.remove('flex'); // Garante que a divisão 50/50 está desligada
+        swipeWrapper.classList.add('hidden');
+        swipeWrapper.classList.remove('flex');
         
         quadWrapper.classList.remove('hidden');
         quadWrapper.classList.add('grid');
     } else {
+        quadWrapper.classList.add('hidden');
         quadWrapper.classList.remove('grid');
         
         swipeWrapper.classList.remove('hidden');
-        swipeWrapper.classList.add('flex'); // Força a tela a virar Flexbox 50/50
+        swipeWrapper.classList.add('flex'); // Divide o espaço da tela 50/50
 
         if (mode === 'single') {
-            document.getElementById('box-single-depth').classList.remove('hidden');
-            // O rightPane já está escondido pelo passo 1
-            
+            document.getElementById('box-single-depth').style.display = 'block';
+            if (rightPane) {
+                rightPane.style.display = 'none'; // Esconde a direita no modo individual
+            }
         } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-            if (mode === 'sidebyside') document.getElementById('box-diff-depth').classList.remove('hidden');
-            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').classList.remove('hidden');
+            if (mode === 'sidebyside') document.getElementById('box-diff-depth').style.display = 'block';
+            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').style.display = 'block';
             
-            if(rightPane) {
-                rightPane.classList.remove('hidden'); // Liga a tela da direita
+            if (rightPane) {
+                rightPane.classList.remove('hidden');
+                rightPane.style.display = 'block'; // O SEGREDO: Força a tela a voltar a aparecer!
+                rightPane.style.width = '100%'; // Mantém a proporção
             }
         }
     }
 
-    // 3. Atualiza os mapas e a câmera (O seu código exato que funcionou perfeito)
+    // 4. Atualiza os mapas e a câmera de forma sincronizada
     setTimeout(() => {
         const currentCenter = mapLeft.getCenter();
         const currentZoom = mapLeft.getZoom();
