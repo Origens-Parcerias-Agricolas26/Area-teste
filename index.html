@@ -2372,42 +2372,43 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    // 1. Esconde todos os menus
-    document.getElementById('box-single-depth').classList.add('hidden');
-    document.getElementById('box-diff-depth').classList.add('hidden');
-    document.getElementById('box-diff-safra').classList.add('hidden');
-    document.getElementById('box-quad-split').classList.add('hidden');
+    // 1. Esconde os menus forçando via estilo direto (ignora o CSS antigo)
+    document.getElementById('box-single-depth').style.display = 'none';
+    document.getElementById('box-diff-depth').style.display = 'none';
+    document.getElementById('box-diff-safra').style.display = 'none';
+    document.getElementById('box-quad-split').style.display = 'none';
 
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
     const quadWrapper = document.getElementById('quad-map-wrapper');
     const rightPane = document.getElementById('right-map-pane');
 
-    // 2. Controla o layout (Flex/Grid)
+    // 2. Controla as telas forçando o Flexbox e apagando a classe "hidden"
     if (mode === 'quad_split') {
-        document.getElementById('box-quad-split').classList.remove('hidden');
-        swipeWrapper.classList.add('hidden');
-        swipeWrapper.classList.remove('flex');
-        quadWrapper.classList.remove('hidden');
-        quadWrapper.classList.add('grid');
+        document.getElementById('box-quad-split').style.display = 'block';
+        swipeWrapper.style.display = 'none';
+        quadWrapper.style.display = 'grid';
     } else {
-        quadWrapper.classList.add('hidden');
-        quadWrapper.classList.remove('grid');
-        swipeWrapper.classList.remove('hidden');
-        swipeWrapper.classList.add('flex');
+        quadWrapper.style.display = 'none';
+        swipeWrapper.style.display = 'flex'; // Força a tela a virar Flexbox 50/50
 
         if (mode === 'single') {
-            document.getElementById('box-single-depth').classList.remove('hidden');
-            if(rightPane) rightPane.classList.add('hidden'); // Esconde a direita
-            
+            document.getElementById('box-single-depth').style.display = 'block';
+            if(rightPane) {
+                rightPane.style.display = 'none'; // Desliga a direita
+            }
         } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-            if (mode === 'sidebyside') document.getElementById('box-diff-depth').classList.remove('hidden');
-            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').classList.remove('hidden');
+            if (mode === 'sidebyside') document.getElementById('box-diff-depth').style.display = 'block';
+            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').style.display = 'block';
             
-            if(rightPane) rightPane.classList.remove('hidden'); // Mostra a direita
+            if(rightPane) {
+                rightPane.classList.remove('hidden'); // Limpa sujeiras do CSS
+                rightPane.style.display = 'block'; // Liga a direita na marra
+                rightPane.style.width = '100%'; // Garante a proporção
+            }
         }
     }
 
-    // 3. Acorda os mapas e força a câmera a ir para o lugar certo
+    // 3. Atualiza os mapas e a câmera de forma sincronizada
     setTimeout(() => {
         const currentCenter = mapLeft.getCenter();
         const currentZoom = mapLeft.getZoom();
@@ -2417,6 +2418,7 @@
         if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
             if (mapRight) {
                 mapRight.invalidateSize(true);
+                // "Copia" a câmera da esquerda para a direita para não nascer cinza
                 mapRight.setView(currentCenter, currentZoom, { animate: false });
             }
         }
@@ -2428,6 +2430,7 @@
             mapQuadBR.invalidateSize(true); mapQuadBR.setView(currentCenter, currentZoom, { animate: false });
         }
         
+        // Manda desenhar os polígonos coloridos
         if (typeof updateGISMap === 'function') {
             updateGISMap();
         }
