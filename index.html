@@ -2372,52 +2372,49 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    // 1. O SEGREDO DA CORREÇÃO: Limpamos os cadeados de 'style' que espremiam os outros módulos
-    const elementsToClean = [
-        'box-single-depth', 'box-diff-depth', 'box-diff-safra', 'box-quad-split',
-        'swipe-map-wrapper', 'quad-map-wrapper', 'right-map-pane'
-    ];
-    elementsToClean.forEach(id => {
+    // 1. Limpa qualquer regra absoluta antiga que esteja quebrando os outros módulos
+    const idsToClean = ['box-single-depth', 'box-diff-depth', 'box-diff-safra', 'box-quad-split', 'swipe-map-wrapper', 'quad-map-wrapper', 'right-map-pane'];
+    idsToClean.forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.style.display = ''; // Remove a trava forçada
+        if(el) {
+            el.style.display = ''; // Remove o "cadeado" do inline style
+            el.classList.add('hidden'); // Esconde tudo por padrão usando a classe CSS
+        }
     });
-
-    // 2. Esconde os menus usando o padrão do Tailwind (classList)
-    document.getElementById('box-single-depth').classList.add('hidden');
-    document.getElementById('box-diff-depth').classList.add('hidden');
-    document.getElementById('box-diff-safra').classList.add('hidden');
-    document.getElementById('box-quad-split').classList.add('hidden');
 
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
     const quadWrapper = document.getElementById('quad-map-wrapper');
     const rightPane = document.getElementById('right-map-pane');
 
-    // 3. Controla as telas de forma amigável para o resto do sistema
+    // 2. Controla as telas ligando e desligando as classes do Tailwind
     if (mode === 'quad_split') {
         document.getElementById('box-quad-split').classList.remove('hidden');
-        swipeWrapper.classList.add('hidden');
+        
+        swipeWrapper.classList.remove('flex'); // Garante que a divisão 50/50 está desligada
+        
         quadWrapper.classList.remove('hidden');
+        quadWrapper.classList.add('grid');
     } else {
-        quadWrapper.classList.add('hidden');
-        swipeWrapper.classList.remove('hidden'); 
+        quadWrapper.classList.remove('grid');
+        
+        swipeWrapper.classList.remove('hidden');
+        swipeWrapper.classList.add('flex'); // Força a tela a virar Flexbox 50/50
 
         if (mode === 'single') {
             document.getElementById('box-single-depth').classList.remove('hidden');
-            if(rightPane) {
-                rightPane.classList.add('hidden'); 
-            }
+            // O rightPane já está escondido pelo passo 1
+            
         } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
             if (mode === 'sidebyside') document.getElementById('box-diff-depth').classList.remove('hidden');
             if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').classList.remove('hidden');
             
             if(rightPane) {
-                rightPane.classList.remove('hidden');
-                rightPane.style.width = '100%'; // Garante a proporção
+                rightPane.classList.remove('hidden'); // Liga a tela da direita
             }
         }
     }
 
-    // 4. MOTOR DA CÂMERA INTACTO (Exatamente igual ao que funcionou para você)
+    // 3. Atualiza os mapas e a câmera (O seu código exato que funcionou perfeito)
     setTimeout(() => {
         const currentCenter = mapLeft.getCenter();
         const currentZoom = mapLeft.getZoom();
@@ -2427,7 +2424,6 @@
         if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
             if (mapRight) {
                 mapRight.invalidateSize(true);
-                // "Copia" a câmera da esquerda para a direita para não nascer cinza
                 mapRight.setView(currentCenter, currentZoom, { animate: false });
             }
         }
@@ -2439,7 +2435,6 @@
             mapQuadBR.invalidateSize(true); mapQuadBR.setView(currentCenter, currentZoom, { animate: false });
         }
         
-        // Manda desenhar os polígonos coloridos
         if (typeof updateGISMap === 'function') {
             updateGISMap();
         }
