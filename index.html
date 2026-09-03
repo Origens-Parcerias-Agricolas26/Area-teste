@@ -267,7 +267,23 @@
                                         <option value="auto">Detectar da Planilha</option>
                                     </select>
                                 </div>
-                                <!-- Demais inputs de upload ocultados por brevidade visual, mantenha os seus originais aqui -->
+                               <!-- CAMPOS DE UPLOAD RESTAURADOS -->
+<div class="mb-2">
+    <label class="block text-[10px] font-bold text-slate-600 mb-1">Arquivo Shapefile (.ZIP)</label>
+    <input type="file" id="file-shp" accept=".zip" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
+</div>
+<div class="mb-2">
+    <label class="block text-[10px] font-bold text-slate-600 mb-1">Planilha 0-10 cm (.XLSX)</label>
+    <input type="file" id="file-excel-0-10" accept=".xlsx, .xls" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
+</div>
+<div class="mb-2">
+    <label class="block text-[10px] font-bold text-slate-600 mb-1">Planilha 10-20 cm (.XLSX)</label>
+    <input type="file" id="file-excel-10-20" accept=".xlsx, .xls" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
+</div>
+<div class="mb-3">
+    <label class="block text-[10px] font-bold text-slate-600 mb-1">Planilha 20-40 cm (.XLSX)</label>
+    <input type="file" id="file-excel-20-40" accept=".xlsx, .xls" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
+</div>
                                 <button onclick="processUploadedFiles()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs shadow">Processar & Salvar na Nuvem</button>
                             </div>
 
