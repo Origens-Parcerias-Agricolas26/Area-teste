@@ -2330,7 +2330,21 @@
                 alert("Você não possui permissão de acesso ao Módulo de Amostragem de Solo.");
                 return;
             }
+            if (tab === 'sampling' && !canAccessSampling) {
+            alert("Você não possui permissão de acesso ao Módulo de Amostragem de Solo.");
+            return;
+        }
 
+        // 👉 CÓDIGO NOVO: Destranca o layout dos mapas para não empurrar os outros módulos
+        ['swipe-map-wrapper', 'quad-map-wrapper', 'right-map-pane'].forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) elemento.style.display = ''; 
+        });
+
+        // 👇 AQUI ESTÁ A CORREÇÃO: O 'visit' foi adicionado na lista!
+        ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
+            const el = document.getElementById(`content-${t}`);
+          
             // 👇 AQUI ESTÁ A CORREÇÃO: O 'visit' foi adicionado na lista!
             ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
                 const el = document.getElementById(`content-${t}`);
