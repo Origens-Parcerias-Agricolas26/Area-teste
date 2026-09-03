@@ -3568,7 +3568,8 @@ async function generateBatchPDFs() {
         }
     });
 
-            if (mode === 'single') {
+            // (Este código fica dentro da função updateGISMap, antes do setTimeout)
+    if (mode === 'single') {
         geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
         
     } else if (mode === 'sidebyside') {
@@ -3581,12 +3582,11 @@ async function generateBatchPDFs() {
         const depthFixed = document.getElementById('sel-depth-fixed').value;
         const safraA = document.getElementById('sel-safra-a').value;
         const safraB = document.getElementById('sel-safra-b').value;
-        
-        // Passa a safra específica como um array [safraA] para a função
         geojsonLayerLeft = buildLayer(depthFixed, [safraA]).addTo(mapLeft);
         geojsonLayerRight = buildLayer(depthFixed, [safraB]).addTo(mapRight);
         
     } else if (mode === 'quad_split') {
+        // ... (código da visão quádrupla)
         const depthSuperf = document.getElementById('sel-quad-depth-a').value;
         const depthProfunda = document.getElementById('sel-quad-depth-b').value;
         const safraQuadA = document.getElementById('sel-quad-safra-a').value;
@@ -7886,6 +7886,44 @@ async function generateBatchPDFs() {
                 if (typeof renderEvoCharts === 'function') renderEvoCharts();
             }
         };
+      // ==========================================
+// MOTOR DA BARRA DE SWIPE (ARRASTAR) BLINDADO
+// ==========================================
+(function initSwipe() {
+    const divider = document.getElementById('split-divider');
+    const rightPane = document.getElementById('right-map-pane');
+    const swipeWrapper = document.getElementById('swipe-map-wrapper');
+
+    if (!divider || !rightPane || !swipeWrapper) {
+        setTimeout(initSwipe, 500); // Tenta conectar novamente se o HTML estiver carregando
+        return;
+    }
+
+    let isDragging = false;
+    
+    divider.addEventListener('mousedown', (e) => { 
+        isDragging = true; 
+        e.preventDefault(); 
+    });
+    
+    window.addEventListener('mouseup', () => { 
+        isDragging = false; 
+    });
+    
+    window.addEventListener('mousemove', (e) => {
+        if (!isDragging) return;
+        
+        const rect = swipeWrapper.getBoundingClientRect();
+        let position = ((e.clientX - rect.left) / rect.width) * 100;
+        
+        // Mantém a barra dentro dos limites da tela
+        if (position < 2) position = 2;
+        if (position > 98) position = 98;
+        
+        divider.style.left = position + '%';
+        rightPane.style.clipPath = `inset(0 0 0 ${position}%)`;
+    });
+})();
     </script>
 </body>
 </html>
