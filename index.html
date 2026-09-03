@@ -2344,11 +2344,14 @@
        
             // 👇 AQUI ESTÁ A CORREÇÃO: O 'visit' foi adicionado na lista!
             ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
-                const el = document.getElementById(`content-${t}`);
-                const btn = document.getElementById(`tab-${t}`);
-                if (el) el.classList.add('hidden');
-                if (btn) btn.classList.remove('bg-slate-800', 'text-white');
-            });
+            const el = document.getElementById(`content-${t}`);
+            const btn = document.getElementById(`tab-${t}`);
+            if (el) {
+                el.classList.add('hidden');
+                el.style.display = ''; // 👉 ADICIONE ESTA LINHA PARA LIMPAR TRAVAS
+            }
+            if (btn) btn.classList.remove('bg-slate-800', 'text-white');
+        });
 
             const activeContent = document.getElementById(`content-${tab}`);
             const activeBtn = document.getElementById(`tab-${tab}`);
@@ -2378,6 +2381,19 @@
                 loadVisitHistory();
             } else if (tab === 'users') {
             }
+          } else if (tab === 'users') {
+            // (código do users)
+        }
+        
+        // 👉 CÓDIGO NOVO (PASSO 2): Força a tela a atualizar para o mapa não ficar branco
+        setTimeout(() => {
+            window.dispatchEvent(new Event('resize'));
+        }, 350);
+
+    } // <--- Esta é a chave da sua atual linha 2384 (fecha a função switchTab)
+
+    function toggleViewMode() {
+        const mode = document.getElementById('sel-mode').value;
         }
 
         function toggleViewMode() {
