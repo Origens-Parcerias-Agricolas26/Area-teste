@@ -2380,7 +2380,6 @@
     document.getElementById('box-diff-safra').classList.add('hidden');
     document.getElementById('box-quad-split').classList.add('hidden');
 
-    // Mapeia os elementos das telas
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
     const quadWrapper = document.getElementById('quad-map-wrapper');
     const rightPane = document.getElementById('right-map-pane');
@@ -2389,42 +2388,46 @@
     // 2. Controla a exibição dos Mapas e dos Menus correspondentes
     if (mode === 'quad_split') {
         document.getElementById('box-quad-split').classList.remove('hidden');
-        
         swipeWrapper.classList.add('hidden');
         swipeWrapper.classList.remove('block');
-        
         quadWrapper.classList.remove('hidden');
         quadWrapper.classList.add('grid');
     } else {
         quadWrapper.classList.add('hidden');
         quadWrapper.classList.remove('grid');
-        
         swipeWrapper.classList.remove('hidden');
         swipeWrapper.classList.add('block');
 
+        // Garante que a barra divisória volte para o meio ao trocar de aba
+        if(divider) divider.style.left = '50%';
+
         if (mode === 'single') {
             document.getElementById('box-single-depth').classList.remove('hidden');
-            rightPane.style.display = 'none'; // Desliga a tela da direita para não bloquear a da esquerda
-            if(divider) divider.classList.add('hidden');
+            rightPane.style.display = 'none'; 
+            if(divider) divider.style.display = 'none';
             
         } else if (mode === 'sidebyside') {
             document.getElementById('box-diff-depth').classList.remove('hidden');
             rightPane.style.display = 'block';
-            rightPane.style.clipPath = 'inset(0 0 0 50%)'; // Restaura o corte visual de 50%
-            if(divider) divider.classList.remove('hidden');
+            rightPane.style.clipPath = 'inset(0 0 0 50%)'; 
+            if(divider) {
+                divider.style.display = 'flex';
+                divider.style.zIndex = '1000'; // FORÇA A BARRA A FICAR ACIMA DO MAPA
+            }
             
         } else if (mode === 'sidebyside_safra') {
             document.getElementById('box-diff-safra').classList.remove('hidden');
             rightPane.style.display = 'block';
-            rightPane.style.clipPath = 'inset(0 0 0 50%)'; // Restaura o corte visual de 50%
-            if(divider) divider.classList.remove('hidden');
+            rightPane.style.clipPath = 'inset(0 0 0 50%)'; 
+            if(divider) {
+                divider.style.display = 'flex';
+                divider.style.zIndex = '1000'; // FORÇA A BARRA A FICAR ACIMA DO MAPA
+            }
         }
     }
 
-    // 3. O SEGREDO DO SUCESSO: Sincronização entre HTML e Leaflet
-    // Aguardamos 150ms para garantir que o CSS terminou de criar as telas no navegador
+    // 3. Sincronização entre HTML e Leaflet
     setTimeout(() => {
-        // "Acorda" todos os mapas para eles preencherem as áreas cinzas
         if (mapLeft) mapLeft.invalidateSize();
         if (mapRight) mapRight.invalidateSize();
         if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
@@ -2434,7 +2437,6 @@
             mapQuadBR.invalidateSize();
         }
         
-        // APENAS AGORA, com as telas 100% prontas, mandamos pintar os polígonos coloridos
         if (typeof updateGISMap === 'function') {
             updateGISMap();
         }
