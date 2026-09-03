@@ -2404,8 +2404,19 @@
             
             // FORÇA O LEAFLET A RECALCULAR O TAMANHO DE TODOS OS MAPAS (Resolve o bug do Swipe)
     setTimeout(() => {
-        // Cria uma camada invisível com TODOS os dados da fazenda para ser o nosso "guia de câmera"
-        // Isso impede que o mapa se perca ou dê um zoom exagerado num único talhão
+        // 1. FORÇAR RECALCULO DE TAMANHO (Corrige Telas não dividindo e Mapas cinzas)
+        // Avisa ao Leaflet que as telas saíram de 'escondidas' para 'visíveis'
+        if (mapLeft) mapLeft.invalidateSize();
+        if (mapRight) mapRight.invalidateSize();
+        if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
+            mapQuadTL.invalidateSize();
+            mapQuadTR.invalidateSize();
+            mapQuadBL.invalidateSize();
+            mapQuadBR.invalidateSize();
+        }
+
+        // 2. CORRIGIR O ZOOM DA CÂMERA (Corrige Zoom estourado e talhões cortados)
+        // Pega os dados da fazenda inteira para criar um "molde" de câmera estável
         const referenceLayer = L.geoJSON(currentGeoJSON);
 
         if (referenceLayer && referenceLayer.getBounds().isValid()) {
@@ -2424,7 +2435,7 @@
                 if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
             }
         }
-    }, 250); // Aumentado para 250ms para garantir que as 4 telas estejam prontas antes de focar
+    }, 250); // 250ms garante que o navegador desenhou as telas antes de aplicar o zoom
         }
     }
 
