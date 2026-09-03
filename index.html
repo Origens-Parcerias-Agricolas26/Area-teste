@@ -8100,15 +8100,9 @@ window.updateGISMap = function() {
 
         const layer = L.geoJSON(currentGeoJSON, {
             filter: function(feature) {
-                if (selectedTalhoes.length && !selectedTalhoes.includes(String(feature.properties.Talhao))) return false;
-                
-                if (cfg.safras && cfg.safras.length) {
-                    const featuresSafra = feature.properties.safra_origem || (typeof extractSafra === 'function' ? extractSafra(feature.properties) : null);
-                    const hasHistorico = feature.properties.safras_historico && cfg.safras.some(s => feature.properties.safras_historico[s] && feature.properties.safras_historico[s][cfg.depth]);
-                    const hasDirectSafra = featuresSafra && cfg.safras.includes(featuresSafra);
-                    if (!hasHistorico && !hasDirectSafra) return false;
-                }
-                return true;
+                // Desenha todos os talhões selecionados no filtro lateral (não esconde a geometria por safra)
+                if (!selectedTalhoes.length) return true;
+                return feature.properties && selectedTalhoes.includes(String(feature.properties.Talhao));
             },
             style: function(feature) {
                 const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
@@ -8127,6 +8121,10 @@ window.updateGISMap = function() {
                         fillColor = '#94a3b8';
                         fillOpacity = 0.5;
                     }
+                } else {
+                    // Sem dados, pinta de cinza
+                    fillColor = '#cbd5e1';
+                    fillOpacity = 0.4;
                 }
 
                 return {
@@ -8143,7 +8141,10 @@ window.updateGISMap = function() {
                 const val = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
 
                 const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
-                layer.bindPopup(`<b>${subName}</b> (Talhão ${feature.properties.Talhao || 'N/A'})<br><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
+                
+                if (layer.bindPopup) {
+                    layer.bindPopup(`<b>${subName}</b> (Talhão ${feature.properties.Talhao || 'N/A'})<br><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
+                }
 
                 if (!showLabels && !showValues) return;
 
@@ -8156,7 +8157,7 @@ window.updateGISMap = function() {
                     labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
                 }
 
-                if (labelText) {
+                if (labelText && layer.bindTooltip) {
                     layer.bindTooltip(labelText, {
                         permanent: true,
                         direction: 'center',
