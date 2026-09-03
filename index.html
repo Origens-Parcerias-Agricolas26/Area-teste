@@ -2430,18 +2430,29 @@
     setTimeout(() => {
         if (mapLeft) mapLeft.invalidateSize();
         if (mapRight) mapRight.invalidateSize();
-        if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
-            mapQuadTL.invalidateSize();
-            mapQuadTR.invalidateSize();
-            mapQuadBL.invalidateSize();
-            mapQuadBR.invalidateSize();
+
+        // O 'molde' usa a fazenda toda para evitar cortes
+        const referenceLayer = L.geoJSON(currentGeoJSON);
+
+        if (referenceLayer && referenceLayer.getBounds().isValid()) {
+            const bounds = referenceLayer.getBounds();
+            // Aumentamos o padding de 20 para 40 para criar uma margem confortável ao redor da fazenda
+            const fitOptions = { padding: [40, 40], maxZoom: 15 }; 
+            
+            if (mode === 'single') {
+                if (mapLeft) mapLeft.fitBounds(bounds, fitOptions);
+            } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
+                if (mapLeft) mapLeft.fitBounds(bounds, fitOptions);
+                if (mapRight) mapRight.fitBounds(bounds, fitOptions);
+            } else if (mode === 'quad_split') {
+                // A quádrupla tem padding menor pois os quadrados são pequenos
+                if (mapQuadTL) mapQuadTL.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
+                if (mapQuadTR) mapQuadTR.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
+                if (mapQuadBL) mapQuadBL.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
+                if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [15, 15], maxZoom: 14 });
+            }
         }
-        
-        if (typeof updateGISMap === 'function') {
-            updateGISMap();
-        }
-    }, 150);
-}
+    }, 250);
       function popularDropdownsDeSafra(listaDeSafras) {
     const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
     
