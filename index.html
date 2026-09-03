@@ -7802,6 +7802,93 @@ async function generateBatchPDFs() {
                 if (typeof renderEvoCharts === 'function') renderEvoCharts();
             }
         };
+      // ==========================================
+// FUNÇÕES ATUALIZADAS PARA PREENCHER AS SAFRAS NOS MENUS DE COMPARAÇÃO
+// ==========================================
+
+function popularDropdownsDeSafra(listaDeSafras) {
+    const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
+    
+    camposSafra.forEach(id => {
+        const campo = document.getElementById(id);
+        if (!campo) return;
+        
+        // Guarda o valor que estava selecionado antes (se houver)
+        const currentVal = campo.value;
+        
+        campo.innerHTML = ''; 
+        
+        listaDeSafras.forEach(safra => {
+            const option = document.createElement('option');
+            option.value = safra;
+            option.textContent = safra;
+            campo.appendChild(option);
+        });
+
+        // Lógica inteligente: tenta manter a seleção anterior ou seleciona itens diferentes
+        if (currentVal && listaDeSafras.includes(currentVal)) {
+            campo.value = currentVal;
+        } else if (listaDeSafras.length > 0) {
+            // Se for o dropdown da direita/evolução e tiver mais de 1 safra, pega a segunda safra da lista
+            if ((id === 'sel-safra-b' || id === 'sel-quad-safra-b') && listaDeSafras.length > 1) {
+                campo.value = listaDeSafras[1];
+            } else {
+                campo.value = listaDeSafras[0];
+            }
+        }
+    });
+}
+
+function populateSafraSelector() {
+    const selectedFarmKey = document.getElementById('sel-farm').value;
+    const container = document.getElementById('container-safra-checkboxes');
+    if (!container) return;
+
+    if (!selectedFarmKey || !farmsDatabase[selectedFarmKey]) {
+        container.innerHTML = '<span class="text-slate-400 italic">Sem safras salvas</span>';
+        if (typeof renderSavedPrescriptionsList === 'function') renderSavedPrescriptionsList();
+        if (typeof renderExtraExcelList === 'function') renderExtraExcelList();
+        popularDropdownsDeSafra([]); // Esvazia os dropdowns
+        return;
+    }
+
+    const currentGeoJSON = farmsDatabase[selectedFarmKey].geojson || { "type": "FeatureCollection", "features": [] };
+    const safrasSet = new Set();
+    if (currentGeoJSON.features && currentGeoJSON.features.length) {
+        currentGeoJSON.features.forEach(f => {
+            if (f.properties) {
+                if (f.properties.safras_historico) Object.keys(f.properties.safras_historico).forEach(s => { if (/^\d{4}$/.test(s)) safrasSet.add(s); });
+                Object.keys(f.properties).forEach(pKey => {
+                    const detectedSafra = typeof extractSafra === 'function' ? extractSafra(f.properties[pKey]) : null;
+                    if (detectedSafra && /^\d{4}$/.test(detectedSafra)) safrasSet.add(detectedSafra);
+                });
+                if (f.properties.safra_origem) safrasSet.add(f.properties.safra_origem);
+            }
+        });
+    }
+
+    const sortedSafras = Array.from(safrasSet).sort().reverse();
+    if (!sortedSafras.length) {
+        container.innerHTML = '<span class="text-slate-400 italic">Sem safras salvas</span>';
+        if (typeof renderSavedPrescriptionsList === 'function') renderSavedPrescriptionsList();
+        if (typeof renderExtraExcelList === 'function') renderExtraExcelList();
+        popularDropdownsDeSafra([]); // Esvazia os dropdowns
+        return;
+    }
+    
+    // ALIMENTA OS DROPDOWNS DO MODO DE ANÁLISE SWIPE/QUAD
+    popularDropdownsDeSafra(sortedSafras);
+
+    container.innerHTML = sortedSafras.map((s, idx) => `
+        <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
+            <input type="checkbox" name="chk-safra-item" value="${s}" ${idx === 0 ? 'checked' : ''} onchange="if(typeof updateGISMap === 'function') updateGISMap(); if(typeof populateTalhaoSelector === 'function') populateTalhaoSelector(); if(typeof renderSavedPrescriptionsList === 'function') renderSavedPrescriptionsList(); if(typeof renderExtraExcelList === 'function') renderExtraExcelList();" class="chk-safra-item h-3.5 w-3.5 text-origens-green rounded">
+            <span>Safra ${s}</span>
+        </label>
+    `).join('');
+
+    if (typeof renderSavedPrescriptionsList === 'function') renderSavedPrescriptionsList();
+    if (typeof renderExtraExcelList === 'function') renderExtraExcelList();
+}
     </script>
 </body>
 </html>
