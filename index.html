@@ -2404,13 +2404,27 @@
             
             // FORÇA O LEAFLET A RECALCULAR O TAMANHO DE TODOS OS MAPAS (Resolve o bug do Swipe)
     setTimeout(() => {
-        if(mapLeft) mapLeft.invalidateSize();
-        if(mapRight) mapRight.invalidateSize();
-        if(typeof mapQuadTL !== 'undefined' && mapQuadTL) mapQuadTL.invalidateSize();
-        if(typeof mapQuadTR !== 'undefined' && mapQuadTR) mapQuadTR.invalidateSize();
-        if(typeof mapQuadBL !== 'undefined' && mapQuadBL) mapQuadBL.invalidateSize();
-        if(typeof mapQuadBR !== 'undefined' && mapQuadBR) mapQuadBR.invalidateSize();
-    }, 250);
+        // Cria uma camada invisível com TODOS os dados da fazenda para ser o nosso "guia de câmera"
+        // Isso impede que o mapa se perca ou dê um zoom exagerado num único talhão
+        const referenceLayer = L.geoJSON(currentGeoJSON);
+
+        if (referenceLayer && referenceLayer.getBounds().isValid()) {
+            const bounds = referenceLayer.getBounds();
+            
+            if (mode === 'single' || mode === 'sidebyside' || mode === 'sidebyside_safra') {
+                if (mapLeft) mapLeft.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
+            }
+            if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
+                if (mapRight) mapRight.fitBounds(bounds, { padding: [20, 20], maxZoom: 14 });
+            }
+            if (mode === 'quad_split') {
+                if (mapQuadTL) mapQuadTL.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
+                if (mapQuadTR) mapQuadTR.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
+                if (mapQuadBL) mapQuadBL.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
+                if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [10, 10], maxZoom: 14 });
+            }
+        }
+    }, 250); // Aumentado para 250ms para garantir que as 4 telas estejam prontas antes de focar
         }
     }
 
