@@ -2372,61 +2372,52 @@
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
+    // 1. O SEGREDO DA CORREÇÃO: Limpamos os cadeados de 'style' que espremiam os outros módulos
+    const elementsToClean = [
+        'box-single-depth', 'box-diff-depth', 'box-diff-safra', 'box-quad-split',
+        'swipe-map-wrapper', 'quad-map-wrapper', 'right-map-pane'
+    ];
+    elementsToClean.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = ''; // Remove a trava forçada
+    });
+
+    // 2. Esconde os menus usando o padrão do Tailwind (classList)
+    document.getElementById('box-single-depth').classList.add('hidden');
+    document.getElementById('box-diff-depth').classList.add('hidden');
+    document.getElementById('box-diff-safra').classList.add('hidden');
+    document.getElementById('box-quad-split').classList.add('hidden');
+
     const swipeWrapper = document.getElementById('swipe-map-wrapper');
     const quadWrapper = document.getElementById('quad-map-wrapper');
     const rightPane = document.getElementById('right-map-pane');
-    const boxSingle = document.getElementById('box-single-depth');
-    const boxDiffDepth = document.getElementById('box-diff-depth');
-    const boxDiffSafra = document.getElementById('box-diff-safra');
-    const boxQuad = document.getElementById('box-quad-split');
 
-    // 1. O SEGREDO: Limpar os "cadeados" (estilos inline) que estavam quebrando os outros módulos
-    swipeWrapper.removeAttribute("style");
-    quadWrapper.removeAttribute("style");
-    if(rightPane) rightPane.removeAttribute("style");
-    boxSingle.removeAttribute("style");
-    boxDiffDepth.removeAttribute("style");
-    boxDiffSafra.removeAttribute("style");
-    boxQuad.removeAttribute("style");
-
-    // 2. Reseta o estado dos menus via Tailwind (classList)
-    boxSingle.classList.add('hidden');
-    boxDiffDepth.classList.add('hidden');
-    boxDiffSafra.classList.add('hidden');
-    boxQuad.classList.add('hidden');
-
-    // 3. Controla as telas de forma amigável com o Tailwind
+    // 3. Controla as telas de forma amigável para o resto do sistema
     if (mode === 'quad_split') {
-        boxQuad.classList.remove('hidden');
-        
+        document.getElementById('box-quad-split').classList.remove('hidden');
         swipeWrapper.classList.add('hidden');
-        swipeWrapper.classList.remove('flex');
-        
         quadWrapper.classList.remove('hidden');
-        quadWrapper.classList.add('grid');
     } else {
         quadWrapper.classList.add('hidden');
-        quadWrapper.classList.remove('grid');
-        
-        swipeWrapper.classList.remove('hidden');
-        swipeWrapper.classList.add('flex');
+        swipeWrapper.classList.remove('hidden'); 
 
         if (mode === 'single') {
-            boxSingle.classList.remove('hidden');
+            document.getElementById('box-single-depth').classList.remove('hidden');
             if(rightPane) {
                 rightPane.classList.add('hidden'); 
             }
         } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-            if (mode === 'sidebyside') boxDiffDepth.classList.remove('hidden');
-            if (mode === 'sidebyside_safra') boxDiffSafra.classList.remove('hidden');
+            if (mode === 'sidebyside') document.getElementById('box-diff-depth').classList.remove('hidden');
+            if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').classList.remove('hidden');
             
             if(rightPane) {
                 rightPane.classList.remove('hidden');
+                rightPane.style.width = '100%'; // Garante a proporção
             }
         }
     }
 
-    // 4. Atualiza os mapas e a câmera de forma sincronizada
+    // 4. MOTOR DA CÂMERA INTACTO (Exatamente igual ao que funcionou para você)
     setTimeout(() => {
         const currentCenter = mapLeft.getCenter();
         const currentZoom = mapLeft.getZoom();
@@ -2436,6 +2427,7 @@
         if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
             if (mapRight) {
                 mapRight.invalidateSize(true);
+                // "Copia" a câmera da esquerda para a direita para não nascer cinza
                 mapRight.setView(currentCenter, currentZoom, { animate: false });
             }
         }
@@ -2447,6 +2439,7 @@
             mapQuadBR.invalidateSize(true); mapQuadBR.setView(currentCenter, currentZoom, { animate: false });
         }
         
+        // Manda desenhar os polígonos coloridos
         if (typeof updateGISMap === 'function') {
             updateGISMap();
         }
