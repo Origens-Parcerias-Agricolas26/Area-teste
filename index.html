@@ -191,770 +191,765 @@
             </aside>
 
             <!-- Conteúdo Principal WebGIS -->
-<main class="flex-1 bg-slate-100 overflow-hidden flex flex-col relative">
+            <main class="flex-1 bg-slate-100 overflow-hidden p-6 flex flex-col">
+                
+                <!-- MÓDULO 1: FERTILIDADE DO SOLO -->
+                <div id="content-maps" class="h-full flex gap-6">
+                    <div class="w-80 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto">
+                        <div class="space-y-5">
+                            <h3 class="text-sm font-extrabold text-slate-900 uppercase border-b pb-2"><i class="fa-solid fa-sliders mr-2"></i>Controle do WebGIS</h3>
+                            
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
+                                <select id="sel-producer" onchange="changeActiveProducer('sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
 
-    <!-- MÓDULO 1: FERTILIDADE DO SOLO (WEBGIS) -->
-    <div id="content-maps" class="h-full w-full flex relative">
-        <div class="w-80 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto z-50">
-            <div class="space-y-5">
-                <h3 class="text-sm font-extrabold text-slate-900 uppercase border-b pb-2"><i class="fa-solid fa-sliders mr-2"></i>Controle do WebGIS</h3>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
+                                <select id="sel-farm" onchange="changeActiveFarm('sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
+                            </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
-                    <select id="sel-producer" onchange="changeActiveProducer('sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
-
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
-                    <select id="sel-farm" onchange="changeActiveFarm('sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
-                </div>
-
-                <div class="bg-slate-900 text-white p-3.5 rounded-xl border border-slate-800 space-y-3">
-                    <span class="text-[11px] font-extrabold uppercase text-emerald-400 block"><i class="fa-solid fa-satellite text-xs mr-1"></i>Imagem de Fundo</span>
-                    <select id="sel-basemap" onchange="changeBasemap()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 font-bold text-xs text-white">
-                        <option value="esri" selected>Satélite HD Padrão (Esri World)</option>
-                        <option value="google">Satélite Google Hybrid</option>
-                        <option value="sentinel_rgb">Satélite Cor Real (Destacar Limites)</option>
-                        <option value="sentinel_ndvi">Satélite NDVI (Vigor Vegetativo Falso-Cor)</option>
-                    </select>
-                </div>
-
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="text-xs font-bold text-slate-500 uppercase"><i class="fa-solid fa-calendar-days text-origens-green mr-1"></i>Ano Safra (Múltiplo)</label>
-                        <button onclick="toggleAllSafras()" class="text-[10px] font-bold text-origens-green hover:underline">Todos/Nenhum</button>
-                    </div>
-                    <div id="container-safra-checkboxes" class="max-h-32 overflow-y-auto bg-slate-50 border border-slate-300 rounded-xl p-2 space-y-1 text-xs"></div>
-                </div>
-
-                <div>
-                    <div class="flex justify-between items-center mb-1">
-                        <label class="text-xs font-bold text-slate-500 uppercase"><i class="fa-solid fa-filter text-origens-green mr-1"></i>Filtrar por Talhão (Múltiplo)</label>
-                        <button onclick="toggleAllTalhoesBtn()" class="text-[10px] font-bold text-origens-green hover:underline">Todos/Nenhum</button>
-                    </div>
-                    <div id="container-talhao-checkboxes" class="max-h-40 overflow-y-auto bg-slate-50 border border-slate-300 rounded-xl p-2 space-y-1 text-xs"></div>
-                </div>
-
-                <!-- MÓDULO: PLANILHA COMPLEMENTAR / RESULTADOS (.XLSX) -->
-                <div class="bg-blue-50 border border-blue-200 p-3.5 rounded-xl space-y-2">
-                    <span class="text-xs font-extrabold text-blue-900 uppercase block"><i class="fa-solid fa-file-excel mr-1"></i>Planilha Complementar / Resultados</span>
-                    <div id="container-extra-excel" class="space-y-2 text-xs">
-                        <span class="text-slate-400 italic block text-[11px]">Nenhuma planilha anexada para esta safra.</span>
-                    </div>
-                    <div id="admin-extra-excel-controls" class="pt-1 hidden">
-                        <input type="file" id="input-extra-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadExtraExcelFile(this)">
-                        <button onclick="document.getElementById('input-extra-excel').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg text-[11px] shadow transition-all flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-paperclip"></i><span>Anexar / Substituir Planilha (.XLSX)</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- HISTÓRICO DE PRESCRIÇÕES SALVAS NA SAFRA -->
-                <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-xl space-y-2">
-                    <span class="text-xs font-extrabold text-indigo-900 uppercase block"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Histórico de Prescrições Salvas</span>
-                    <div id="container-saved-maps" class="max-h-36 overflow-y-auto space-y-1.5 text-xs">
-                        <span class="text-slate-400 italic block text-[11px]">Nenhum mapa salvo para esta safra.</span>
-                    </div>
-                </div>
-
-                <div id="upload-box-admin" class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl space-y-3 hidden">
-                    <span class="text-xs font-extrabold text-amber-800 uppercase block"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Importar Projeto & Planilhas</span>
-                    <div>
-                        <label class="block text-[11px] font-bold text-amber-900 mb-1">Ano Safra das Planilhas</label>
-                        <select id="upload-safra-year" class="w-full bg-white border border-amber-300 rounded-lg p-2 font-extrabold text-xs text-slate-900">
-                            <option value="2026" selected>Safra 2026</option>
-                            <option value="2027">Safra 2027</option>
-                            <option value="2025">Safra 2025</option>
-                            <option value="2024">Safra 2024</option>
-                            <option value="auto">Detectar da Planilha</option>
-                        </select>
-                    </div>
-                    <div class="mb-2">
-                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Arquivo Shapefile (.ZIP)</label>
-                        <input type="file" id="file-shp" accept=".zip" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
-                    </div>
-                    <div class="mb-2">
-                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Planilha 0-10 cm (.XLSX)</label>
-                        <input type="file" id="file-excel-0-10" accept=".xlsx, .xls" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
-                    </div>
-                    <div class="mb-2">
-                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Planilha 10-20 cm (.XLSX)</label>
-                        <input type="file" id="file-excel-10-20" accept=".xlsx, .xls" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
-                    </div>
-                    <div class="mb-3">
-                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Planilha 20-40 cm (.XLSX)</label>
-                        <input type="file" id="file-excel-20-40" accept=".xlsx, .xls" class="w-full text-[11px] text-slate-700 bg-white border border-amber-300 rounded p-1 cursor-pointer">
-                    </div>
-                    <button onclick="processUploadedFiles()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs shadow">Processar & Salvar na Nuvem</button>
-                </div>
-
-                <!-- CONTROLE DE MODO DE VISUALIZAÇÃO E CAMADAS -->
-                <div class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
-                    <div>
-                        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Modo de Análise</label>
-                        <select id="sel-mode" onchange="toggleViewMode()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-xs text-slate-800">
-                            <option value="single">Camada Individual</option>
-                            <option value="sidebyside">Comparar Profundidades (Swipe)</option>
-                            <option value="sidebyside_safra">Comparar Safras (Swipe)</option>
-                            <option value="quad_split">Visão Quádrupla (2 Safras x 2 Profundidades)</option>
-                        </select>
-                    </div>
-
-                    <div id="box-single-depth">
-                        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Camada de Amostragem</label>
-                        <select id="sel-depth" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-xs text-slate-800">
-                            <option value="d0_10">Camada 0 - 10 cm</option>
-                            <option value="d10_20">Camada 10 - 20 cm</option>
-                            <option value="d20_40">Camada 20 - 40 cm</option>
-                        </select>
-                    </div>
-
-                    <div id="box-diff-depth" class="hidden space-y-2">
-                        <div class="flex gap-2">
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-emerald-700 mb-0.5"><i class="fa-solid fa-arrow-left mr-1"></i>Lado Esquerdo</label>
-                                <select id="sel-depth-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
-                                    <option value="d0_10">0 - 10 cm</option>
-                                    <option value="d10_20">10 - 20 cm</option>
+                            <div class="bg-slate-900 text-white p-3.5 rounded-xl border border-slate-800 space-y-3">
+                                <span class="text-[11px] font-extrabold uppercase text-emerald-400 block"><i class="fa-solid fa-satellite text-xs mr-1"></i>Imagem de Fundo</span>
+                                <select id="sel-basemap" onchange="changeBasemap()" class="w-full bg-slate-800 border border-slate-700 rounded-lg p-2 font-bold text-xs text-white">
+                                    <option value="esri" selected>Satélite HD Padrão (Esri World)</option>
+                                    <option value="google">Satélite Google Hybrid</option>
+                                    <option value="sentinel_rgb">Satélite Cor Real (Destacar Limites)</option>
+                                    <option value="sentinel_ndvi">Satélite NDVI (Vigor Vegetativo Falso-Cor)</option>
                                 </select>
                             </div>
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-blue-700 mb-0.5"><i class="fa-solid fa-arrow-right mr-1"></i>Lado Direito</label>
-                                <select id="sel-depth-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
-                                    <option value="d10_20" selected>10 - 20 cm</option>
-                                    <option value="d20_40">20 - 40 cm</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div id="box-diff-safra" class="hidden space-y-2">
-                        <div>
-                            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Camada Fixa</label>
-                            <select id="sel-depth-fixed" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-xs text-slate-800">
-                                <option value="d0_10">Camada 0 - 10 cm</option>
-                                <option value="d10_20">Camada 10 - 20 cm</option>
-                            </select>
-                        </div>
-                        <div class="flex gap-2">
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-emerald-700 mb-0.5"><i class="fa-solid fa-arrow-left mr-1"></i>Safra Esq.</label>
-                                <select id="sel-safra-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800"></select>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-xs font-bold text-slate-500 uppercase"><i class="fa-solid fa-calendar-days text-origens-green mr-1"></i>Ano Safra (Múltiplo)</label>
+                                    <button onclick="toggleAllSafras()" class="text-[10px] font-bold text-origens-green hover:underline">Todos/Nenhum</button>
+                                </div>
+                                <div id="container-safra-checkboxes" class="max-h-32 overflow-y-auto bg-slate-50 border border-slate-300 rounded-xl p-2 space-y-1 text-xs"></div>
                             </div>
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-blue-700 mb-0.5"><i class="fa-solid fa-arrow-right mr-1"></i>Safra Dir.</label>
-                                <select id="sel-safra-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800"></select>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div id="box-quad-split" class="hidden space-y-2 bg-indigo-50 border border-indigo-200 p-2 rounded-lg">
-                        <span class="text-[10px] font-bold text-indigo-800 uppercase block mb-1">Configurar Matriz 2x2</span>
-                        <div class="flex gap-2">
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Safra Base</label>
-                                <select id="sel-quad-safra-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"></select>
+                            <div>
+                                <div class="flex justify-between items-center mb-1">
+                                    <label class="text-xs font-bold text-slate-500 uppercase"><i class="fa-solid fa-filter text-origens-green mr-1"></i>Filtrar por Talhão (Múltiplo)</label>
+                                    <button onclick="toggleAllTalhoesBtn()" class="text-[10px] font-bold text-origens-green hover:underline">Todos/Nenhum</button>
+                                </div>
+                                <div id="container-talhao-checkboxes" class="max-h-40 overflow-y-auto bg-slate-50 border border-slate-300 rounded-xl p-2 space-y-1 text-xs"></div>
                             </div>
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Safra Evolução</label>
-                                <select id="sel-quad-safra-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"></select>
-                            </div>
-                        </div>
-                        <div class="flex gap-2">
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Superf.</label>
-                                <select id="sel-quad-depth-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]">
-                                    <option value="d0_10">0 - 10 cm</option>
-                                </select>
-                            </div>
-                            <div class="w-1/2">
-                                <label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Profunda</label>
-                                <select id="sel-quad-depth-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]">
-                                    <option value="d10_20" selected>10 - 20 cm</option>
-                                    <option value="d20_40">20 - 40 cm</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Parâmetro de Solo</label>
-                    <select id="sel-param" onchange="updateGISMap()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800">
-                        <option value="CTC" selected>Capacidade de Troca (CTC)</option>
-                        <option value="Argila">Argila (g/kg)</option>
-                        <option value="MO">Matéria Orgânica (MO)</option>
-                        <option value="Classes de MO">Classes de MO</option>
-                        <option value="P">Fósforo (P)</option>
-                        <option value="Classes de P">Classes de Fósforo (P)</option>
-                        <option value="K">Potássio (K)</option>
-                        <option value="K%">Saturação por Potássio (K%)</option>
-                        <option value="Ca">Cálcio (Ca)</option>
-                        <option value="Ca%">Saturação por Cálcio (Ca%)</option>
-                        <option value="Mg">Magnésio (Mg)</option>
-                        <option value="Mg%">Saturação por Magnésio (Mg%)</option>
-                        <option value="S">Enxofre (S)</option>
-                        <option value="Al">Alumínio (Al)</option>
-                        <option value="Sat. Al">Saturação por Alumínio (m%)</option>
-                        <option value="H">Hidrogênio (H)</option>
-                        <option value="Sb">Soma de Bases (SB)</option>
-                        <option value="V%">Saturação por Bases (V%)</option>
-                        <option value="pH_água">pH em Água</option>
-                        <option value="pH_CaCl2">pH em CaCl2</option>
-                        <option value="Zn">Zinco (Zn)</option>
-                        <option value="Cu">Cobre (Cu)</option>
-                        <option value="Mn">Manganês (Mn)</option>
-                        <option value="B">Boro (B)</option>
-                    </select>
-                </div>
+                            <!-- MÓDULO: PLANILHA COMPLEMENTAR / RESULTADOS (.XLSX) -->
+                            <div class="bg-blue-50 border border-blue-200 p-3.5 rounded-xl space-y-2">
+                                <span class="text-xs font-extrabold text-blue-900 uppercase block"><i class="fa-solid fa-file-excel mr-1"></i>Planilha Complementar / Resultados</span>
+                                <div id="container-extra-excel" class="space-y-2 text-xs">
+                                    <span class="text-slate-400 italic block text-[11px]">Nenhuma planilha anexada para esta safra.</span>
+                                </div>
+                                <div id="admin-extra-excel-controls" class="pt-1 hidden">
+                                    <input type="file" id="input-extra-excel" accept=".xlsx,.xls,.csv" class="hidden" onchange="uploadExtraExcelFile(this)">
+                                    <button onclick="document.getElementById('input-extra-excel').click()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg text-[11px] shadow transition-all flex items-center justify-center gap-1.5">
+                                        <i class="fa-solid fa-paperclip"></i><span>Anexar / Substituir Planilha (.XLSX)</span>
+                                    </button>
+                                </div>
+                            </div>
 
-                <div class="space-y-2 pt-2 border-t border-slate-200">
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="chk-boundary" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
-                        <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
-                    </label>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="chk-labels" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
-                        <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
-                    </label>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="chk-values" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
-                        <span class="text-sm font-semibold text-slate-700">Valores do Parâmetro</span>
-                    </label>
-                </div>
+                            <!-- HISTÓRICO DE PRESCRIÇÕES SALVAS NA SAFRA -->
+                            <div class="bg-indigo-50 border border-indigo-200 p-3.5 rounded-xl space-y-2">
+                                <span class="text-xs font-extrabold text-indigo-900 uppercase block"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Histórico de Prescrições Salvas</span>
+                                <div id="container-saved-maps" class="max-h-36 overflow-y-auto space-y-1.5 text-xs">
+                                    <span class="text-slate-400 italic block text-[11px]">Nenhum mapa salvo para esta safra.</span>
+                                </div>
+                            </div>
+
+                            <div id="upload-box-admin" class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl space-y-3 hidden">
+                                <span class="text-xs font-extrabold text-amber-800 uppercase block"><i class="fa-solid fa-cloud-arrow-up mr-1"></i> Importar Projeto & Planilhas</span>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-amber-900 mb-1">Ano Safra das Planilhas</label>
+                                    <select id="upload-safra-year" class="w-full bg-white border border-amber-300 rounded-lg p-2 font-extrabold text-xs text-slate-900">
+                                        <option value="2026" selected>Safra 2026</option>
+                                        <option value="2027">Safra 2027</option>
+                                        <option value="2025">Safra 2025</option>
+                                        <option value="2024">Safra 2024</option>
+                                        <option value="2023">Safra 2023</option>
+                                        <option value="2022">Safra 2022</option>
+                                        <option value="2021">Safra 2021</option>
+                                        <option value="auto">Detectar da Planilha</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Perímetro / Subdivisões (.zip)</label>
+                                    <input type="file" id="file-shp" accept=".zip" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Análises 0-10 cm (.xlsx)</label>
+                                    <input type="file" id="file-excel-0-10" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Análises 10-20 cm (.xlsx)</label>
+                                    <input type="file" id="file-excel-10-20" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Análises 20-40 cm (.xlsx)</label>
+                                    <input type="file" id="file-excel-20-40" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
+                                </div>
+                                <button onclick="processUploadedFiles()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs shadow">Processar & Salvar na Nuvem</button>
+                            </div>
+
+                            <!-- SUBSTITUA DESDE AQUI -->
+<div class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
+    <div>
+        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Modo de Análise</label>
+        <select id="sel-mode" onchange="toggleViewMode()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-xs text-slate-800">
+            <option value="single">Camada Individual</option>
+            <option value="sidebyside">Comparar Profundidades (Swipe)</option>
+            <option value="sidebyside_safra">Comparar Safras (Swipe)</option>
+            <option value="quad_split">Visão Quádrupla (2 Safras x 2 Prof.)</option>
+        </select>
+    </div>
+
+    <!-- MODO: Único -->
+    <div id="box-single-depth">
+        <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Camada de Amostragem</label>
+        <select id="sel-depth" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-xs text-slate-800">
+            <option value="d0_10">Camada 0 - 10 cm</option>
+            <option value="d10_20">Camada 10 - 20 cm</option>
+            <option value="d20_40">Camada 20 - 40 cm</option>
+        </select>
+    </div>
+
+    <!-- MODO: Comparar Profundidades -->
+    <div id="box-diff-depth" class="hidden space-y-2">
+        <div class="flex gap-2">
+            <div class="w-1/2">
+                <label class="block text-[10px] font-bold text-emerald-700 mb-0.5"><i class="fa-solid fa-arrow-left mr-1"></i>Lado Esquerdo</label>
+                <select id="sel-depth-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
+                    <option value="d0_10">Camada 0 - 10 cm</option>
+                    <option value="d10_20">Camada 10 - 20 cm</option>
+                </select>
             </div>
-
-            <div class="space-y-2 mt-4">
-                <button onclick="exportarLaudoPDF()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-xl shadow transition-all flex items-center justify-center">
-                    <i class="fa-solid fa-file-pdf mr-2"></i><span>Baixar Laudo PDF</span>
-                </button>
-                <button id="btn-batch-pdf" onclick="generateBatchPDFs()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold p-3 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs">
-                    <i class="fa-solid fa-file-zipper"></i><span id="pdf-batch-btn-text">Exportar Lote de PDFs (.ZIP)</span>
-                </button>
-            </div>
-        </div>
-
-        <!-- Container do Mapa -->
-        <div id="map-container" class="flex-1 bg-white rounded-2xl border border-slate-200 relative overflow-hidden shadow-sm flex flex-col z-10">
-            <div id="swipe-map-wrapper" class="absolute inset-0 z-10 flex gap-1 bg-slate-300">
-                <div id="left-map-pane" class="relative flex-1 h-full bg-white">
-                    <div id="map-left" class="w-full h-full"></div>
-                </div>
-                <div id="right-map-pane" class="relative flex-1 h-full bg-white hidden">
-                    <div id="map-right" class="w-full h-full"></div>
-                </div>
-            </div>
-
-            <!-- MAPAS PARA QUAD SPLIT (Oculto por Padrão) -->
-            <div id="quad-map-wrapper" class="absolute inset-0 z-20 hidden grid grid-cols-2 grid-rows-2 gap-1 bg-slate-300">
-                <div class="relative w-full h-full bg-white">
-                    <div id="map-quad-tl" class="w-full h-full"></div>
-                    <span id="label-quad-tl" class="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 rounded shadow-md border border-slate-200"></span>
-                </div>
-                <div class="relative w-full h-full bg-white">
-                    <div id="map-quad-tr" class="w-full h-full"></div>
-                    <span id="label-quad-tr" class="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 rounded shadow-md border border-slate-200"></span>
-                </div>
-                <div class="relative w-full h-full bg-white">
-                    <div id="map-quad-bl" class="w-full h-full"></div>
-                    <span id="label-quad-bl" class="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 rounded shadow-md border border-slate-200"></span>
-                </div>
-                <div class="relative w-full h-full bg-white">
-                    <div id="map-quad-br" class="w-full h-full"></div>
-                    <span id="label-quad-br" class="absolute top-3 left-3 z-[1000] bg-white/90 px-3 py-1 text-xs font-bold text-slate-800 rounded shadow-md border border-slate-200"></span>
-                </div>
-            </div>
-
-            <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 z-50 min-w-[240px] max-h-[300px] overflow-y-auto">
-                <span id="legend-title" class="text-xs font-black text-slate-900 uppercase block mb-2 border-b pb-1">Legenda QGIS</span>
-                <div id="legend-items" class="space-y-1.5 text-xs font-semibold text-slate-700"></div>
+            <div class="w-1/2">
+                <label class="block text-[10px] font-bold text-blue-700 mb-0.5"><i class="fa-solid fa-arrow-right mr-1"></i>Lado Direito</label>
+                <select id="sel-depth-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
+                    <option value="d10_20" selected>Camada 10 - 20 cm</option>
+                    <option value="d20_40">Camada 20 - 40 cm</option>
+                </select>
             </div>
         </div>
     </div>
 
-    <!-- MÓDULO 2: TAXA VARIÁVEL & PRESCRIÇÃO -->
-    <div id="content-vrate" class="hidden h-full w-full flex relative">
-        <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
-            <div class="space-y-4">
-                <h3 class="text-sm font-extrabold text-amber-700 uppercase border-b pb-2"><i class="fa-solid fa-tractor mr-2"></i>Prescrição de Taxa Variável</h3>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
-                    <select id="vrate-sel-producer" onchange="changeActiveProducer('vrate-sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
-
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
-                    <select id="vrate-sel-farm" onchange="changeActiveFarm('vrate-sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
-                </div>
-
-                <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl space-y-3">
-                    <span class="text-xs font-extrabold text-amber-900 uppercase block"><i class="fa-solid fa-file-excel mr-1"></i>Importar Recomendação</span>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Insumo a Aplicar</label>
-                        <select id="vrate-product" class="w-full bg-white border border-amber-300 rounded-lg p-2 font-bold text-xs text-slate-900">
-                            <option value="KCl">Cloreto de Potássio (KCl)</option>
-                            <option value="Ureia">Ureia</option>
-                            <option value="MAP">Fosfato Monoamônico (MAP)</option>
-                            <option value="DAP">Fosfato Diamônico (DAP)</option>
-                            <option value="NPK">Formulados NPK</option>
-                            <option value="Superfosfato_Simples">Superfosfato Simples</option>
-                            <option value="Superfosfato_Triplo">Superfosfato Triplo</option>
-                            <option value="Fosfato_Natural">Fosfato Natural</option>
-                            <option value="Calcario">Calcário</option>
-                            <option value="Gesso">Gesso Agrícola</option>
-                            <option value="Micronutrientes">Micronutrientes</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Unidade de Medida</label>
-                        <select id="vrate-unit" class="w-full bg-white border border-amber-300 rounded-lg p-2 font-bold text-xs text-slate-900">
-                            <option value="kg_ha">Quilogramas por Hectare (kg/ha)</option>
-                            <option value="t_ha">Toneladas por Hectare (t/ha)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Perímetro / Subdivisões Específico (.zip)</label>
-                        <input type="file" id="vrate-shp-file" accept=".zip" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-200 file:text-amber-900">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Planilha de Doses (.xlsx)</label>
-                        <input type="file" id="vrate-excel-file" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-200 file:text-amber-900">
-                    </div>
-                    <button onclick="processVRateExcel()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition-all">
-                        Gerar Mapa de Prescrição
-                    </button>
-                </div>
-
-                <!-- CONTROLES DE RÓTULO DO MAPA DE TAXA VARIÁVEL -->
-                <div class="space-y-2 pt-2 border-t border-amber-200">
-                    <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">Camadas & Rótulos no Mapa/PDF</span>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="vrate-chk-boundary" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
-                        <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
-                    </label>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="vrate-chk-labels" onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
-                        <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
-                    </label>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="vrate-chk-values" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
-                        <span class="text-sm font-semibold text-slate-700">Valores das Doses</span>
-                    </label>
-                </div>
-
-                <!-- RESUMO DA APLICAÇÃO -->
-                <div id="vrate-summary-box" class="bg-slate-900 text-white p-4 rounded-2xl space-y-2 hidden">
-                    <span class="text-xs font-black text-amber-400 uppercase block border-b border-slate-800 pb-1">Resumo do Insumo</span>
-                    <div class="flex justify-between text-xs"><span>Produto:</span><b id="vrate-sum-prod" class="text-white">---</b></div>
-                    <div class="flex justify-between text-xs"><span>Área Total:</span><b id="vrate-sum-area" class="text-emerald-400">--- ha</b></div>
-                    <div class="flex justify-between text-xs"><span>Dose Média:</span><b id="vrate-sum-avg" class="text-amber-300">---</b></div>
-                    <div class="flex justify-between text-xs text-sm border-t border-slate-800 pt-1 mt-1"><span>Total Produto:</span><b id="vrate-sum-total" class="text-emerald-400 font-extrabold text-sm">---</b></div>
-                </div>
-
-                <!-- EXPORTAR PARA MONITORES & PDF PRESCRIÇÃO -->
-                <div class="space-y-2 border-t pt-3">
-                    <span class="text-xs font-extrabold text-slate-500 uppercase block">Exportar Prescrição</span>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Selecione a Marca / Sistema do Trator</label>
-                        <select id="vrate-monitor-brand" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-bold text-xs text-slate-800">
-                            <option value="johndeere">John Deere (GS2 / GS3 / GS4 / G5) - [Rx\]</option>
-                            <option value="trimble_aggps">Trimble (CFX-750 / FM-750 / FM-1000) - [AgGPS\Prescriptions\]</option>
-                            <option value="trimble_agdata">Trimble (GFX-750 / TMX-2050) - [AgData\Prescriptions\]</option>
-                            <option value="stara">Stara (Topper 4500 / 5500) - [Dados\Mapas\]</option>
-                            <option value="raven">Raven (CR7 / VIPER 4) - [rxMaps\]</option>
-                            <option value="caseih">Case IH (Pro 700 / AFS) - [Shapefile\]</option>
-                            <option value="jacto">Jacto (OtMIS / Omni 700) - [OtMIS\Maps\]</option>
-                            <option value="agres">Agres (Isoview) - [Agres\Prescricao\]</option>
-                            <option value="isobus">ISO-XML Genérico (ISOBUS / TaskData) - [TASKDATA\]</option>
-                        </select>
-                    </div>
-                    <button onclick="saveVRateMapToPlatform()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i><span>Salvar Mapa na Plataforma (Nuvem)</span>
-                    </button>
-                    <button onclick="generateVRatePDF()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold p-3 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-pdf"></i><span>Exportar Laudo PDF de Prescrição</span>
-                    </button>
-                    <button onclick="exportForMonitor()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold p-3 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-download text-amber-400"></i><span>Baixar Arquivo do Monitor (.ZIP)</span>
-                    </button>
-                    <button onclick="exportVRateExcelSummary()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-excel"></i><span>Baixar Resumo em Excel (.XLSX)</span>
-                    </button>
-                </div>
-            </div>
+    <!-- MODO: Comparar Safras -->
+    <div id="box-diff-safra" class="hidden space-y-2">
+        <div>
+            <label class="block text-[11px] font-bold text-slate-500 uppercase mb-1">Camada Fixa</label>
+            <select id="sel-depth-fixed" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
+                <option value="d0_10">Camada 0 - 10 cm</option>
+                <option value="d10_20">Camada 10 - 20 cm</option>
+                <option value="d20_40">Camada 20 - 40 cm</option>
+            </select>
         </div>
-
-        <!-- MAPA DA TAXA VARIÁVEL -->
-        <div id="vrate-map-container" class="flex-1 bg-white rounded-2xl border border-slate-200 relative overflow-hidden shadow-sm">
-            <div id="vrate-map" class="w-full h-full"></div>
-            <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 z-30 min-w-[240px]">
-                <span id="vrate-legend-title" class="text-xs font-black text-slate-900 uppercase block mb-2 border-b pb-1">Doses de Aplicação</span>
-                <div id="vrate-legend-items" class="space-y-1.5 text-xs font-semibold text-slate-700"></div>
+        <div class="flex gap-2">
+            <div class="w-1/2">
+                <label class="block text-[10px] font-bold text-emerald-700 mb-0.5"><i class="fa-solid fa-arrow-left mr-1"></i>Safra Esq.</label>
+                <select id="sel-safra-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800"></select>
+            </div>
+            <div class="w-1/2">
+                <label class="block text-[10px] font-bold text-blue-700 mb-0.5"><i class="fa-solid fa-arrow-right mr-1"></i>Safra Dir.</label>
+                <select id="sel-safra-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800"></select>
             </div>
         </div>
     </div>
 
-    <!-- MÓDULO 3: SEMENTES & PLANTIO TAXA VARIÁVEL -->
-    <div id="content-seeds" class="hidden h-full w-full flex relative">
-        <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
-            <div class="space-y-4">
-                <h3 class="text-sm font-extrabold text-emerald-700 uppercase border-b pb-2"><i class="fa-solid fa-wheat-awn mr-2"></i>Prescrição de Sementes & Plantio</h3>
+    <!-- MODO: Quad Split (Matriz de 4 Telas) -->
+    <div id="box-quad-split" class="hidden space-y-2 bg-indigo-50 border border-indigo-200 p-2 rounded-lg">
+        <span class="text-[10px] font-bold text-indigo-800 uppercase block mb-1">Matriz de Telas</span>
+        <div class="flex gap-2">
+            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Safra Base</label><select id="sel-quad-safra-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"></select></div>
+            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Safra Evolução</label><select id="sel-quad-safra-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"></select></div>
+        </div>
+        <div class="flex gap-2">
+            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Sup.</label><select id="sel-quad-depth-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"><option value="d0_10">0 - 10 cm</option><option value="d10_20">10 - 20 cm</option></select></div>
+            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Prof.</label><select id="sel-quad-depth-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"><option value="d10_20" selected>10 - 20 cm</option><option value="d20_40">20 - 40 cm</option></select></div>
+        </div>
+    </div>
+</div>
+<!-- ATÉ AQUI -->
 
-                <div>
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
-                    <select id="seeds-sel-producer" onchange="changeActiveProducer('seeds-sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
+                            <!-- PARÂMETROS DE SOLO -->
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Parâmetro de Solo</label>
+                                <select id="sel-param" onchange="updateGISMap()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800">
+                                    <optgroup label="Físicos & Acidez">
+                                        <option value="Argila">Argila (g/kg)</option>
+                                        <option value="MO">Matéria Orgânica (MO)</option>
+                                        <option value="MO (%)">MO (%) - Categorias</option>
+                                        <option value="Classes de MO">Classes de MO</option>
+                                        <option value="pH_CaCl2">pH em CaCl2</option>
+                                        <option value="pH_água">pH em Água</option>
+                                    </optgroup>
+                                    <optgroup label="Macronutrientes">
+                                        <option value="P">Fósforo (P - Mehlich 1)</option>
+                                        <option value="Classes de P">Classes de P</option>
+                                        <option value="K">Potássio (K)</option>
+                                        <option value="Ca">Cálcio (Ca)</option>
+                                        <option value="Mg">Magnésio (Mg)</option>
+                                        <option value="S">Enxofre (S)</option>
+                                    </optgroup>
+                                    <optgroup label="Complexo Sortivo">
+                                        <option value="Al">Alumínio (Al)</option>
+                                        <option value="H">H + Al</option>
+                                        <option value="Sb">Soma de Bases (SB)</option>
+                                        <option value="CTC" selected>Capacidade de Troca (CTC)</option>
+                                        <option value="V%">Saturação por Bases (V%)</option>
+                                        <option value="Sat. Al">Saturação por Alumínio (m%)</option>
+                                    </optgroup>
+                                    <optgroup label="Saturações e Relações Catiônicas">
+                                        <option value="Ca%">Saturação por Cálcio (Ca%)</option>
+                                        <option value="Mg%">Saturação por Magnésio (Mg%)</option>
+                                        <option value="K%">Saturação por Potássio (K%)</option>
+                                    </optgroup>
+                                    <optgroup label="Micronutrientes">
+                                        <option value="Zn">Zinco (Zn)</option>
+                                        <option value="Cu">Cobre (Cu)</option>
+                                        <option value="Mn">Manganês (Mn)</option>
+                                        <option value="B">Boro (B)</option>
+                                    </optgroup>
+                                </select>
+                            </div>
 
-                    <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
-                    <select id="seeds-sel-farm" onchange="changeActiveFarm('seeds-sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
-                </div>
-
-                <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl space-y-3">
-                    <span class="text-xs font-extrabold text-emerald-900 uppercase block"><i class="fa-solid fa-file-excel mr-1"></i>Importar Recomendação de Plantio</span>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Cultura Principal</label>
-                        <select id="seeds-crop" class="w-full bg-white border border-emerald-300 rounded-lg p-2 font-bold text-xs text-slate-900">
-                            <option value="Soja">Soja</option>
-                            <option value="Milho">Milho</option>
-                            <option value="Algodao">Algodão</option>
-                            <option value="Feijao">Feijão</option>
-                            <option value="Girassol">Girassol</option>
-                            <option value="Sorgo">Sorgo</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Unidade da Recomendação</label>
-                        <select id="seeds-unit" class="w-full bg-white border border-emerald-300 rounded-lg p-2 font-bold text-xs text-slate-900">
-                            <option value="sem_ha">Sementes por Hectare (sem/ha)</option>
-                            <option value="mil_ha">Milhares de Sementes por Ha (mil sem/ha)</option>
-                            <option value="sem_m">Sementes por Metro Linear (sem/m)</option>
-                        </select>
-                    </div>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-600 mb-1">Espaçamento (cm)</label>
-                            <input type="number" id="seeds-spacing" value="45" step="1" class="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-xs font-bold text-slate-900">
+                            <div class="space-y-2 pt-2 border-t border-slate-200">
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="chk-boundary" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="chk-labels" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="chk-values" checked onchange="toggleLayers()" class="form-checkbox h-4 w-4 text-origens-green rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Valores do Parâmetro</span>
+                                </label>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block text-[10px] font-bold text-slate-600 mb-1">Germinação / Vigor (%)</label>
-                            <input type="number" id="seeds-germination" value="95" step="1" class="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-xs font-bold text-slate-900">
+
+                        <div class="space-y-2 mt-4">
+                            <button onclick="exportarLaudoPDF()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold p-3 rounded-xl shadow transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-file-pdf mr-2"></i><span>Baixar Laudo PDF</span>
+                            </button>                            
+                            <button id="btn-batch-pdf" onclick="generateBatchPDFs()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold p-3 rounded-xl shadow transition-all flex items-center justify-center gap-2 text-xs">
+                                <i class="fa-solid fa-file-zipper"></i><span id="pdf-batch-btn-text">Exportar Lote de PDFs (.ZIP)</span>
+                            </button>
                         </div>
                     </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Perímetro / Subdivisões Específico (.zip)</label>
-                        <input type="file" id="seeds-shp-file" accept=".zip" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-200 file:text-emerald-900">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Planilha de Doses de Sementes (.xlsx)</label>
-                        <input type="file" id="seeds-excel-file" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-200 file:text-emerald-900">
-                    </div>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-700 mb-1">Planilha de Cultivares / Variedades (.xlsx) - Opcional</label>
-                        <input type="file" id="seeds-cultivar-excel-file" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-200 file:text-emerald-900">
-                    </div>
-                    <button onclick="processSeedsExcel()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition-all">
-                        Gerar Prescrição de Plantio
-                    </button>
-                </div>
 
-                <!-- CONTROLES DO MODO DE VISUALIZAÇÃO DO MAPA -->
-                <div class="space-y-2 pt-2 border-t border-emerald-200">
-                    <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">Modo de Exibição do Mapa</span>
-                    <div>
-                        <select id="seeds-view-mode" onchange="seedsUpdateMap()" class="w-full bg-slate-50 border border-emerald-300 rounded-xl p-2 text-xs font-bold text-slate-800">
-                            <option value="dose" selected>Mapa por População / Doses (sem/ha)</option>
-                            <option value="cultivar">Mapa por Cultivar / Variedade</option>
-                        </select>
-                    </div>
-                    <label class="flex items-center space-x-3 cursor-pointer pt-1">
-                        <input type="checkbox" id="seeds-chk-boundary" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
-                        <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
-                    </label>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="seeds-chk-labels" onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
-                        <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
-                    </label>
-                    <label class="flex items-center space-x-3 cursor-pointer">
-                        <input type="checkbox" id="seeds-chk-values" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
-                        <span class="text-sm font-semibold text-slate-700">População / Cultivares</span>
-                    </label>
-                </div>
-
-                <!-- RESUMO DO PLANTIO DE SEMENTES -->
-                <div id="seeds-summary-box" class="bg-slate-900 text-white p-4 rounded-2xl space-y-2 hidden">
-                    <span class="text-xs font-black text-emerald-400 uppercase block border-b border-slate-800 pb-1">Resumo do Plantio</span>
-                    <div class="flex justify-between text-xs"><span>Cultura:</span><b id="seeds-sum-crop" class="text-white">---</b></div>
-                    <div class="flex justify-between text-xs"><span>Área Total:</span><b id="seeds-sum-area" class="text-emerald-400">--- ha</b></div>
-                    <div class="flex justify-between text-xs"><span>População Média:</span><b id="seeds-sum-avg" class="text-amber-300">--- sem/ha</b></div>
-                    <div class="flex justify-between text-xs text-sm border-t border-slate-800 pt-1 mt-1"><span>Total Sementes:</span><b id="seeds-sum-total" class="text-emerald-400 font-extrabold text-sm">---</b></div>
-                </div>
-
-                <!-- EXPORTAR PARA MONITORES & PDF SEMENTES -->
-                <div class="space-y-2 border-t pt-3">
-                    <span class="text-xs font-extrabold text-slate-500 uppercase block">Exportar Prescrição de Plantio</span>
-                    <div>
-                        <label class="block text-[11px] font-bold text-slate-600 mb-1">Selecione a Marca / Monitor da Plantadeira</label>
-                        <select id="seeds-monitor-brand" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-bold text-xs text-slate-800">
-                            <option value="johndeere">John Deere (ExactEmerge / GS4 / G5) - [Rx\]</option>
-                            <option value="trimble_aggps">Trimble (Field-IQ / GFX / TMX) - [AgGPS\Prescriptions\]</option>
-                            <option value="stara">Stara (Topper 5500 / Absoluta) - [Dados\Mapas\]</option>
-                            <option value="precision_planting">Precision Planting (20|20 SeedSense) - [2020\Rx\]</option>
-                            <option value="caseih">Case IH (Early Riser / AFS) - [Shapefile\]</option>
-                            <option value="isobus">ISO-XML Genérico (ISOBUS / TaskData) - [TASKDATA\]</option>
-                        </select>
-                    </div>
-                    <button onclick="saveSeedsMapToPlatform('dose')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-emerald-300"></i><span>Salvar Mapa de População na Nuvem</span>
-                    </button>
-                    <button onclick="saveSeedsMapToPlatform('cultivar')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i><span>Salvar Mapa de Cultivares na Nuvem</span>
-                    </button>
-                    <button onclick="generateSeedsPDF('dose')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-pdf"></i><span>Exportar Laudo PDF por População</span>
-                    </button>
-                    <button onclick="generateSeedsPDF('cultivar')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-file-pdf"></i><span>Exportar Laudo PDF de Cultivares</span>
-                    </button>
-                    <button onclick="exportSeedsForMonitor()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-download text-emerald-400"></i><span>Baixar Arquivo da Plantadeira (.ZIP)</span>
-                    </button>
-                </div>
+                    <<!-- SUBSTITUA DESDE AQUI -->
+<!-- Container do Mapa -->
+<div id="map-container" class="flex-1 bg-white rounded-2xl border border-slate-200 relative overflow-hidden shadow-sm flex flex-col z-10">
+    
+    <!-- MAPAS PARA SWIPE (Individual e Lado a Lado) -->
+    <div id="swipe-map-wrapper" class="absolute inset-0 z-10 flex w-full h-full bg-slate-300">
+        <div id="left-map-pane" class="relative flex-1 h-full bg-white">
+            <div id="map-left" class="w-full h-full"></div>
+        </div>
+        <div id="split-divider" class="w-1.5 bg-origens-green cursor-col-resize z-30 flex items-center justify-center hidden">
+            <div id="split-divider-handle" class="w-8 h-8 bg-white border-2 border-origens-green rounded-full flex items-center justify-center text-origens-green shadow">
+                <i class="fa-solid fa-arrows-left-right"></i>
             </div>
         </div>
-
-        <!-- MAPA DA PRESCRIÇÃO DE SEMENTES -->
-        <div id="seeds-map-container" class="flex-1 bg-white rounded-2xl border border-slate-200 relative overflow-hidden shadow-sm">
-            <div id="seeds-map" class="w-full h-full"></div>
-            <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 z-30 min-w-[240px]">
-                <span id="seeds-legend-title" class="text-xs font-black text-slate-900 uppercase block mb-2 border-b pb-1">População de Plantio</span>
-                <div id="seeds-legend-items" class="space-y-1.5 text-xs font-semibold text-slate-700"></div>
-            </div>
+        <div id="right-map-pane" class="relative flex-1 h-full bg-white hidden">
+            <div id="map-right" class="w-full h-full"></div>
         </div>
     </div>
 
-    <!-- MÓDULO 4: ACOMPANHAMENTO DE AMOSTRAGEM DE SOLO -->
-    <div id="content-sampling" class="hidden h-full w-full flex flex-col p-6 overflow-y-auto custom-scrollbar bg-slate-100">
-        <div class="w-full max-w-full space-y-6">
-            <!-- Cabeçalho Módulo com Abas -->
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-vial-circle-check text-blue-600"></i>
-                        <span>Amostragem de Solo</span>
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Sincronizado com Google Sheets em tempo real.</p>
+    <!-- MAPAS PARA QUAD SPLIT (Visão 4 Telas) -->
+    <div id="quad-map-wrapper" class="absolute inset-0 z-20 hidden grid grid-cols-2 grid-rows-2 gap-1 bg-slate-400">
+        <div class="relative w-full h-full bg-white"><div id="map-quad-tl" class="w-full h-full"></div></div>
+        <div class="relative w-full h-full bg-white"><div id="map-quad-tr" class="w-full h-full"></div></div>
+        <div class="relative w-full h-full bg-white"><div id="map-quad-bl" class="w-full h-full"></div></div>
+        <div class="relative w-full h-full bg-white"><div id="map-quad-br" class="w-full h-full"></div></div>
+    </div>
+
+    <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 z-50 min-w-[240px] max-h-[300px] overflow-y-auto">
+        <span id="legend-title" class="text-xs font-black text-slate-900 uppercase block mb-2 border-b pb-1">Legenda QGIS</span>
+        <div id="legend-items" class="space-y-1.5 text-xs font-semibold text-slate-700"></div>
+    </div>
+</div>
+                </div> <!-- ESSA É A DIV FALTANTE QUE FECHA O MÓDULO GIS INTEIRO! -->
+
+                <!-- MÓDULO 2: TAXA VARIÁVEL & PRESCRIÇÃO -->
+                <div id="content-vrate" class="hidden h-full flex gap-6">
+                    <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
+                        <div class="space-y-4">
+                            <h3 class="text-sm font-extrabold text-amber-700 uppercase border-b pb-2"><i class="fa-solid fa-tractor mr-2"></i>Prescrição de Taxa Variável</h3>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
+                                <select id="vrate-sel-producer" onchange="changeActiveProducer('vrate-sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
+
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
+                                <select id="vrate-sel-farm" onchange="changeActiveFarm('vrate-sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
+                            </div>
+
+                            <div class="bg-amber-50 border border-amber-200 p-3.5 rounded-xl space-y-3">
+                                <span class="text-xs font-extrabold text-amber-900 uppercase block"><i class="fa-solid fa-file-excel mr-1"></i>Importar Recomendação</span>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Insumo a Aplicar</label>
+                                    <select id="vrate-product" class="w-full bg-white border border-amber-300 rounded-lg p-2 font-bold text-xs text-slate-900">
+                                        <option value="KCl">Cloreto de Potássio (KCl)</option>
+                                        <option value="Ureia">Ureia</option>
+                                        <option value="MAP">Fosfato Monoamônico (MAP)</option>
+                                        <option value="DAP">Fosfato Diamônico (DAP)</option>
+                                        <option value="NPK">Formulados NPK</option>
+                                        <option value="Superfosfato_Simples">Superfosfato Simples</option>
+                                        <option value="Superfosfato_Triplo">Superfosfato Triplo</option>
+                                        <option value="Fosfato_Natural">Fosfato Natural</option>
+                                        <option value="Calcario">Calcário</option>
+                                        <option value="Gesso">Gesso Agrícola</option>
+                                        <option value="Micronutrientes">Micronutrientes</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Unidade de Medida</label>
+                                    <select id="vrate-unit" class="w-full bg-white border border-amber-300 rounded-lg p-2 font-bold text-xs text-slate-900">
+                                        <option value="kg_ha">Quilogramas por Hectare (kg/ha)</option>
+                                        <option value="t_ha">Toneladas por Hectare (t/ha)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Perímetro / Subdivisões Específico (.zip)</label>
+                                    <input type="file" id="vrate-shp-file" accept=".zip" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-200 file:text-amber-900">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Planilha de Doses (.xlsx)</label>
+                                    <input type="file" id="vrate-excel-file" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-200 file:text-amber-900">
+                                </div>
+                                <button onclick="processVRateExcel()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition-all">
+                                    Gerar Mapa de Prescrição
+                                </button>
+                            </div>
+
+                            <!-- CONTROLES DE RÓTULO DO MAPA DE TAXA VARIÁVEL -->
+                            <div class="space-y-2 pt-2 border-t border-amber-200">
+                                <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block mb-1">Camadas & Rótulos no Mapa/PDF</span>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="vrate-chk-boundary" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="vrate-chk-labels" onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="vrate-chk-values" checked onchange="vrateUpdateMap()" class="form-checkbox h-4 w-4 text-amber-600 rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Valores das Doses</span>
+                                </label>
+                            </div>
+
+                            <!-- RESUMO DA APLICAÇÃO -->
+                            <div id="vrate-summary-box" class="bg-slate-900 text-white p-4 rounded-2xl space-y-2 hidden">
+                                <span class="text-xs font-black text-amber-400 uppercase block border-b border-slate-800 pb-1">Resumo do Insumo</span>
+                                <div class="flex justify-between text-xs"><span>Produto:</span><b id="vrate-sum-prod" class="text-white">---</b></div>
+                                <div class="flex justify-between text-xs"><span>Área Total:</span><b id="vrate-sum-area" class="text-emerald-400">--- ha</b></div>
+                                <div class="flex justify-between text-xs"><span>Dose Média:</span><b id="vrate-sum-avg" class="text-amber-300">---</b></div>
+                                <div class="flex justify-between text-xs text-sm border-t border-slate-800 pt-1 mt-1"><span>Total Produto:</span><b id="vrate-sum-total" class="text-emerald-400 font-extrabold text-sm">---</b></div>
+                            </div>
+
+                            <!-- EXPORTAR PARA MONITORES & PDF PRESCRIÇÃO -->
+                            <div class="space-y-2 border-t pt-3">
+                                <span class="text-xs font-extrabold text-slate-500 uppercase block">Exportar Prescrição</span>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Selecione a Marca / Sistema do Trator</label>
+                                    <select id="vrate-monitor-brand" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-bold text-xs text-slate-800">
+                                        <option value="johndeere">John Deere (GS2 / GS3 / GS4 / G5) - [Rx\]</option>
+                                        <option value="trimble_aggps">Trimble (CFX-750 / FM-750 / FM-1000) - [AgGPS\Prescriptions\]</option>
+                                        <option value="trimble_agdata">Trimble (GFX-750 / TMX-2050) - [AgData\Prescriptions\]</option>
+                                        <option value="stara">Stara (Topper 4500 / 5500) - [Dados\Mapas\]</option>
+                                        <option value="raven">Raven (CR7 / VIPER 4) - [rxMaps\]</option>
+                                        <option value="caseih">Case IH (Pro 700 / AFS) - [Shapefile\]</option>
+                                        <option value="jacto">Jacto (OtMIS / Omni 700) - [OtMIS\Maps\]</option>
+                                        <option value="agres">Agres (Isoview) - [Agres\Prescricao\]</option>
+                                        <option value="isobus">ISO-XML Genérico (ISOBUS / TaskData) - [TASKDATA\]</option>
+                                    </select>
+                                </div>
+                                <button onclick="saveVRateMapToPlatform()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-3 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i><span>Salvar Mapa na Plataforma (Nuvem)</span>
+                                </button>
+                                <button onclick="generateVRatePDF()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold p-3 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-pdf"></i><span>Exportar Laudo PDF de Prescrição</span>
+                                </button>
+                                <button onclick="exportForMonitor()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold p-3 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-download text-amber-400"></i><span>Baixar Arquivo do Monitor (.ZIP)</span>
+                                </button>
+                                <button onclick="exportVRateExcelSummary()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-excel"></i><span>Baixar Resumo em Excel (.XLSX)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MAPA DA TAXA VARIÁVEL -->
+                    <div id="vrate-map-container" class="flex-1 bg-white rounded-2xl border border-slate-200 relative overflow-hidden shadow-sm">
+                        <div id="vrate-map" class="w-full h-full"></div>
+                        <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 z-30 min-w-[240px]">
+                            <span id="vrate-legend-title" class="text-xs font-black text-slate-900 uppercase block mb-2 border-b pb-1">Doses de Aplicação</span>
+                            <div id="vrate-legend-items" class="space-y-1.5 text-xs font-semibold text-slate-700"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- MÓDULO 3: SEMENTES & PLANTIO TAXA VARIÁVEL -->
+                <div id="content-seeds" class="hidden h-full flex gap-6">
+                    <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
+                        <div class="space-y-4">
+                            <h3 class="text-sm font-extrabold text-emerald-700 uppercase border-b pb-2"><i class="fa-solid fa-wheat-awn mr-2"></i>Prescrição de Sementes & Plantio</h3>
+
+                            <div>
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Produtor Selecionado</label>
+                                <select id="seeds-sel-producer" onchange="changeActiveProducer('seeds-sel-producer')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800 mb-3"></select>
+
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Fazenda Selecionada</label>
+                                <select id="seeds-sel-farm" onchange="changeActiveFarm('seeds-sel-farm')" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800"></select>
+                            </div>
+
+                            <div class="bg-emerald-50 border border-emerald-200 p-3.5 rounded-xl space-y-3">
+                                <span class="text-xs font-extrabold text-emerald-900 uppercase block"><i class="fa-solid fa-file-excel mr-1"></i>Importar Recomendação de Plantio</span>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Cultura Principal</label>
+                                    <select id="seeds-crop" class="w-full bg-white border border-emerald-300 rounded-lg p-2 font-bold text-xs text-slate-900">
+                                        <option value="Soja">Soja</option>
+                                        <option value="Milho">Milho</option>
+                                        <option value="Algodao">Algodão</option>
+                                        <option value="Feijao">Feijão</option>
+                                        <option value="Girassol">Girassol</option>
+                                        <option value="Sorgo">Sorgo</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Unidade da Recomendação</label>
+                                    <select id="seeds-unit" class="w-full bg-white border border-emerald-300 rounded-lg p-2 font-bold text-xs text-slate-900">
+                                        <option value="sem_ha">Sementes por Hectare (sem/ha)</option>
+                                        <option value="mil_ha">Milhares de Sementes por Ha (mil sem/ha)</option>
+                                        <option value="sem_m">Sementes por Metro Linear (sem/m)</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Espaçamento (cm)</label>
+                                        <input type="number" id="seeds-spacing" value="45" step="1" class="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-xs font-bold text-slate-900">
+                                    </div>
+                                    <div>
+                                        <label class="block text-[10px] font-bold text-slate-600 mb-1">Germinação / Vigor (%)</label>
+                                        <input type="number" id="seeds-germination" value="95" step="1" class="w-full bg-white border border-emerald-300 rounded-lg p-1.5 text-xs font-bold text-slate-900">
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Perímetro / Subdivisões Específico (.zip)</label>
+                                    <input type="file" id="seeds-shp-file" accept=".zip" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-200 file:text-emerald-900">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Planilha de Doses de Sementes (.xlsx)</label>
+                                    <input type="file" id="seeds-excel-file" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-200 file:text-emerald-900">
+                                </div>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-700 mb-1">Planilha de Cultivares / Variedades (.xlsx) - Opcional</label>
+                                    <input type="file" id="seeds-cultivar-excel-file" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-emerald-200 file:text-emerald-900">
+                                </div>
+                                <button onclick="processSeedsExcel()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 rounded-xl text-xs shadow transition-all">
+                                    Gerar Prescrição de Plantio
+                                </button>
+                            </div>
+
+                            <!-- CONTROLES DO MODO DE VISUALIZAÇÃO DO MAPA -->
+                            <div class="space-y-2 pt-2 border-t border-emerald-200">
+                                <span class="text-xs font-bold text-emerald-800 uppercase tracking-wider block mb-1">Modo de Exibição do Mapa</span>
+                                <div>
+                                    <select id="seeds-view-mode" onchange="seedsUpdateMap()" class="w-full bg-slate-50 border border-emerald-300 rounded-xl p-2 text-xs font-bold text-slate-800">
+                                        <option value="dose" selected>Mapa por População / Doses (sem/ha)</option>
+                                        <option value="cultivar">Mapa por Cultivar / Variedade</option>
+                                    </select>
+                                </div>
+                                <label class="flex items-center space-x-3 cursor-pointer pt-1">
+                                    <input type="checkbox" id="seeds-chk-boundary" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Contorno do Perímetro</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="seeds-chk-labels" onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
+                                    <span class="text-sm font-semibold text-slate-700">Rótulos das Subdivisões</span>
+                                </label>
+                                <label class="flex items-center space-x-3 cursor-pointer">
+                                    <input type="checkbox" id="seeds-chk-values" checked onchange="seedsUpdateMap()" class="form-checkbox h-4 w-4 text-emerald-600 rounded">
+                                    <span class="text-sm font-semibold text-slate-700">População / Cultivares</span>
+                                </label>
+                            </div>
+
+                            <!-- RESUMO DO PLANTIO DE SEMENTES -->
+                            <div id="seeds-summary-box" class="bg-slate-900 text-white p-4 rounded-2xl space-y-2 hidden">
+                                <span class="text-xs font-black text-emerald-400 uppercase block border-b border-slate-800 pb-1">Resumo do Plantio</span>
+                                <div class="flex justify-between text-xs"><span>Cultura:</span><b id="seeds-sum-crop" class="text-white">---</b></div>
+                                <div class="flex justify-between text-xs"><span>Área Total:</span><b id="seeds-sum-area" class="text-emerald-400">--- ha</b></div>
+                                <div class="flex justify-between text-xs"><span>População Média:</span><b id="seeds-sum-avg" class="text-amber-300">--- sem/ha</b></div>
+                                <div class="flex justify-between text-xs text-sm border-t border-slate-800 pt-1 mt-1"><span>Total Sementes:</span><b id="seeds-sum-total" class="text-emerald-400 font-extrabold text-sm">---</b></div>
+                            </div>
+
+                            <!-- EXPORTAR PARA MONITORES & PDF SEMENTES -->
+                            <div class="space-y-2 border-t pt-3">
+                                <span class="text-xs font-extrabold text-slate-500 uppercase block">Exportar Prescrição de Plantio</span>
+                                <div>
+                                    <label class="block text-[11px] font-bold text-slate-600 mb-1">Selecione a Marca / Monitor da Plantadeira</label>
+                                    <select id="seeds-monitor-brand" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2 font-bold text-xs text-slate-800">
+                                        <option value="johndeere">John Deere (ExactEmerge / GS4 / G5) - [Rx\]</option>
+                                        <option value="trimble_aggps">Trimble (Field-IQ / GFX / TMX) - [AgGPS\Prescriptions\]</option>
+                                        <option value="stara">Stara (Topper 5500 / Absoluta) - [Dados\Mapas\]</option>
+                                        <option value="precision_planting">Precision Planting (20|20 SeedSense) - [2020\Rx\]</option>
+                                        <option value="caseih">Case IH (Early Riser / AFS) - [Shapefile\]</option>
+                                        <option value="isobus">ISO-XML Genérico (ISOBUS / TaskData) - [TASKDATA\]</option>
+                                    </select>
+                                </div>
+                                <button onclick="saveSeedsMapToPlatform('dose')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up text-emerald-300"></i><span>Salvar Mapa de População na Nuvem</span>
+                                </button>
+                                <button onclick="saveSeedsMapToPlatform('cultivar')" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-cloud-arrow-up text-amber-300"></i><span>Salvar Mapa de Cultivares na Nuvem</span>
+                                </button>
+                                <button onclick="generateSeedsPDF('dose')" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-pdf"></i><span>Exportar Laudo PDF por População</span>
+                                </button>
+                                <button onclick="generateSeedsPDF('cultivar')" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-file-pdf"></i><span>Exportar Laudo PDF de Cultivares</span>
+                                </button>
+                                <button onclick="exportSeedsForMonitor()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold p-2.5 rounded-xl shadow text-xs flex items-center justify-center gap-2">
+                                    <i class="fa-solid fa-download text-emerald-400"></i><span>Baixar Arquivo da Plantadeira (.ZIP)</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- MAPA DA PRESCRIÇÃO DE SEMENTES -->
+                    <div id="seeds-map-container" class="flex-1 bg-white rounded-2xl border border-slate-200 relative overflow-hidden shadow-sm">
+                        <div id="seeds-map" class="w-full h-full"></div>
+                        <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 z-30 min-w-[240px]">
+                            <span id="seeds-legend-title" class="text-xs font-black text-slate-900 uppercase block mb-2 border-b pb-1">População de Plantio</span>
+                            <div id="seeds-legend-items" class="space-y-1.5 text-xs font-semibold text-slate-700"></div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div class="flex items-center gap-3">
-                    <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
-                        <button id="btn-view-general" onclick="toggleSamplingView('general')" class="px-4 py-1.5 text-xs font-bold rounded-lg bg-white text-blue-700 shadow-sm transition-all">Visão Geral</button>
-                        <button id="btn-view-confere" onclick="toggleSamplingView('confere')" class="px-4 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition-all bg-transparent">Auditoria (Confere)</button>
-                    </div>
-                    <button onclick="fetchSamplingData(); fetchConfereData();" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow flex items-center gap-2 transition-all">
-                        <i class="fa-solid fa-rotate"></i><span>Sincronizar</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- ================= VISÃO 1: GERAL ================= -->
-            <div id="sampling-general-view" class="space-y-4 flex-1 flex flex-col">
-                <!-- CARDS DE KPI -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-700 text-xl font-bold"><i class="fa-solid fa-map-location-dot"></i></div>
+                <!-- MÓDULO 4: ACOMPANHAMENTO DE AMOSTRAGEM DE SOLO -->
+                <div id="content-sampling" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
+                    
+                    <!-- Cabeçalho Módulo com Abas -->
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
                         <div>
-                            <span class="text-[11px] font-bold uppercase text-slate-400 block">ha A COLETAR</span>
-                            <span id="kpi-ha-total" class="text-xl font-black text-slate-900">0,00 ha</span>
+                            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-vial-circle-check text-blue-600"></i>
+                                <span>Amostragem de Solo</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Sincronizado com Google Sheets em tempo real.</p>
                         </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700 text-xl font-bold"><i class="fa-solid fa-circle-check"></i></div>
-                        <div>
-                            <span class="text-[11px] font-bold uppercase text-slate-400 block">ha COLETADOS</span>
-                            <span id="kpi-ha-coletados" class="text-xl font-black text-emerald-600">0,00 ha</span>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-700 text-xl font-bold"><i class="fa-solid fa-clock"></i></div>
-                        <div>
-                            <span class="text-[11px] font-bold uppercase text-slate-400 block">ha PENDENTES</span>
-                            <span id="kpi-ha-pendentes" class="text-xl font-black text-amber-600">0,00 ha</span>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 text-xl font-bold"><i class="fa-solid fa-chart-pie"></i></div>
-                        <div>
-                            <span class="text-[11px] font-bold uppercase text-slate-400 block">PROGRESSO GERAL</span>
-                            <span id="kpi-pct-geral" class="text-xl font-black text-blue-600">0,00%</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- BARRA DE PROGRESSO GERAL -->
-                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
-                    <div class="flex justify-between items-center text-xs font-bold text-slate-700">
-                        <span>Avanço Físico das Amostras</span>
-                        <span id="sampling-progress-text">0% Concluído</span>
-                    </div>
-                    <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
-                        <div id="sampling-progress-bar" class="bg-gradient-to-r from-emerald-500 to-blue-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
-                    </div>
-                </div>
-
-                <!-- FILTROS & TABELA DE RELATÓRIO -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-4">
-                    <div class="flex flex-wrap gap-4 items-center justify-between">
-                        <div class="flex gap-3 items-center flex-1 max-w-2xl">
-                            <div class="flex-1">
-                                <input type="text" id="sampling-search" oninput="renderSamplingTable()" placeholder="Buscar por Fazenda ou Solicitante..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-blue-500">
+                        
+                        <div class="flex items-center gap-3">
+                            <div class="flex bg-slate-100 p-1 rounded-xl border border-slate-200">
+                                <button id="btn-view-general" onclick="toggleSamplingView('general')" class="px-4 py-1.5 text-xs font-bold rounded-lg bg-white text-blue-700 shadow-sm transition-all">Visão Geral</button>
+                                <button id="btn-view-confere" onclick="toggleSamplingView('confere')" class="px-4 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 transition-all bg-transparent">Auditoria (Confere)</button>
                             </div>
-                            <select id="sampling-filter-solicitante" onchange="renderSamplingTable()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
-                                <option value="all">Todos os Solicitantes</option>
-                            </select>
-                        </div>
-                        <span id="sampling-last-update" class="text-[11px] font-semibold text-slate-400">Última atualização: ---</span>
-                    </div>
-                    <div class="overflow-x-auto flex-1 border border-slate-200 rounded-xl">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-900 text-white uppercase text-[11px] font-black tracking-wider">
-                                    <th class="p-3">Solicitante</th><th class="p-3">Fazenda</th><th class="p-3 text-right">ha a Coletar</th><th class="p-3 text-right">ha Coletados</th><th class="p-3 text-right">ha Pendentes</th><th class="p-3 text-center">% Coletados</th><th class="p-3 text-center">% Pendentes</th>
-                                </tr>
-                            </thead>
-                            <tbody id="sampling-table-body" class="divide-y divide-slate-200 font-medium">
-                                <tr><td colspan="7" class="p-6 text-center text-slate-400 font-semibold italic">Carregando dados da planilha online...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ================= VISÃO 2: CONFERE / AUDITORIA ================= -->
-            <div id="sampling-confere-view" class="hidden space-y-4 flex-1 flex flex-col">
-                <!-- Filtros Inteligentes Multi-seleção com Dropdowns -->
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
-                        <span class="text-xs font-extrabold text-slate-800"><i class="fa-solid fa-filter text-blue-600 mr-1"></i>Filtros Inteligentes (Multi-seleção)</span>
-                        <button onclick="clearConfereFilters()" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded transition-all shadow-sm">Limpar Filtros</button>
-                    </div>
-                    <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                        <!-- Dropdown Equipe -->
-                        <div class="relative w-full" id="box-dropdown-equipe">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Equipe de Coleta</label>
-                            <button type="button" onclick="toggleConfereDropdown('dropdown-equipe')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
-                                <span id="title-equipe" class="truncate pointer-events-none">Todas as Equipes</span>
-                                <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                            <button onclick="fetchSamplingData(); fetchConfereData();" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow flex items-center gap-2 transition-all">
+                                <i class="fa-solid fa-rotate"></i><span>Sincronizar</span>
                             </button>
-                            <div id="dropdown-equipe" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
-                                <div id="chk-confere-equipe" class="p-1 space-y-0.5"></div>
+                        </div>
+                    </div>
+
+                    <!-- ================= VISÃO 1: GERAL ================= -->
+                    <div id="sampling-general-view" class="space-y-4 flex-1 flex flex-col">
+                        <!-- CARDS DE KPI -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 bg-slate-100 rounded-xl flex items-center justify-center text-slate-700 text-xl font-bold"><i class="fa-solid fa-map-location-dot"></i></div>
+                                <div>
+                                    <span class="text-[11px] font-bold uppercase text-slate-400 block">ha A COLETAR</span>
+                                    <span id="kpi-ha-total" class="text-xl font-black text-slate-900">0,00 ha</span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700 text-xl font-bold"><i class="fa-solid fa-circle-check"></i></div>
+                                <div>
+                                    <span class="text-[11px] font-bold uppercase text-slate-400 block">ha COLETADOS</span>
+                                    <span id="kpi-ha-coletados" class="text-xl font-black text-emerald-600">0,00 ha</span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center text-amber-700 text-xl font-bold"><i class="fa-solid fa-clock"></i></div>
+                                <div>
+                                    <span class="text-[11px] font-bold uppercase text-slate-400 block">ha PENDENTES</span>
+                                    <span id="kpi-ha-pendentes" class="text-xl font-black text-amber-600">0,00 ha</span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 text-xl font-bold"><i class="fa-solid fa-chart-pie"></i></div>
+                                <div>
+                                    <span class="text-[11px] font-bold uppercase text-slate-400 block">PROGRESSO GERAL</span>
+                                    <span id="kpi-pct-geral" class="text-xl font-black text-blue-600">0,00%</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Dropdown Data -->
-                        <div class="relative w-full" id="box-dropdown-data">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data da Coleta</label>
-                            <button type="button" onclick="toggleConfereDropdown('dropdown-data')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
-                                <span id="title-data" class="truncate pointer-events-none">Todas as Datas</span>
-                                <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
-                            </button>
-                            <div id="dropdown-data" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
-                                <div id="chk-confere-data" class="p-1 space-y-0.5"></div>
+                        <!-- BARRA DE PROGRESSO GERAL -->
+                        <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+                            <div class="flex justify-between items-center text-xs font-bold text-slate-700">
+                                <span>Avanço Físico das Amostras</span>
+                                <span id="sampling-progress-text">0% Concluído</span>
+                            </div>
+                            <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-slate-200">
+                                <div id="sampling-progress-bar" class="bg-gradient-to-r from-emerald-500 to-blue-600 h-3 rounded-full transition-all duration-500" style="width: 0%"></div>
                             </div>
                         </div>
 
-                        <!-- Dropdown Produtor -->
-                        <div class="relative w-full" id="box-dropdown-produtor">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Solicitante</label>
-                            <button type="button" onclick="toggleConfereDropdown('dropdown-produtor')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
-                                <span id="title-produtor" class="truncate pointer-events-none">Todos os Solicitantes</span>
-                                <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
-                            </button>
-                            <div id="dropdown-produtor" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
-                                <div id="chk-confere-produtor" class="p-1 space-y-0.5"></div>
+                        <!-- FILTROS & TABELA DE RELATÓRIO -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col space-y-4">
+                            <div class="flex flex-wrap gap-4 items-center justify-between">
+                                <div class="flex gap-3 items-center flex-1 max-w-2xl">
+                                    <div class="flex-1">
+                                        <input type="text" id="sampling-search" oninput="renderSamplingTable()" placeholder="Buscar por Fazenda ou Solicitante..." class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-none focus:border-blue-500">
+                                    </div>
+                                    <select id="sampling-filter-solicitante" onchange="renderSamplingTable()" class="bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs font-bold text-slate-800">
+                                        <option value="all">Todos os Solicitantes</option>
+                                    </select>
+                                </div>
+                                <span id="sampling-last-update" class="text-[11px] font-semibold text-slate-400">Última atualização: ---</span>
+                            </div>
+                            <div class="overflow-x-auto flex-1 border border-slate-200 rounded-xl">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-900 text-white uppercase text-[11px] font-black tracking-wider">
+                                            <th class="p-3">Solicitante</th><th class="p-3">Fazenda</th><th class="p-3 text-right">ha a Coletar</th><th class="p-3 text-right">ha Coletados</th><th class="p-3 text-right">ha Pendentes</th><th class="p-3 text-center">% Coletados</th><th class="p-3 text-center">% Pendentes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="sampling-table-body" class="divide-y divide-slate-200 font-medium">
+                                        <tr><td colspan="7" class="p-6 text-center text-slate-400 font-semibold italic">Carregando dados da planilha online...</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ================= VISÃO 2: CONFERE / AUDITORIA ================= -->
+                    <div id="sampling-confere-view" class="hidden space-y-4 flex-1 flex flex-col">
+                        
+                        <!-- Filtros Inteligentes Multi-seleção com Dropdowns -->
+                        <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200">
+                            <div class="flex justify-between items-center mb-3 border-b border-slate-100 pb-2">
+                                <span class="text-xs font-extrabold text-slate-800"><i class="fa-solid fa-filter text-blue-600 mr-1"></i>Filtros Inteligentes (Multi-seleção)</span>
+                                <button onclick="clearConfereFilters()" class="text-[10px] font-bold bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded transition-all shadow-sm">Limpar Filtros</button>
+                            </div>
+                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                                
+                                <!-- Dropdown Equipe -->
+                                <div class="relative w-full" id="box-dropdown-equipe">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Equipe de Coleta</label>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-equipe')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-equipe" class="truncate pointer-events-none">Todas as Equipes</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-equipe" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
+                                        <div id="chk-confere-equipe" class="p-1 space-y-0.5"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Dropdown Data -->
+                                <div class="relative w-full" id="box-dropdown-data">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Data da Coleta</label>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-data')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-data" class="truncate pointer-events-none">Todas as Datas</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-data" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
+                                        <div id="chk-confere-data" class="p-1 space-y-0.5"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Dropdown Produtor -->
+                                <div class="relative w-full" id="box-dropdown-produtor">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Solicitante</label>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-produtor')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-produtor" class="truncate pointer-events-none">Todos os Solicitantes</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-produtor" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
+                                        <div id="chk-confere-produtor" class="p-1 space-y-0.5"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Dropdown Fazenda -->
+                                <div class="relative w-full" id="box-dropdown-fazenda">
+                                    <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fazenda</label>
+                                    <button type="button" onclick="toggleConfereDropdown('dropdown-fazenda')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
+                                        <span id="title-fazenda" class="truncate pointer-events-none">Todas as Fazendas</span>
+                                        <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
+                                    </button>
+                                    <div id="dropdown-fazenda" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
+                                        <div id="chk-confere-fazenda" class="p-1 space-y-0.5"></div>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div>
+                        <!-- KPIs Confere -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 text-xl font-bold"><i class="fa-solid fa-map-marked-alt"></i></div>
+                                <div>
+                                    <span class="text-[11px] font-bold uppercase text-slate-400 block">Área Coletada no Filtro</span>
+                                    <span id="kpi-confere-area" class="text-xl font-black text-blue-700">0,00 ha</span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700 text-xl font-bold"><i class="fa-solid fa-location-dot"></i></div>
+                                <div>
+                                    <span class="text-[11px] font-bold uppercase text-slate-400 block">Tamanho da Amostra</span>
+                                    <span id="kpi-confere-amostra" class="text-xl font-black text-emerald-600">0 ha / pt</span>
+                                </div>
+                            </div>
+                            <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
+                                <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700 text-xl font-bold"><i class="fa-solid fa-list-check"></i></div>
+                                <div>
+                                    <span class="text-[11px] font-bold uppercase text-slate-400 block">Total de Entregas (Linhas)</span>
+                                    <span id="kpi-confere-linhas" class="text-xl font-black text-purple-600">0</span>
+                                </div>
                             </div>
                         </div>
 
-                        <!-- Dropdown Fazenda -->
-                        <div class="relative w-full" id="box-dropdown-fazenda">
-                            <label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fazenda</label>
-                            <button type="button" onclick="toggleConfereDropdown('dropdown-fazenda')" class="w-full bg-white border border-slate-300 hover:border-blue-400 rounded-lg px-3 py-2 text-xs font-bold text-slate-800 flex justify-between items-center transition-all shadow-sm">
-                                <span id="title-fazenda" class="truncate pointer-events-none">Todas as Fazendas</span>
-                                <i class="fa-solid fa-chevron-down text-slate-500 pointer-events-none"></i>
-                            </button>
-                            <div id="dropdown-fazenda" class="confere-dropdown hidden absolute z-[100] left-0 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-2xl max-h-64 overflow-y-auto">
-                                <div id="chk-confere-fazenda" class="p-1 space-y-0.5"></div>
+                        <!-- Tabela Confere -->
+                        <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col">
+                            <div class="overflow-x-auto border border-slate-200 rounded-xl">
+                                <table class="w-full text-left border-collapse text-xs">
+                                    <thead>
+                                        <tr class="bg-slate-900 text-white uppercase text-[10px] font-black tracking-wider">
+                                            <th class="p-3">Data</th>
+                                            <th class="p-3">Equipe</th>
+                                            <th class="p-3">Solicitante</th>
+                                            <th class="p-3">Fazenda</th>
+                                            <th class="p-3 text-center">NCB / AM_PR</th>
+                                            <th class="p-3 text-right">Área (ha)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="confere-table-body" class="divide-y divide-slate-200 font-medium">
+                                        <tr><td colspan="6" class="p-6 text-center text-slate-400 font-semibold italic">Aguardando sincronização com a aba Confere...</td></tr>
+                                    </tbody>
+                                </table>
                             </div>
                         </div>
                     </div>
                 </div>
+                <!-- GESTÃO DE ACESSOS -->
 
-                <!-- KPIs Confere -->
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-700 text-xl font-bold"><i class="fa-solid fa-map-marked-alt"></i></div>
+                <!-- MÓDULO: EVOLUÇÃO DE SOLO -->
+                <div id="content-evolucao" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2 pb-10">
+                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
                         <div>
-                            <span class="text-[11px] font-bold uppercase text-slate-400 block">Área Coletada no Filtro</span>
-                            <span id="kpi-confere-area" class="text-xl font-black text-blue-700">0,00 ha</span>
+                            <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
+                                <i class="fa-solid fa-chart-line text-pink-600"></i>
+                                <span>Evolução de Solo (Comparativo Histórico)</span>
+                            </h2>
+                            <p class="text-xs text-slate-500 mt-0.5">Sincronizado via Google Sheets. Médias dinâmicas por safras.</p>
                         </div>
+                        <button onclick="fetchEvoData()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow flex items-center gap-2 transition-all">
+                            <i class="fa-solid fa-rotate"></i><span>Sincronizar Dados</span>
+                        </button>
                     </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-700 text-xl font-bold"><i class="fa-solid fa-location-dot"></i></div>
-                        <div>
-                            <span class="text-[11px] font-bold uppercase text-slate-400 block">Tamanho da Amostra</span>
-                            <span id="kpi-confere-amostra" class="text-xl font-black text-emerald-600">0 ha / pt</span>
-                        </div>
-                    </div>
-                    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-                        <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-700 text-xl font-bold"><i class="fa-solid fa-list-check"></i></div>
-                        <div>
-                            <span class="text-[11px] font-bold uppercase text-slate-400 block">Total de Entregas (Linhas)</span>
-                            <span id="kpi-confere-linhas" class="text-xl font-black text-purple-600">0</span>
-                        </div>
-                    </div>
-                </div>
 
-                <!-- Tabela Confere -->
-                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex-1 flex flex-col">
-                    <div class="overflow-x-auto border border-slate-200 rounded-xl">
-                        <table class="w-full text-left border-collapse text-xs">
-                            <thead>
-                                <tr class="bg-slate-900 text-white uppercase text-[10px] font-black tracking-wider">
-                                    <th class="p-3">Data</th>
-                                    <th class="p-3">Equipe</th>
-                                    <th class="p-3">Solicitante</th>
-                                    <th class="p-3">Fazenda</th>
-                                    <th class="p-3 text-center">NCB / AM_PR</th>
-                                    <th class="p-3 text-right">Área (ha)</th>
-                                </tr>
-                            </thead>
-                            <tbody id="confere-table-body" class="divide-y divide-slate-200 font-medium">
-                                <tr><td colspan="6" class="p-6 text-center text-slate-400 font-semibold italic">Aguardando sincronização com a aba Confere...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- MÓDULO 5: EVOLUÇÃO DE SOLO -->
-    <div id="content-evolucao" class="hidden h-full w-full flex flex-col p-6 overflow-y-auto custom-scrollbar bg-slate-100">
-        <div class="w-full max-w-full space-y-6">
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
-                        <i class="fa-solid fa-chart-line text-pink-600"></i>
-                        <span>Evolução de Solo (Comparativo Histórico)</span>
-                    </h2>
-                    <p class="text-xs text-slate-500 mt-0.5">Sincronizado via Google Sheets. Médias dinâmicas por safras.</p>
-                </div>
-                <button onclick="fetchEvoData()" class="bg-pink-600 hover:bg-pink-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow flex items-center gap-2 transition-all">
-                    <i class="fa-solid fa-rotate"></i><span>Sincronizar Dados</span>
-                </button>
-            </div>
-
-            <!-- Container do gráfico -->
-            <div id="evo-charts-container" class="grid grid-cols-1 md:grid-cols-2 gap-6"></div>
-        </div>
-    </div>
-
-</main>
                     <!-- Filtros Dinâmicos -->
                     <div class="flex flex-wrap gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 relative z-40">
                         
@@ -1506,9 +1501,6 @@
         let mapLeft = null, mapRight = null, vrateMap = null, seedsMap = null;
         let geojsonLayerLeft = null, geojsonLayerRight = null, vrateGeojsonLayer = null, seedsGeojsonLayer = null;
         let tileLayerLeft = null, tileLayerRight = null;
-        let mapQuadTL = null, mapQuadTR = null, mapQuadBL = null, mapQuadBR = null;
-        let tileLayerQuadTL = null, tileLayerQuadTR = null, tileLayerQuadBL = null, tileLayerQuadBR = null;
-        let geojsonLayerQuadTL = null, geojsonLayerQuadTR = null, geojsonLayerQuadBL = null, geojsonLayerQuadBR = null;
         
         let currentUser = null, currentUserRole = "client", currentUserAllowedFarms = [];
         let canAccessSampling = false, canAccessVRate = false, canAccessSeeds = false;
@@ -2328,28 +2320,14 @@
                 alert("Você não possui permissão de acesso ao Módulo de Amostragem de Solo.");
                 return;
             }
-            if (tab === 'sampling' && !canAccessSampling) {
-            alert("Você não possui permissão de acesso ao Módulo de Amostragem de Solo.");
-            return;
-        }
 
-        // 👉 CÓDIGO NOVO: Destranca o layout dos mapas para não empurrar os outros módulos
-        ['swipe-map-wrapper', 'quad-map-wrapper', 'right-map-pane'].forEach(id => {
-            const elemento = document.getElementById(id);
-            if (elemento) elemento.style.display = ''; 
-        });
-
-       
             // 👇 AQUI ESTÁ A CORREÇÃO: O 'visit' foi adicionado na lista!
             ['maps', 'vrate', 'seeds', 'sampling', 'users', 'recommendation', 'visit', 'evolucao'].forEach(t => {
-            const el = document.getElementById(`content-${t}`);
-            const btn = document.getElementById(`tab-${t}`);
-            if (el) {
-                el.classList.add('hidden');
-                el.style.display = ''; // 👉 ADICIONE ESTA LINHA PARA LIMPAR TRAVAS
-            }
-            if (btn) btn.classList.remove('bg-slate-800', 'text-white');
-        });
+                const el = document.getElementById(`content-${t}`);
+                const btn = document.getElementById(`tab-${t}`);
+                if (el) el.classList.add('hidden');
+                if (btn) btn.classList.remove('bg-slate-800', 'text-white');
+            });
 
             const activeContent = document.getElementById(`content-${tab}`);
             const activeBtn = document.getElementById(`tab-${tab}`);
@@ -2379,69 +2357,48 @@
                 loadVisitHistory();
             } else if (tab === 'users') {
             }
-                 
-        // 👉 CÓDIGO NOVO (PASSO 2): Força a tela a atualizar para o mapa não ficar branco
-        setTimeout(() => {
-            window.dispatchEvent(new Event('resize'));
-        }, 350);
-
-    } // <--- Esta é a chave da sua atual linha 2384 (fecha a função switchTab)
-
-    function toggleViewMode() {
-        const mode = document.getElementById('sel-mode').value;
         }
 
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
 
-    const swipeWrapper = document.getElementById('swipe-map-wrapper');
-    const quadWrapper = document.getElementById('quad-map-wrapper');
-    const rightPane = document.getElementById('right-map-pane');
-
-    // 1. Limpamos os estilos apenas dos Wrappers (Isso impede que o mapa fique "fantasma" quebrando outros módulos)
-    if (swipeWrapper) swipeWrapper.style.display = '';
-    if (quadWrapper) quadWrapper.style.display = '';
-
-    // 2. Esconde os menus internos forçando via estilo direto (como no seu código que funcionou)
+    // 1. Esconde os menus forçando via estilo direto (ignora o CSS antigo)
     document.getElementById('box-single-depth').style.display = 'none';
     document.getElementById('box-diff-depth').style.display = 'none';
     document.getElementById('box-diff-safra').style.display = 'none';
     document.getElementById('box-quad-split').style.display = 'none';
 
-    // 3. Controla a divisão das telas
+    const swipeWrapper = document.getElementById('swipe-map-wrapper');
+    const quadWrapper = document.getElementById('quad-map-wrapper');
+    const rightPane = document.getElementById('right-map-pane');
+
+    // 2. Controla as telas forçando o Flexbox e apagando a classe "hidden"
     if (mode === 'quad_split') {
         document.getElementById('box-quad-split').style.display = 'block';
-        
-        swipeWrapper.classList.add('hidden');
-        swipeWrapper.classList.remove('flex');
-        
-        quadWrapper.classList.remove('hidden');
-        quadWrapper.classList.add('grid');
+        swipeWrapper.style.display = 'none';
+        quadWrapper.style.display = 'grid';
     } else {
-        quadWrapper.classList.add('hidden');
-        quadWrapper.classList.remove('grid');
-        
-        swipeWrapper.classList.remove('hidden');
-        swipeWrapper.classList.add('flex'); // Divide o espaço da tela 50/50
+        quadWrapper.style.display = 'none';
+        swipeWrapper.style.display = 'flex'; // Força a tela a virar Flexbox 50/50
 
         if (mode === 'single') {
             document.getElementById('box-single-depth').style.display = 'block';
-            if (rightPane) {
-                rightPane.style.display = 'none'; // Esconde a direita no modo individual
+            if(rightPane) {
+                rightPane.style.display = 'none'; // Desliga a direita
             }
         } else if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
             if (mode === 'sidebyside') document.getElementById('box-diff-depth').style.display = 'block';
             if (mode === 'sidebyside_safra') document.getElementById('box-diff-safra').style.display = 'block';
             
-            if (rightPane) {
-                rightPane.classList.remove('hidden');
-                rightPane.style.display = 'block'; // O SEGREDO: Força a tela a voltar a aparecer!
-                rightPane.style.width = '100%'; // Mantém a proporção
+            if(rightPane) {
+                rightPane.classList.remove('hidden'); // Limpa sujeiras do CSS
+                rightPane.style.display = 'block'; // Liga a direita na marra
+                rightPane.style.width = '100%'; // Garante a proporção da divisão
             }
         }
     }
 
-    // 4. Atualiza os mapas e a câmera de forma sincronizada
+    // 3. Atualiza os mapas e a câmera de forma sincronizada
     setTimeout(() => {
         const currentCenter = mapLeft.getCenter();
         const currentZoom = mapLeft.getZoom();
@@ -2451,6 +2408,7 @@
         if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
             if (mapRight) {
                 mapRight.invalidateSize(true);
+                // "Copia" a câmera da esquerda para a direita para não nascer cinza
                 mapRight.setView(currentCenter, currentZoom, { animate: false });
             }
         }
@@ -2462,29 +2420,13 @@
             mapQuadBR.invalidateSize(true); mapQuadBR.setView(currentCenter, currentZoom, { animate: false });
         }
         
+        // Manda desenhar os polígonos coloridos
         if (typeof updateGISMap === 'function') {
             updateGISMap();
         }
     }, 200);
 }
-      function popularDropdownsDeSafra(listaDeSafras) {
-    const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
-    
-    camposSafra.forEach(id => {
-        const campo = document.getElementById(id);
-        if (!campo) return;
-        
-        campo.innerHTML = ''; 
-        
-        listaDeSafras.forEach(safra => {
-            const option = document.createElement('option');
-            option.value = safra;
-            option.textContent = safra;
-            campo.appendChild(option);
-        });
-    });
-}
-            
+
         function initSplitSlider() {
             const divider = document.getElementById('split-divider');
             const container = document.getElementById('map-container');
@@ -2525,7 +2467,6 @@
                 container.innerHTML = '<span class="text-slate-400 italic">Sem safras salvas</span>';
                 renderSavedPrescriptionsList();
                 renderExtraExcelList();
-                popularDropdownsDeSafra([]);
                 return;
             }
 
@@ -2551,7 +2492,6 @@
                 renderExtraExcelList();
                 return;
             }
-            popularDropdownsDeSafra(sortedSafras);
 
             container.innerHTML = sortedSafras.map((s, idx) => `
                 <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
@@ -3228,35 +3168,53 @@ async function generateBatchPDFs() {
         if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
     }
 }
-      function inicializarMapasQuadruplos() {
-    if (!mapQuadTL) { // Previne criar duas vezes
-        mapQuadTL = L.map('map-quad-tl').setView([-12.592, -58.012], 13);
+        function initLeafletMap() {
+    if (!mapLeft) {
+        // 1. Inicializa os mapas do Swipe (2 telas) mantendo sua coordenada
+        mapLeft = L.map('map-left', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        mapRight = L.map('map-right', { zoomControl: false }).setView([-12.592, -58.012], 13);
+
+        // 2. Inicializa os mapas da Visão Quádrupla (4 telas)
+        mapQuadTL = L.map('map-quad-tl', { zoomControl: false }).setView([-12.592, -58.012], 13);
         mapQuadTR = L.map('map-quad-tr', { zoomControl: false }).setView([-12.592, -58.012], 13);
         mapQuadBL = L.map('map-quad-bl', { zoomControl: false }).setView([-12.592, -58.012], 13);
         mapQuadBR = L.map('map-quad-br', { zoomControl: false }).setView([-12.592, -58.012], 13);
+
+        // Adiciona controle de zoom apenas no mapa principal para economizar espaço
+        L.control.zoom({ position: 'topright' }).addTo(mapLeft);
+
+        // 3. Aplica a imagem de satélite em todos eles
+        if (typeof changeBasemap === 'function') changeBasemap();
+        
+        // 4. MÁGICA DA SINCRONIZAÇÃO: Arrastar um mapa move os outros juntos!
+        const syncMaps = [mapLeft, mapRight, mapQuadTL, mapQuadTR, mapQuadBL, mapQuadBR];
+        syncMaps.forEach(sourceMap => {
+            sourceMap.on('move', function() {
+                if (isSyncing) return;
+                isSyncing = true;
+                const center = sourceMap.getCenter();
+                const zoom = sourceMap.getZoom();
+                
+                syncMaps.forEach(targetMap => {
+                    if (targetMap !== sourceMap) {
+                        targetMap.setView(center, zoom, { animate: false });
+                    }
+                });
+                isSyncing = false;
+            });
+        });
+
+        // Mantém a chamada original do seu código
+        populateFarmSelector();
     }
 }
-        function initLeafletMap() {
-            if (!mapLeft) {
-                mapLeft = L.map('map-left').setView([-12.592, -58.012], 13);
-                mapRight = L.map('map-right', { zoomControl: false }).setView([-12.592, -58.012], 13);
-              
-                inicializarMapasQuadruplos();
-              
-                changeBasemap();
-
-                mapLeft.on('move', () => { if (!isSyncing) { isSyncing = true; mapRight.setView(mapLeft.getCenter(), mapLeft.getZoom(), { animate: false }); isSyncing = false; } });
-                mapRight.on('move', () => { if (!isSyncing) { isSyncing = true; mapLeft.setView(mapRight.getCenter(), mapRight.getZoom(), { animate: false }); isSyncing = false; } });
-
-                populateFarmSelector();
-            }
-        }
 
         function changeBasemap() {
     if (!mapLeft || !mapRight) return;
-    const selectedType = document.getElementById('sel-basemap') ? document.getElementById('sel-basemap').value : 'satellite';
+    
+    const selectedType = document.getElementById('sel-basemap').value;
 
-    // 1. Limpa as camadas antigas de todos os mapas
+    // 1. Remove as camadas antigas de todos os mapas
     if (tileLayerLeft) mapLeft.removeLayer(tileLayerLeft);
     if (tileLayerRight) mapRight.removeLayer(tileLayerRight);
     if (typeof tileLayerQuadTL !== 'undefined' && tileLayerQuadTL) mapQuadTL.removeLayer(tileLayerQuadTL);
@@ -3264,22 +3222,25 @@ async function generateBatchPDFs() {
     if (typeof tileLayerQuadBL !== 'undefined' && tileLayerQuadBL) mapQuadBL.removeLayer(tileLayerQuadBL);
     if (typeof tileLayerQuadBR !== 'undefined' && tileLayerQuadBR) mapQuadBR.removeLayer(tileLayerQuadBR);
 
-    // 2. Adiciona o satélite em todos eles
-    const esriUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}';
-    
-    tileLayerLeft = L.tileLayer(esriUrl, { attribution: 'Origens &copy; Esri', maxZoom: 18 }).addTo(mapLeft);
-    tileLayerRight = L.tileLayer(esriUrl, { attribution: 'Esri', maxZoom: 18 }).addTo(mapRight);
-    
-    // Adiciona nos mapas quádruplos (se eles já existirem)
-    if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
-        tileLayerQuadTL = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadTL);
-        tileLayerQuadTR = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadTR);
-        tileLayerQuadBL = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadBL);
-        tileLayerQuadBR = L.tileLayer(esriUrl, { maxZoom: 18 }).addTo(mapQuadBR);
+    // 2. Define a URL baseada na seleção do dropdown
+    let tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'; // Esri Padrão
+    if (selectedType === 'google') {
+        tileUrl = 'http://mt0.google.com/vt/lyrs=y&hl=en&x={x}&y={y}&z={z}';
     }
 
-    // 3. Atualiza os dados
-    if (typeof updateGISMap === 'function') updateGISMap();
+    // 3. Aplica o novo satélite nos mapas originais
+    tileLayerLeft = L.tileLayer(tileUrl, { attribution: 'Origens &copy; Esri', maxZoom: 18 }).addTo(mapLeft);
+    tileLayerRight = L.tileLayer(tileUrl, { attribution: 'Esri', maxZoom: 18 }).addTo(mapRight);
+    
+    // 4. Aplica o satélite nas 4 novas telas (Quad Split) se elas existirem
+    if (typeof mapQuadTL !== 'undefined' && mapQuadTL) {
+        tileLayerQuadTL = L.tileLayer(tileUrl, { maxZoom: 18 }).addTo(mapQuadTL);
+        tileLayerQuadTR = L.tileLayer(tileUrl, { maxZoom: 18 }).addTo(mapQuadTR);
+        tileLayerQuadBL = L.tileLayer(tileUrl, { maxZoom: 18 }).addTo(mapQuadBL);
+        tileLayerQuadBR = L.tileLayer(tileUrl, { maxZoom: 18 }).addTo(mapQuadBR);
+    }
+
+    updateGISMap();
 }
 
         function getQGISRules(param) {
@@ -3486,10 +3447,6 @@ async function generateBatchPDFs() {
 
             if (geojsonLayerLeft) mapLeft.removeLayer(geojsonLayerLeft);
             if (geojsonLayerRight) mapRight.removeLayer(geojsonLayerRight);
-            if (geojsonLayerQuadTL) mapQuadTL.removeLayer(geojsonLayerQuadTL);
-            if (geojsonLayerQuadTR) mapQuadTR.removeLayer(geojsonLayerQuadTR);
-            if (geojsonLayerQuadBL) mapQuadBL.removeLayer(geojsonLayerQuadBL);
-            if (geojsonLayerQuadBR) mapQuadBR.removeLayer(geojsonLayerQuadBR);
 
             const legendTitle = document.getElementById('legend-title');
             const legendItems = document.getElementById('legend-items');
@@ -3511,126 +3468,81 @@ async function generateBatchPDFs() {
             const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
             const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
 
-            // Adicionamos 'customSafraArray' para forçar uma safra específica quando necessário
-    const buildLayer = (depthKey, customSafraArray = null) => L.geoJSON(currentGeoJSON, {
-        smoothFactor: 2.5,
-        filter: f => {
-            if (selectedTalhoes.length && !selectedTalhoes.includes(String(f.properties.Talhao))) {
-                return false;
+            const buildLayer = (depthKey) => L.geoJSON(currentGeoJSON, {
+                smoothFactor: 2.5,
+                filter: f => {
+                    if (selectedTalhoes.length && !selectedTalhoes.includes(String(f.properties.Talhao))) {
+                        return false;
+                    }
+                    if (selectedSafras && selectedSafras.length) {
+                        const featureSafra = f.properties.safra_origem || extractSafra(f.properties);
+                        const hasHistorico = f.properties && f.properties.safras_historico && selectedSafras.some(s => f.properties.safras_historico[s] && f.properties.safras_historico[s][depthKey]);
+                        const hasDirectSafra = featureSafra && selectedSafras.includes(featureSafra);
+                        if (!hasHistorico && !hasDirectSafra) return false;
+                    }
+                    return true;
+                },
+                style: f => {
+                    const rawVal = getFeatureDepthData(f, depthKey, selectedSafras)[param];
+                    const matched = getMatchedRule(rawVal, rules);
+                    let color = matched ? matched.color : '#94a3b8';
+
+                    return { 
+                        fillColor: color, 
+                        fillOpacity: 0.85, 
+                        color: showBoundary ? '#1d4ed8' : 'transparent', 
+                        weight: showBoundary ? 1.5 : 0 
+                    };
+                },
+                onEachFeature: (f, layer) => {
+                    const depthData = getFeatureDepthData(f, depthKey, selectedSafras);
+                    const rawVal = depthData[param];
+                    const displayVal = formatDisplayValue(rawVal);
+                    const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || 'Gleba';
+
+                    layer.bindPopup(`<b>${subName} (Talhão ${f.properties.Talhao || 'N/A'})</b><br>${param}: <b>${displayVal}</b>`);
+
+                    let labelText = "";
+                    if (showLabels && showValues) {
+                        labelText = `${subName}: ${displayVal}`;
+                    } else if (showLabels) {
+                        labelText = `${subName}`;
+                    } else if (showValues) {
+                        labelText = `${displayVal}`;
+                    }
+
+                    if (labelText !== "") {
+                        layer.bindTooltip(labelText, { 
+                            permanent: true, 
+                            direction: 'center', 
+                            className: 'bg-slate-900/80 text-white font-bold text-[10px] px-1 py-0.5 rounded shadow text-center border-0' 
+                        });
+                    }
+                }
+            });
+
+            if (mode === 'sidebyside') {
+                const depthA = document.getElementById('sel-depth-a').value;
+                const depthB = document.getElementById('sel-depth-b').value;
+                geojsonLayerLeft = buildLayer(depthA).addTo(mapLeft);
+                geojsonLayerRight = buildLayer(depthB).addTo(mapRight);
+            } else {
+                geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
             }
-            const activeSafras = customSafraArray || selectedSafras; 
-            
-            if (activeSafras && activeSafras.length) {
-                const featuresSafra = f.properties.safra_origem || extractSafra(f.properties);
-                const hasHistorico = f.properties && f.properties.safras_historico && activeSafras.some(s => f.properties.safras_historico[s] && f.properties.safras_historico[s][depthKey]);
-                const hasDirectSafra = featuresSafra && activeSafras.includes(featuresSafra);
-                if (!hasHistorico && !hasDirectSafra) return false;
-            }
-            return true;
-        },
-        style: f => {
-            const activeSafras = customSafraArray || selectedSafras;
-            const depthData = getFeatureDepthData(f, depthKey, activeSafras);
-            // PROTEÇÃO CONTRA CRASH: Se o dado não existir, ele não quebra o sistema
-            const rawVal = depthData ? depthData[param] : null; 
-            const matched = rawVal != null ? getMatchedRule(rawVal, rules) : null;
-            let color = matched ? matched.color : '#94a3b8';
-
-            return {
-                fillColor: color,
-                fillOpacity: 0.85,
-                color: showBoundary ? '#1d4ed8' : 'transparent',
-                weight: showBoundary ? 1.5 : 0
-            };
-        },
-        onEachFeature: (f, layer) => {
-            const activeSafras = customSafraArray || selectedSafras;
-            const depthData = getFeatureDepthData(f, depthKey, activeSafras);
-            // PROTEÇÃO CONTRA CRASH: Se o dado não existir, ele não quebra o sistema
-            const rawVal = depthData ? depthData[param] : null; 
-            const displayVal = formatDisplayValue(rawVal);
-            const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || 'Gleba';
-
-            layer.bindPopup(`<b>${subName}</b> (Talhão ${f.properties.Talhao || 'N/A'})<br><br>${param}: <b>${displayVal}</b>`);
-
-            let labelText = "";
-            if (showLabels && showValues) {
-                labelText = `${subName}: ${displayVal}`;
-            } else if (showLabels) {
-                labelText = `${subName}`;
-            } else if (showValues) {
-                labelText = `${displayVal}`;
-            }
-
-            if (labelText !== "") {
-                layer.bindTooltip(labelText, {
-                    permanent: true,
-                    direction: 'center',
-                    className: 'bg-slate-900/80 text-white font-bold text-[10px] px-1 py-0.5 rounded shadow text-center border-0'
-                });
-            }
-        }
-    });
-
-            // (Este código fica dentro da função updateGISMap, antes do setTimeout)
-    if (mode === 'single') {
-        geojsonLayerLeft = buildLayer(depth).addTo(mapLeft);
-        
-    } else if (mode === 'sidebyside') {
-        const depthA = document.getElementById('sel-depth-a').value;
-        const depthB = document.getElementById('sel-depth-b').value;
-        geojsonLayerLeft = buildLayer(depthA).addTo(mapLeft);
-        geojsonLayerRight = buildLayer(depthB).addTo(mapRight);
-        
-    } else if (mode === 'sidebyside_safra') {
-        const depthFixed = document.getElementById('sel-depth-fixed').value;
-        const safraA = document.getElementById('sel-safra-a').value;
-        const safraB = document.getElementById('sel-safra-b').value;
-        geojsonLayerLeft = buildLayer(depthFixed, [safraA]).addTo(mapLeft);
-        geojsonLayerRight = buildLayer(depthFixed, [safraB]).addTo(mapRight);
-        
-    } else if (mode === 'quad_split') {
-        // ... (código da visão quádrupla)
-        const depthSuperf = document.getElementById('sel-quad-depth-a').value;
-        const depthProfunda = document.getElementById('sel-quad-depth-b').value;
-        const safraQuadA = document.getElementById('sel-quad-safra-a').value;
-        const safraQuadB = document.getElementById('sel-quad-safra-b').value;
-        
-        // Combina as safras com as profundidades corretas para cada quadrante
-        geojsonLayerQuadTL = buildLayer(depthSuperf, [safraQuadA]).addTo(mapQuadTL);
-        geojsonLayerQuadTR = buildLayer(depthSuperf, [safraQuadB]).addTo(mapQuadTR);
-        geojsonLayerQuadBL = buildLayer(depthProfunda, [safraQuadA]).addTo(mapQuadBL);
-        geojsonLayerQuadBR = buildLayer(depthProfunda, [safraQuadB]).addTo(mapQuadBR);
-    }
 
             setTimeout(() => {
-        // Descobre qual camada usar como referência de tamanho
-        let baseLayer = (mode === 'quad_split') ? geojsonLayerQuadTL : geojsonLayerLeft;
-
-        if (baseLayer && baseLayer.getBounds().isValid()) {
-            const bounds = baseLayer.getBounds();
-            
-            if (mode === 'single' || mode === 'sidebyside' || mode === 'sidebyside_safra') {
-                if (mapLeft) mapLeft.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
-            }
-            if (mode === 'sidebyside' || mode === 'sidebyside_safra') {
-                if (mapRight) mapRight.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
-            }
-            if (mode === 'quad_split') {
-                if (mapQuadTL) mapQuadTL.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
-                if (mapQuadTR) mapQuadTR.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
-                if (mapQuadBL) mapQuadBL.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
-                if (mapQuadBR) mapQuadBR.fitBounds(bounds, { padding: [20, 20], maxZoom: 16 });
-            }
-        }
-    }, 100);
+                if (geojsonLayerLeft && geojsonLayerLeft.getBounds().isValid()) {
+                    mapLeft.fitBounds(geojsonLayerLeft.getBounds(), { padding: [20, 20], maxZoom: 16 });
+                    if (mode === 'sidebyside' && mapRight) {
+                        mapRight.fitBounds(geojsonLayerLeft.getBounds(), { padding: [20, 20], maxZoom: 16 });
+                    }
+                }
+            }, 50);
 
             const hasValidData = currentGeoJSON.features.some(f => {
-        const depthData = getFeatureDepthData(f, depth, selectedSafras);
-        // PROTEÇÃO CONTRA CRASH NA LEGENDA
-        const val = depthData ? depthData[param] : null;
-        return val !== null && val !== undefined && val !== '';
-    });
+                const val = getFeatureDepthData(f, depth, selectedSafras)[param];
+                return val !== null && val !== undefined && val !== '';
+            });
 
             legendTitle.innerText = `${param}`;
 
@@ -7889,7 +7801,7 @@ async function generateBatchPDFs() {
             else if (isVisible('evolucao')) {
                 if (typeof renderEvoCharts === 'function') renderEvoCharts();
             }
-        };    
+        };
     </script>
 </body>
 </html>
