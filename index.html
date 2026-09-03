@@ -191,10 +191,10 @@
             </aside>
 
             <!-- Conteúdo Principal WebGIS -->
-            <main class="flex-1 bg-slate-100 overflow-hidden p-6 flex flex-col">
+            <main class="flex-1 bg-slate-100 overflow-hidden flex flex-col relative">
                 
                 <!-- MÓDULO 1: FERTILIDADE DO SOLO -->
-                <div id="content-maps" class="h-full flex gap-6">
+                <div id="content-maps" class="h-full w-full flex relative">
                     <div class="w-80 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto z-50">
                         <div class="space-y-5">
                             <h3 class="text-sm font-extrabold text-slate-900 uppercase border-b pb-2"><i class="fa-solid fa-sliders mr-2"></i>Controle do WebGIS</h3>
@@ -478,7 +478,7 @@
                 </div>
             </main>
                 <!-- MÓDULO 2: TAXA VARIÁVEL & PRESCRIÇÃO -->
-                <div id="content-vrate" class="hidden h-full flex gap-6">
+                <div id="content-vrate" class="hidden h-full w-full flex relative">
                     <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
                         <div class="space-y-4">
                             <h3 class="text-sm font-extrabold text-amber-700 uppercase border-b pb-2"><i class="fa-solid fa-tractor mr-2"></i>Prescrição de Taxa Variável</h3>
@@ -599,7 +599,7 @@
                 </div>
 
                 <!-- MÓDULO 3: SEMENTES & PLANTIO TAXA VARIÁVEL -->
-                <div id="content-seeds" class="hidden h-full flex gap-6">
+                <div id="content-seeds" class="hidden h-full w-full flex relative">
                     <div class="w-96 bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between overflow-y-auto space-y-5">
                         <div class="space-y-4">
                             <h3 class="text-sm font-extrabold text-emerald-700 uppercase border-b pb-2"><i class="fa-solid fa-wheat-awn mr-2"></i>Prescrição de Sementes & Plantio</h3>
@@ -736,8 +736,11 @@
                 </div>
                 
                 <!-- MÓDULO 4: ACOMPANHAMENTO DE AMOSTRAGEM DE SOLO -->
-                <div id="content-sampling" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2">
-                    
+                <div id="content-sampling" class="hidden h-full w-full flex flex-col p-6 overflow-y-auto custom-scrollbar bg-slate-100">
+                    <div class="w-full max-w-full space-y-6">
+                        ...
+                  </div>
+                </div>                    
                     <!-- Cabeçalho Módulo com Abas -->
                     <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
                         <div>
@@ -943,9 +946,11 @@
                 <!-- GESTÃO DE ACESSOS -->
 
                 <!-- MÓDULO: EVOLUÇÃO DE SOLO -->
-                <div id="content-evolucao" class="hidden h-full flex flex-col space-y-4 overflow-y-auto pr-2 pb-10">
-                    <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4">
-                        <div>
+                <div id="content-evolucao" class="hidden h-full w-full flex flex-col p-6 overflow-y-auto custom-scrollbar bg-slate-100">
+                  <div class="w-full max-w-full space-y-6">
+                        ...
+                  </div>
+                </div>
                             <h2 class="text-xl font-black text-slate-900 flex items-center gap-2">
                                 <i class="fa-solid fa-chart-line text-pink-600"></i>
                                 <span>Evolução de Solo (Comparativo Histórico)</span>
