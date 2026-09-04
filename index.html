@@ -3168,46 +3168,234 @@ async function generateBatchPDFs() {
         if (batchBtnText) batchBtnText.innerText = "Exportar Lote de PDFs (.ZIP)";
     }
 }
-        function initLeafletMap() {
-    if (!mapLeft) {
-        // 1. Inicializa os mapas do Swipe (2 telas) mantendo sua coordenada
-        mapLeft = L.map('map-left', { zoomControl: false }).setView([-12.592, -58.012], 13);
-        mapRight = L.map('map-right', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        // =========================================================================
+// CORREÇÃO DEFINITIVA: MAPAS SINCRONIZADOS SEM TRAVAMENTOS (LOOP INFINITO)
+// E RENDERIZAÇÃO DOS POLÍGONOS.
+// =========================================================================
 
-        // 2. Inicializa os mapas da Visão Quádrupla (4 telas)
-        mapQuadTL = L.map('map-quad-tl', { zoomControl: false }).setView([-12.592, -58.012], 13);
-        mapQuadTR = L.map('map-quad-tr', { zoomControl: false }).setView([-12.592, -58.012], 13);
-        mapQuadBL = L.map('map-quad-bl', { zoomControl: false }).setView([-12.592, -58.012], 13);
-        mapQuadBR = L.map('map-quad-br', { zoomControl: false }).setView([-12.592, -58.012], 13);
+window.initLeafletMap = function() {
+    if (!window.mapLeft) {
+        // 1. Inicializa os mapas mantendo sua coordenada
+        window.mapLeft = L.map('map-left', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        window.mapRight = L.map('map-right', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        window.mapQuadTL = L.map('map-quad-tl', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        window.mapQuadTR = L.map('map-quad-tr', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        window.mapQuadBL = L.map('map-quad-bl', { zoomControl: false }).setView([-12.592, -58.012], 13);
+        window.mapQuadBR = L.map('map-quad-br', { zoomControl: false }).setView([-12.592, -58.012], 13);
 
-        // Adiciona controle de zoom apenas no mapa principal para economizar espaço
-        L.control.zoom({ position: 'topright' }).addTo(mapLeft);
+        L.control.zoom({ position: 'topright' }).addTo(window.mapLeft);
 
-        // 3. Aplica a imagem de satélite em todos eles
         if (typeof changeBasemap === 'function') changeBasemap();
         
-        // 4. MÁGICA DA SINCRONIZAÇÃO: Arrastar um mapa move os outros juntos!
-        const syncMaps = [mapLeft, mapRight, mapQuadTL, mapQuadTR, mapQuadBL, mapQuadBR];
+        // 2. SINCRONIZAÇÃO SEGURA: Só move se a distância for perceptível (Impede o congelamento)
+        const syncMaps = [window.mapLeft, window.mapRight, window.mapQuadTL, window.mapQuadTR, window.mapQuadBL, window.mapQuadBR];
+        
         syncMaps.forEach(sourceMap => {
+            if (!sourceMap) return;
             sourceMap.on('move', function() {
-                if (isSyncing) return;
-                isSyncing = true;
                 const center = sourceMap.getCenter();
                 const zoom = sourceMap.getZoom();
                 
                 syncMaps.forEach(targetMap => {
-                    if (targetMap !== sourceMap) {
-                        targetMap.setView(center, zoom, { animate: false });
+                    if (targetMap && targetMap !== sourceMap) {
+                        const targetCenter = targetMap.getCenter();
+                        const targetZoom = targetMap.getZoom();
+                        
+                        // Se o mapa alvo já estiver muito perto do destino, ignora. Isso quebra o loop infinito!
+                        if (zoom !== targetZoom || center.distanceTo(targetCenter) > 5) {
+                            targetMap.setView(center, zoom, { animate: false });
+                        }
                     }
                 });
-                isSyncing = false;
             });
         });
 
-        // Mantém a chamada original do seu código
-        populateFarmSelector();
+        if (typeof populateFarmSelector === 'function') populateFarmSelector();
     }
-}
+};
+
+window.updateGISMap = function() {
+    try {
+        if (typeof window.mapLeft === 'undefined' || !window.mapLeft) return;
+
+        const selectedFarmKey = document.getElementById('sel-farm') ? document.getElementById('sel-farm').value : null;
+        if (!selectedFarmKey || typeof farmsDatabase === 'undefined' || !farmsDatabase[selectedFarmKey]) return;
+
+        const farmObj = farmsDatabase[selectedFarmKey];
+        const currentGeoJSON = farmObj.geojson;
+
+        const legendTitle = document.getElementById('legend-title');
+        const legendItems = document.getElementById('legend-items');
+
+        if (!currentGeoJSON || !currentGeoJSON.features || !currentGeoJSON.features.length) {
+            if (legendTitle) legendTitle.innerText = `${farmObj.name || 'Fazenda'}`;
+            if (legendItems) legendItems.innerHTML = `<span class="text-amber-600 font-bold block text-xs">Nenhum projeto importado para esta fazenda.</span>`;
+            return;
+        }
+
+        const param = document.getElementById('sel-param') ? document.getElementById('sel-param').value : null;
+        const mode = document.getElementById('sel-mode') ? document.getElementById('sel-mode').value : 'single';
+        const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
+
+        const showBoundary = document.getElementById('chk-boundary') ? document.getElementById('chk-boundary').checked : true;
+        const showLabels = document.getElementById('chk-labels') ? document.getElementById('chk-labels').checked : true;
+        const showValues = document.getElementById('chk-values') ? document.getElementById('chk-values').checked : true;
+
+        const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
+        const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
+
+        // Limpa as camadas antigas com segurança
+        [
+            { map: window.mapLeft, layer: window.geojsonLayerLeft },
+            { map: window.mapRight, layer: window.geojsonLayerRight },
+            { map: window.mapQuadTL, layer: window.geojsonLayerQuadTL },
+            { map: window.mapQuadTR, layer: window.geojsonLayerQuadTR },
+            { map: window.mapQuadBL, layer: window.geojsonLayerQuadBL },
+            { map: window.mapQuadBR, layer: window.geojsonLayerQuadBR }
+        ].forEach(item => {
+            if (item.map && item.layer) item.map.removeLayer(item.layer);
+        });
+
+        window.geojsonLayerLeft = window.geojsonLayerRight = null;
+        window.geojsonLayerQuadTL = window.geojsonLayerQuadTR = null;
+        window.geojsonLayerQuadBL = window.geojsonLayerQuadBR = null;
+
+        let configs = [];
+        if (mode === 'single') {
+            const depth = document.getElementById('sel-depth') ? document.getElementById('sel-depth').value : 'd0_10';
+            configs.push({ id: 'left', depth: depth, safras: globalSafras, mapObj: window.mapLeft });
+        } 
+        else if (mode === 'sidebyside') {
+            const depthA = document.getElementById('sel-depth-a') ? document.getElementById('sel-depth-a').value : 'd0_10';
+            const depthB = document.getElementById('sel-depth-b') ? document.getElementById('sel-depth-b').value : 'd10_20';
+            configs.push({ id: 'left', depth: depthA, safras: globalSafras, mapObj: window.mapLeft });
+            configs.push({ id: 'right', depth: depthB, safras: globalSafras, mapObj: window.mapRight });
+        } 
+        else if (mode === 'sidebyside_safra') {
+            const dFix = document.getElementById('sel-depth-fixed') ? document.getElementById('sel-depth-fixed').value : 'd0_10';
+            const sA = document.getElementById('sel-safra-a') ? document.getElementById('sel-safra-a').value : null;
+            const sB = document.getElementById('sel-safra-b') ? document.getElementById('sel-safra-b').value : null;
+            configs.push({ id: 'left', depth: dFix, safras: sA ? [sA] : globalSafras, mapObj: window.mapLeft });
+            configs.push({ id: 'right', depth: dFix, safras: sB ? [sB] : globalSafras, mapObj: window.mapRight });
+        } 
+        else if (mode === 'quad_split') {
+            const sA = document.getElementById('sel-quad-safra-a') ? document.getElementById('sel-quad-safra-a').value : null;
+            const sB = document.getElementById('sel-quad-safra-b') ? document.getElementById('sel-quad-safra-b').value : null;
+            const dA = document.getElementById('sel-quad-depth-a') ? document.getElementById('sel-quad-depth-a').value : 'd0_10';
+            const dB = document.getElementById('sel-quad-depth-b') ? document.getElementById('sel-quad-depth-b').value : 'd10_20';
+            configs.push({ id: 'qTL', depth: dA, safras: sA ? [sA] : globalSafras, mapObj: window.mapQuadTL });
+            configs.push({ id: 'qTR', depth: dA, safras: sB ? [sB] : globalSafras, mapObj: window.mapQuadTR });
+            configs.push({ id: 'qBL', depth: dB, safras: sA ? [sA] : globalSafras, mapObj: window.mapQuadBL });
+            configs.push({ id: 'qBR', depth: dB, safras: sB ? [sB] : globalSafras, mapObj: window.mapQuadBR });
+        }
+
+        let hasValidDataForLegend = false;
+        let boundsToFit = null;
+
+        configs.forEach(cfg => {
+            if (!cfg.mapObj) return;
+
+            const layer = L.geoJSON(currentGeoJSON, {
+                smoothFactor: 2.5,
+                filter: function(feature) {
+                    if (selectedTalhoes && selectedTalhoes.length > 0) {
+                        const isAll = selectedTalhoes.some(t => String(t).toLowerCase().includes('todos'));
+                        if (!isAll && !selectedTalhoes.includes(String(feature.properties.Talhao))) {
+                            return false; 
+                        }
+                    }
+                    return true;
+                },
+                style: function(feature) {
+                    let val = null;
+                    if (typeof getFeatureDepthData === 'function') {
+                        const depthData = getFeatureDepthData(feature, cfg.depth, cfg.safras);
+                        val = depthData ? depthData[param] : null;
+                    }
+                    
+                    let fillColor = '#cbd5e1'; 
+                    let fillOpacity = 0.4;
+
+                    if (val !== null && val !== undefined && val !== '') {
+                        hasValidDataForLegend = true;
+                        const matched = typeof getMatchedRule === 'function' ? getMatchedRule(val, rules) : null;
+                        if (matched) {
+                            fillColor = matched.color;
+                            fillOpacity = 0.8;
+                        } else {
+                            fillColor = '#94a3b8';
+                            fillOpacity = 0.5;
+                        }
+                    }
+
+                    return {
+                        fillColor: fillColor,
+                        weight: showBoundary ? 1.5 : 0,
+                        opacity: 1,
+                        color: showBoundary ? '#1e293b' : 'transparent',
+                        fillOpacity: fillOpacity
+                    };
+                },
+                onEachFeature: function(feature, layer) {
+                    let val = null;
+                    if (typeof getFeatureDepthData === 'function') {
+                        const depthData = getFeatureDepthData(feature, cfg.depth, cfg.safras);
+                        const rawVal = depthData ? depthData[param] : null;
+                        val = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
+                    }
+
+                    const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
+                    if (typeof layer.bindPopup === 'function') layer.bindPopup(`<b>${subName}</b><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
+
+                    if (!showLabels && !showValues) return;
+
+                    let labelText = '';
+                    if (showLabels && showValues) labelText = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
+                    else if (showLabels) labelText = subName;
+                    else if (showValues) labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
+
+                    if (labelText && typeof layer.bindTooltip === 'function') {
+                        layer.bindTooltip(labelText, { permanent: true, direction: 'center', className: 'bg-white/80 text-slate-800 font-bold text-[9px] px-1 py-0.5 rounded border border-slate-300 shadow-sm' });
+                    }
+                }
+            });
+
+            layer.addTo(cfg.mapObj);
+
+            if (cfg.id === 'left' && layer.getLayers().length > 0) {
+                boundsToFit = layer.getBounds();
+            }
+
+            if (cfg.id === 'left') window.geojsonLayerLeft = layer;
+            if (cfg.id === 'right') window.geojsonLayerRight = layer;
+            if (cfg.id === 'qTL') window.geojsonLayerQuadTL = layer;
+            if (cfg.id === 'qTR') window.geojsonLayerQuadTR = layer;
+            if (cfg.id === 'qBL') window.geojsonLayerQuadBL = layer;
+            if (cfg.id === 'qBR') window.geojsonLayerQuadBR = layer;
+        });
+
+        // Traz a câmera para a fazenda de forma garantida
+        if (boundsToFit && boundsToFit.isValid() && window.mapLeft) {
+            window.mapLeft.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+        }
+
+        if (legendTitle) legendTitle.innerText = `${param}`;
+
+        if (legendItems) {
+            if (!hasValidDataForLegend) {
+                legendItems.innerHTML = `
+                    <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
+                        <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
+                        <span>Selecione uma safra que contenha resultados cadastrados para visualizar.</span>
+                    </div>`;
+            } else if (rules && rules.length > 0) {
+                legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded border border-slate-300 shadow-sm" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
+            }
+        }
+    } catch (error) {
+        console.error("Erro interno ao atualizar mapa:", error);
+    }
+};
 
         function changeBasemap() {
     if (!mapLeft || !mapRight) return;
