@@ -2303,6 +2303,38 @@
                 if(typeof recChangeFarm === 'function') recChangeFarm();
             }
         }
+      // FUNÇÃO NOVA: Preenche os selects de comparação com as safras
+function popularDropdownsDeSafra(listaDeSafras) {
+    const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
+    
+    camposSafra.forEach(id => {
+        const campo = document.getElementById(id);
+        if (!campo) return;
+        
+        // Limpa as opções antigas
+        campo.innerHTML = ''; 
+        
+        // Preenche com as safras disponíveis
+        listaDeSafras.forEach(safra => {
+            const option = document.createElement('option');
+            option.value = safra;
+            option.textContent = `Safra ${String(safra).replace('_', '/')}`;
+            campo.appendChild(option);
+        });
+    });
+
+    // Pré-seleciona valores para as telas não iniciarem vazias
+    if (listaDeSafras.length > 0) {
+        const safraMaisRecente = listaDeSafras[0];
+        const safraAnterior = listaDeSafras.length > 1 ? listaDeSafras[1] : safraMaisRecente;
+
+        if (document.getElementById('sel-safra-a')) document.getElementById('sel-safra-a').value = safraAnterior;
+        if (document.getElementById('sel-safra-b')) document.getElementById('sel-safra-b').value = safraMaisRecente;
+        
+        if (document.getElementById('sel-quad-safra-a')) document.getElementById('sel-quad-safra-a').value = safraAnterior;
+        if (document.getElementById('sel-quad-safra-b')) document.getElementById('sel-quad-safra-b').value = safraMaisRecente;
+    }
+}
 
         function switchTab(tab) {
             if (tab === 'vrate' && !canAccessVRate) {
@@ -2500,7 +2532,7 @@
                     <span>Safra ${s}</span>
                 </label>
             `).join('');
-
+            popularDropdownsDeSafra(sortedSafras);
             renderSavedPrescriptionsList();
             renderExtraExcelList();
         }
