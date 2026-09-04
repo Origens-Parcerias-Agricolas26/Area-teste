@@ -1503,7 +1503,7 @@
         let geojsonLayerLeft = null, geojsonLayerRight = null;
         let geojsonLayerQuadTL = null, geojsonLayerQuadTR = null, geojsonLayerQuadBL = null, geojsonLayerQuadBR = null;
 
-        isSyncing = false; // Variável para evitar loop na sincronização dos mapas
+        let isSyncing = false;
         
         let currentUser = null, currentUserRole = "client", currentUserAllowedFarms = [];
         let canAccessSampling = false, canAccessVRate = false, canAccessSeeds = false;
@@ -1514,8 +1514,7 @@
         let canAccessVisit = false, canEditVisit = false;
         let savedPrescriptionsDatabase = [];
         let extraExcelDatabase = [];
-        let splitPosition = 0.5, isSyncing = false;
-
+        let splitPosition = 0.5;
         let vrateProcessedData = [];
         let vrateDoseMap = {};
         let vrateUniqueDoses = [];
