@@ -2431,20 +2431,31 @@
         }
         
         else if (mode === 'quad_split') {
-        if (document.getElementById('box-quad-split')) document.getElementById('box-quad-split').classList.remove('hidden');
-        if (quadMapWrapper) {
-            quadMapWrapper.classList.remove('hidden');
-            quadMapWrapper.classList.add('grid');
-            
-            // CORREÇÃO DA TELA CINZA: Força o Leaflet a recalcular o tamanho das 4 divs
-            setTimeout(() => {
-                if(mapQuadTL) mapQuadTL.invalidateSize();
-                if(mapQuadTR) mapQuadTR.invalidateSize();
-                if(mapQuadBL) mapQuadBL.invalidateSize();
-                if(mapQuadBR) mapQuadBR.invalidateSize();
-            }, 200);
+            if (document.getElementById('box-quad-split')) document.getElementById('box-quad-split').classList.remove('hidden');
+            if (quadMapWrapper) {
+                quadMapWrapper.classList.remove('hidden');
+                quadMapWrapper.classList.add('grid');
+                
+                // CORREÇÃO DA TELA CINZA: Força o Leaflet a recalcular o tamanho das 4 divs
+                setTimeout(() => {
+                    if(mapQuadTL) mapQuadTL.invalidateSize();
+                    if(mapQuadTR) mapQuadTR.invalidateSize();
+                    if(mapQuadBL) mapQuadBL.invalidateSize();
+                    if(mapQuadBR) mapQuadBR.invalidateSize();
+                }, 200);
+            }
         }
-    }
+        
+        // Desenha os mapas coloridos
+        if (typeof updateGISMap === 'function') {
+            updateGISMap();
+        }
+
+    }, 200); // <--- FECHA O SETTIMEOUT
+} // <--- FECHA A FUNÇÃO toggleViewMode()
+
+
+function initSplitSlider() {
 
         function initSplitSlider() {
             const divider = document.getElementById('split-divider');
