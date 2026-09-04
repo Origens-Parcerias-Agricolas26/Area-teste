@@ -3439,25 +3439,30 @@ async function generateBatchPDFs() {
             return rules.find(r => r.label.toLowerCase().includes(str) || str.includes(r.label.toLowerCase())) || null;
         }
 
-        function updateGISMap() {
+        window.updateGISMap = function() {
     try {
-        const mapLeftEl = document.getElementById('map-left');
-        if (!mapLeftEl) return; 
+        // 1. Verificações iniciais idênticas ao seu código original
+        if (typeof mapLeft === 'undefined' || !mapLeft) return;
 
-        const farmSelect = document.getElementById('sel-farm');
-        const farmKey = farmSelect ? farmSelect.value : null;
-        const legendItems = document.getElementById('legend-items');
+        const selectedFarmKey = document.getElementById('sel-farm') ? document.getElementById('sel-farm').value : null;
+        if (!selectedFarmKey || typeof farmsDatabase === 'undefined') return;
+
+        const farmObj = farmsDatabase[selectedFarmKey];
+        const currentGeoJSON = farmObj ? farmObj.geojson : { "type": "FeatureCollection", "features": [] };
+
         const legendTitle = document.getElementById('legend-title');
+        const legendItems = document.getElementById('legend-items');
 
-        // Removido o window. e voltando para a variável original farmsDatabase
-        if (!farmKey || typeof farmsDatabase === 'undefined' || !farmsDatabase[farmKey] || !farmsDatabase[farmKey].geojson) {
-            if(legendItems) legendItems.innerHTML = `<span class="text-amber-600 font-bold block text-xs">Nenhum projeto importado para esta fazenda.</span>`;
+        // Se o geojson estiver vazio, exibe o aviso na legenda (igual ao original)
+        if (!currentGeoJSON.features || !currentGeoJSON.features.length) {
+            if (legendTitle) legendTitle.innerText = `${farmObj ? farmObj.name : 'Fazenda'}`;
+            if (legendItems) legendItems.innerHTML = `<span class="text-amber-600 font-bold block text-xs">Nenhum projeto importado para esta fazenda.</span>`;
             return;
         }
 
+        // 2. Coleta os parâmetros selecionados
         const param = document.getElementById('sel-param') ? document.getElementById('sel-param').value : null;
         const mode = document.getElementById('sel-mode') ? document.getElementById('sel-mode').value : 'single';
-        const currentGeoJSON = farmsDatabase[farmKey].geojson;
         const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
 
         const showBoundary = document.getElementById('chk-boundary') ? document.getElementById('chk-boundary').checked : true;
@@ -3467,17 +3472,16 @@ async function generateBatchPDFs() {
         const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
         const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
 
-        // 1. Limpa camadas antigas de forma segura
-        if (typeof geojsonLayerLeft !== 'undefined' && geojsonLayerLeft && typeof mapLeft !== 'undefined' && mapLeft) { mapLeft.removeLayer(geojsonLayerLeft); geojsonLayerLeft = null; }
-        if (typeof geojsonLayerRight !== 'undefined' && geojsonLayerRight && typeof mapRight !== 'undefined' && mapRight) { mapRight.removeLayer(geojsonLayerRight); geojsonLayerRight = null; }
-        if (typeof geojsonLayerQuadTL !== 'undefined' && geojsonLayerQuadTL && typeof mapQuadTL !== 'undefined' && mapQuadTL) { mapQuadTL.removeLayer(geojsonLayerQuadTL); geojsonLayerQuadTL = null; }
-        if (typeof geojsonLayerQuadTR !== 'undefined' && geojsonLayerQuadTR && typeof mapQuadTR !== 'undefined' && mapQuadTR) { mapQuadTR.removeLayer(geojsonLayerQuadTR); geojsonLayerQuadTR = null; }
-        if (typeof geojsonLayerQuadBL !== 'undefined' && geojsonLayerQuadBL && typeof mapQuadBL !== 'undefined' && mapQuadBL) { mapQuadBL.removeLayer(geojsonLayerQuadBL); geojsonLayerQuadBL = null; }
-        if (typeof geojsonLayerQuadBR !== 'undefined' && geojsonLayerQuadBR && typeof mapQuadBR !== 'undefined' && mapQuadBR) { mapQuadBR.removeLayer(geojsonLayerQuadBR); geojsonLayerQuadBR = null; }
+        // 3. Limpa todas as camadas antigas de forma segura
+        if (window.geojsonLayerLeft && typeof mapLeft !== 'undefined') { mapLeft.removeLayer(window.geojsonLayerLeft); }
+        if (window.geojsonLayerRight && typeof mapRight !== 'undefined') { mapRight.removeLayer(window.geojsonLayerRight); }
+        if (window.geojsonLayerQuadTL && typeof mapQuadTL !== 'undefined') { mapQuadTL.removeLayer(window.geojsonLayerQuadTL); }
+        if (window.geojsonLayerQuadTR && typeof mapQuadTR !== 'undefined') { mapQuadTR.removeLayer(window.geojsonLayerQuadTR); }
+        if (window.geojsonLayerQuadBL && typeof mapQuadBL !== 'undefined') { mapQuadBL.removeLayer(window.geojsonLayerQuadBL); }
+        if (window.geojsonLayerQuadBR && typeof mapQuadBR !== 'undefined') { mapQuadBR.removeLayer(window.geojsonLayerQuadBR); }
 
-        // 2. Configurações de cada tela
+        // 4. Monta a configuração de quais telas devem ser desenhadas
         let configs = [];
-
         if (mode === 'single') {
             const depth = document.getElementById('sel-depth') ? document.getElementById('sel-depth').value : 'd0_10';
             if (typeof mapLeft !== 'undefined') configs.push({ id: 'left', depth: depth, safras: globalSafras, mapObj: mapLeft });
@@ -3500,7 +3504,6 @@ async function generateBatchPDFs() {
             const sB = document.getElementById('sel-quad-safra-b') ? document.getElementById('sel-quad-safra-b').value : null;
             const dA = document.getElementById('sel-quad-depth-a') ? document.getElementById('sel-quad-depth-a').value : 'd0_10';
             const dB = document.getElementById('sel-quad-depth-b') ? document.getElementById('sel-quad-depth-b').value : 'd10_20';
-
             if (typeof mapQuadTL !== 'undefined') configs.push({ id: 'qTL', depth: dA, safras: sA ? [sA] : globalSafras, mapObj: mapQuadTL });
             if (typeof mapQuadTR !== 'undefined') configs.push({ id: 'qTR', depth: dA, safras: sB ? [sB] : globalSafras, mapObj: mapQuadTR });
             if (typeof mapQuadBL !== 'undefined') configs.push({ id: 'qBL', depth: dB, safras: sA ? [sA] : globalSafras, mapObj: mapQuadBL });
@@ -3509,30 +3512,30 @@ async function generateBatchPDFs() {
 
         let hasValidDataForLegend = false;
 
-        // 3. Desenha os mapas com as cores corretas
+        // 5. Desenha os polígonos em cada tela
         configs.forEach(cfg => {
             if (!cfg.mapObj) return;
 
             const layer = L.geoJSON(currentGeoJSON, {
+                smoothFactor: 2.5,
                 filter: function(feature) {
-                    try {
-                        if (!selectedTalhoes || selectedTalhoes.length === 0) return true;
-                        // Ignora "Selecionar Todos" sem quebrar
-                        const hasAll = selectedTalhoes.some(t => String(t).toLowerCase().includes('todos') || String(t).toLowerCase() === 'all');
-                        if (hasAll) return true;
-                        
-                        const featureTalhao = String(feature.properties.Talhao || feature.properties.name || feature.properties.Name || feature.properties.Nome || feature.properties.Subdivisao || '').trim();
-                        return selectedTalhoes.includes(featureTalhao);
-                    } catch(err) { return true; }
+                    // Restauração exata do seu filtro original de talhões
+                    if (selectedTalhoes && selectedTalhoes.length > 0) {
+                        const isAll = selectedTalhoes.some(t => String(t).toLowerCase().includes('todos'));
+                        if (!isAll && !selectedTalhoes.includes(String(feature.properties.Talhao))) {
+                            return false; 
+                        }
+                    }
+                    return true;
                 },
                 style: function(feature) {
                     let val = null;
-                    try {
-                        const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                    if (typeof getFeatureDepthData === 'function') {
+                        const depthData = getFeatureDepthData(feature, cfg.depth, cfg.safras);
                         val = depthData ? depthData[param] : null;
-                    } catch(e) {}
+                    }
                     
-                    let fillColor = '#cbd5e1'; // Cinza base
+                    let fillColor = '#cbd5e1'; // Cinza base transparente
                     let fillOpacity = 0.4;
 
                     if (val !== null && val !== undefined && val !== '') {
@@ -3557,11 +3560,11 @@ async function generateBatchPDFs() {
                 },
                 onEachFeature: function(feature, layer) {
                     let val = null;
-                    try {
-                        const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(feature, cfg.depth, cfg.safras) : {};
+                    if (typeof getFeatureDepthData === 'function') {
+                        const depthData = getFeatureDepthData(feature, cfg.depth, cfg.safras);
                         const rawVal = depthData ? depthData[param] : null;
                         val = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
-                    } catch(e) {}
+                    }
 
                     const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
                     
@@ -3592,15 +3595,16 @@ async function generateBatchPDFs() {
 
             layer.addTo(cfg.mapObj);
 
-            if (cfg.id === 'left') geojsonLayerLeft = layer;
-            if (cfg.id === 'right') geojsonLayerRight = layer;
-            if (cfg.id === 'qTL') geojsonLayerQuadTL = layer;
-            if (cfg.id === 'qTR') geojsonLayerQuadTR = layer;
-            if (cfg.id === 'qBL') geojsonLayerQuadBL = layer;
-            if (cfg.id === 'qBR') geojsonLayerQuadBR = layer;
+            // Vincula as camadas nas variáveis globais em background (seguro)
+            if (cfg.id === 'left') window.geojsonLayerLeft = layer;
+            if (cfg.id === 'right') window.geojsonLayerRight = layer;
+            if (cfg.id === 'qTL') window.geojsonLayerQuadTL = layer;
+            if (cfg.id === 'qTR') window.geojsonLayerQuadTR = layer;
+            if (cfg.id === 'qBL') window.geojsonLayerQuadBL = layer;
+            if (cfg.id === 'qBR') window.geojsonLayerQuadBR = layer;
         });
 
-        // 4. Atualiza a legenda dinamicamente
+        // 6. Atualiza a legenda dinamicamente
         if (legendTitle) legendTitle.innerText = `${param}`;
 
         if (legendItems) {
@@ -3608,7 +3612,7 @@ async function generateBatchPDFs() {
                 legendItems.innerHTML = `
                     <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
                         <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
-                        <span>Nenhum polígono nesta safra possui valores. Tente trocar de Safra ou Parâmetro.</span>
+                        <span>Não há polígonos com valores válidos nesta safra/camada.</span>
                     </div>
                 `;
             } else if (rules && rules.length > 0) {
@@ -3616,10 +3620,9 @@ async function generateBatchPDFs() {
             }
         }
     } catch (error) {
-        console.error("Erro ao desenhar o mapa:", error);
+        console.error("Erro interno ao atualizar mapa:", error);
     }
-}
-
+};
         // =========================================================================
         // MÓDULO DE TAXA VARIÁVEL DE FERTILIZANTES
         // =========================================================================
