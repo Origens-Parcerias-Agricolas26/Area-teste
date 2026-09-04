@@ -3437,7 +3437,52 @@ async function generateBatchPDFs() {
             const str = String(rawVal).trim().toLowerCase();
             return rules.find(r => r.label.toLowerCase().includes(str) || str.includes(r.label.toLowerCase())) || null;
         }
+        // ==========================================
+// CONFIGURAÇÃO DOS SELECTS DE SAFRA
+// ==========================================
+const safrasDisponiveis = [
+    { value: '2023_2024', label: 'Safra 2023/2024' },
+    { value: '2022_2023', label: 'Safra 2022/2023' },
+    { value: '2021_2022', label: 'Safra 2021/2022' }
+];
 
+function populateSafraSelectors(safras = safrasDisponiveis) {
+    const selectIds = [
+        'sel-safra-a',
+        'sel-safra-b',
+        'sel-quad-safra-a',
+        'sel-quad-safra-b'
+    ];
+
+    selectIds.forEach(id => {
+        const select = document.getElementById(id);
+        if (!select) return;
+
+        // Limpa opções anteriores
+        select.innerHTML = '';
+
+        // Preenche com as safras
+        safras.forEach(s => {
+            const opt = document.createElement('option');
+            opt.value = s.value;
+            opt.textContent = s.label;
+            select.appendChild(opt);
+        });
+    });
+
+    // Pré-seleciona valores padrão coerentes
+    if (safras.length > 1) {
+        const selA = document.getElementById('sel-safra-a');
+        const selB = document.getElementById('sel-safra-b');
+        const selQuadA = document.getElementById('sel-quad-safra-a');
+        const selQuadB = document.getElementById('sel-quad-safra-b');
+
+        if (selA) selA.value = safras[1].value;
+        if (selB) selB.value = safras[0].value;
+        if (selQuadA) selQuadA.value = safras[1].value;
+        if (selQuadB) selQuadB.value = safras[0].value;
+    }
+}
         function updateGISMap() {
             if (!mapLeft) return;
             const selectedFarmKey = document.getElementById('sel-farm').value;
