@@ -3594,23 +3594,41 @@ async function generateBatchPDFs() {
         geojsonLayerLeft = buildLayer(depth, globalSafras).addTo(mapLeft);
     }
 
-    // 4. Ajuste automático da câmera
+    /// 4. Ajuste automático da câmera
     setTimeout(() => {
         let boundsToFit = null;
-        if (typeof geojsonLayerLeft !== 'undefined' && geojsonLayerLeft && geojsonLayerLeft.getLayers().length > 0) {
-            boundsToFit = geojsonLayerLeft.getBounds();
-        } else if (typeof geojsonLayerQuadTL !== 'undefined' && geojsonLayerQuadTL && geojsonLayerQuadTL.getLayers().length > 0) {
-            boundsToFit = geojsonLayerQuadTL.getBounds();
+        
+        // Pega os limites do polígono do mapa que está visível no momento
+        if (mode === 'quad_split') {
+            if (typeof geojsonLayerQuadTL !== 'undefined' && geojsonLayerQuadTL && geojsonLayerQuadTL.getLayers().length > 0) {
+                boundsToFit = geojsonLayerQuadTL.getBounds();
+            }
+        } else {
+            if (typeof geojsonLayerLeft !== 'undefined' && geojsonLayerLeft && geojsonLayerLeft.getLayers().length > 0) {
+                boundsToFit = geojsonLayerLeft.getBounds();
+            }
         }
 
         if (boundsToFit && boundsToFit.isValid()) {
-            if (mapLeft) mapLeft.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
-            if (mapRight && (mode === 'sidebyside' || mode === 'sidebyside_safra')) {
-                mapRight.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+            // Desliga a sincronização temporária para que os mapas não fiquem "brigando" pelo zoom
+            window.isSyncing = true; 
+            
+            if (mode === 'quad_split') {
+                if (mapQuadTL) mapQuadTL.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+                if (mapQuadTR) mapQuadTR.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+                if (mapQuadBL) mapQuadBL.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+                if (mapQuadBR) mapQuadBR.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+            } else {
+                if (mapLeft) mapLeft.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+                if (mapRight && (mode === 'sidebyside' || mode === 'sidebyside_safra')) {
+                    mapRight.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+                }
             }
+            
+            // Religa a sincronização logo após terminar de dar o zoom
+            setTimeout(() => { window.isSyncing = false; }, 100);
         }
-    }, 50);
-
+    }, 150);
     // 5. Configuração da Legenda
     const depthSingle = document.getElementById('sel-depth').value;
     const hasValidData = currentGeoJSON.features.some(f => {
