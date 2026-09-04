@@ -3441,26 +3441,29 @@ async function generateBatchPDFs() {
 
         window.updateGISMap = function() {
     try {
-        // 1. Verificações iniciais idênticas ao seu código original
         if (typeof mapLeft === 'undefined' || !mapLeft) return;
 
         const selectedFarmKey = document.getElementById('sel-farm') ? document.getElementById('sel-farm').value : null;
         if (!selectedFarmKey || typeof farmsDatabase === 'undefined') return;
 
         const farmObj = farmsDatabase[selectedFarmKey];
-        const currentGeoJSON = farmObj ? farmObj.geojson : { "type": "FeatureCollection", "features": [] };
+        
+        // CORREÇÃO 1: Garante a leitura do GeoJSON mesmo se vier como texto do banco de dados
+        let currentGeoJSON = farmObj ? farmObj.geojson : null;
+        if (typeof currentGeoJSON === 'string') {
+            try { currentGeoJSON = JSON.parse(currentGeoJSON); } catch(e) { currentGeoJSON = null; }
+        }
+        if (!currentGeoJSON) currentGeoJSON = { "type": "FeatureCollection", "features": [] };
 
         const legendTitle = document.getElementById('legend-title');
         const legendItems = document.getElementById('legend-items');
 
-        // Se o geojson estiver vazio, exibe o aviso na legenda (igual ao original)
         if (!currentGeoJSON.features || !currentGeoJSON.features.length) {
             if (legendTitle) legendTitle.innerText = `${farmObj ? farmObj.name : 'Fazenda'}`;
             if (legendItems) legendItems.innerHTML = `<span class="text-amber-600 font-bold block text-xs">Nenhum projeto importado para esta fazenda.</span>`;
             return;
         }
 
-        // 2. Coleta os parâmetros selecionados
         const param = document.getElementById('sel-param') ? document.getElementById('sel-param').value : null;
         const mode = document.getElementById('sel-mode') ? document.getElementById('sel-mode').value : 'single';
         const rules = typeof getQGISRules === 'function' ? getQGISRules(param) : [];
@@ -3472,7 +3475,7 @@ async function generateBatchPDFs() {
         const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
         const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
 
-        // 3. Limpa todas as camadas antigas de forma segura
+        // Limpa todas as camadas antigas de forma segura
         if (window.geojsonLayerLeft && typeof mapLeft !== 'undefined') { mapLeft.removeLayer(window.geojsonLayerLeft); }
         if (window.geojsonLayerRight && typeof mapRight !== 'undefined') { mapRight.removeLayer(window.geojsonLayerRight); }
         if (window.geojsonLayerQuadTL && typeof mapQuadTL !== 'undefined') { mapQuadTL.removeLayer(window.geojsonLayerQuadTL); }
@@ -3480,7 +3483,6 @@ async function generateBatchPDFs() {
         if (window.geojsonLayerQuadBL && typeof mapQuadBL !== 'undefined') { mapQuadBL.removeLayer(window.geojsonLayerQuadBL); }
         if (window.geojsonLayerQuadBR && typeof mapQuadBR !== 'undefined') { mapQuadBR.removeLayer(window.geojsonLayerQuadBR); }
 
-        // 4. Monta a configuração de quais telas devem ser desenhadas
         let configs = [];
         if (mode === 'single') {
             const depth = document.getElementById('sel-depth') ? document.getElementById('sel-depth').value : 'd0_10';
@@ -3511,15 +3513,15 @@ async function generateBatchPDFs() {
         }
 
         let hasValidDataForLegend = false;
+        let boundsToFit = null; // Variável para guardar o tamanho do mapa
 
-        // 5. Desenha os polígonos em cada tela
+        // Desenha os polígonos em cada tela
         configs.forEach(cfg => {
             if (!cfg.mapObj) return;
 
             const layer = L.geoJSON(currentGeoJSON, {
                 smoothFactor: 2.5,
                 filter: function(feature) {
-                    // Restauração exata do seu filtro original de talhões
                     if (selectedTalhoes && selectedTalhoes.length > 0) {
                         const isAll = selectedTalhoes.some(t => String(t).toLowerCase().includes('todos'));
                         if (!isAll && !selectedTalhoes.includes(String(feature.properties.Talhao))) {
@@ -3535,7 +3537,7 @@ async function generateBatchPDFs() {
                         val = depthData ? depthData[param] : null;
                     }
                     
-                    let fillColor = '#cbd5e1'; // Cinza base transparente
+                    let fillColor = '#cbd5e1'; 
                     let fillOpacity = 0.4;
 
                     if (val !== null && val !== undefined && val !== '') {
@@ -3567,35 +3569,28 @@ async function generateBatchPDFs() {
                     }
 
                     const subName = feature.properties.Subs || feature.properties.Subdivisao || feature.properties.Talhao || '';
-                    
-                    if (typeof layer.bindPopup === 'function') {
-                        layer.bindPopup(`<b>${subName}</b> (Talhão ${feature.properties.Talhao || 'N/A'})<br><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
-                    }
+                    if (typeof layer.bindPopup === 'function') layer.bindPopup(`<b>${subName}</b><br>${param}: <b>${val !== null && val !== undefined ? val : 'N/A'}</b>`);
 
                     if (!showLabels && !showValues) return;
 
                     let labelText = '';
-                    if (showLabels && showValues) {
-                        labelText = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
-                    } else if (showLabels) {
-                        labelText = subName;
-                    } else if (showValues) {
-                        labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
-                    }
+                    if (showLabels && showValues) labelText = `${subName}: ${val !== null && val !== undefined ? val : 'N/A'}`;
+                    else if (showLabels) labelText = subName;
+                    else if (showValues) labelText = `${val !== null && val !== undefined ? val : 'N/A'}`;
 
                     if (labelText && typeof layer.bindTooltip === 'function') {
-                        layer.bindTooltip(labelText, {
-                            permanent: true,
-                            direction: 'center',
-                            className: 'bg-white/80 text-slate-800 font-bold text-[9px] px-1 py-0.5 rounded border border-slate-300 shadow-sm'
-                        });
+                        layer.bindTooltip(labelText, { permanent: true, direction: 'center', className: 'bg-white/80 text-slate-800 font-bold text-[9px] px-1 py-0.5 rounded border border-slate-300 shadow-sm' });
                     }
                 }
             });
 
             layer.addTo(cfg.mapObj);
 
-            // Vincula as camadas nas variáveis globais em background (seguro)
+            // CORREÇÃO 2: Captura os limites da fazenda para centralizar a câmera depois
+            if (cfg.id === 'left' && layer.getLayers().length > 0) {
+                boundsToFit = layer.getBounds();
+            }
+
             if (cfg.id === 'left') window.geojsonLayerLeft = layer;
             if (cfg.id === 'right') window.geojsonLayerRight = layer;
             if (cfg.id === 'qTL') window.geojsonLayerQuadTL = layer;
@@ -3604,7 +3599,12 @@ async function generateBatchPDFs() {
             if (cfg.id === 'qBR') window.geojsonLayerQuadBR = layer;
         });
 
-        // 6. Atualiza a legenda dinamicamente
+        // CORREÇÃO 3: Centraliza e viaja com a câmera até os polígonos
+        if (boundsToFit && boundsToFit.isValid() && mapLeft) {
+            mapLeft.fitBounds(boundsToFit, { padding: [20, 20], maxZoom: 16 });
+            // Os outros mapas vão seguir automaticamente por conta do evento "move" sincronizado!
+        }
+
         if (legendTitle) legendTitle.innerText = `${param}`;
 
         if (legendItems) {
@@ -3612,9 +3612,7 @@ async function generateBatchPDFs() {
                 legendItems.innerHTML = `
                     <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
                         <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
-                        <span>Não há polígonos com valores válidos nesta safra/camada.</span>
-                    </div>
-                `;
+                    </div>`;
             } else if (rules && rules.length > 0) {
                 legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded border border-slate-300 shadow-sm" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
             }
