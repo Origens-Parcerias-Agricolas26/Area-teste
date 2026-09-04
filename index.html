@@ -1503,7 +1503,7 @@
         let geojsonLayerLeft = null, geojsonLayerRight = null;
         let geojsonLayerQuadTL = null, geojsonLayerQuadTR = null, geojsonLayerQuadBL = null, geojsonLayerQuadBR = null;
 
-        let isSyncing = false; // Variável para evitar loop na sincronização dos mapas
+        isSyncing = false; // Variável para evitar loop na sincronização dos mapas
         
         let currentUser = null, currentUserRole = "client", currentUserAllowedFarms = [];
         let canAccessSampling = false, canAccessVRate = false, canAccessSeeds = false;
