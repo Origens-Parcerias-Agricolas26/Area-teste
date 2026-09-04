@@ -2430,19 +2430,21 @@
             }
         }
         
-        if (mode === 'quad_split' && typeof mapQuadTL !== 'undefined' && mapQuadTL) {
-            mapQuadTL.invalidateSize(true); mapQuadTL.setView(currentCenter, currentZoom, { animate: false });
-            mapQuadTR.invalidateSize(true); mapQuadTR.setView(currentCenter, currentZoom, { animate: false });
-            mapQuadBL.invalidateSize(true); mapQuadBL.setView(currentCenter, currentZoom, { animate: false });
-            mapQuadBR.invalidateSize(true); mapQuadBR.setView(currentCenter, currentZoom, { animate: false });
+        } else if (mode === 'quad_split') {
+        if (document.getElementById('box-quad-split')) document.getElementById('box-quad-split').classList.remove('hidden');
+        if (quadMapWrapper) {
+            quadMapWrapper.classList.remove('hidden');
+            quadMapWrapper.classList.add('grid');
+            
+            // CORREÇÃO DA TELA CINZA: Força o Leaflet a recalcular o tamanho das 4 divs
+            setTimeout(() => {
+                if(mapQuadTL) mapQuadTL.invalidateSize();
+                if(mapQuadTR) mapQuadTR.invalidateSize();
+                if(mapQuadBL) mapQuadBL.invalidateSize();
+                if(mapQuadBR) mapQuadBR.invalidateSize();
+            }, 200);
         }
-        
-        // Manda desenhar os polígonos coloridos
-        if (typeof updateGISMap === 'function') {
-            updateGISMap();
-        }
-    }, 200);
-}
+    }
 
         function initSplitSlider() {
             const divider = document.getElementById('split-divider');
@@ -2487,6 +2489,7 @@
         popularDropdownsDeSafra([]);
         return;
     }
+    const listaDeAnos = Object.keys(farmsDatabase[selectedFarmKey]);
     const currentGeoJSON = farmsDatabase[selectedFarmKey].geojson || { "type": "FeatureCollection", "features": [] };
     const safrasSet = new Set();
 
