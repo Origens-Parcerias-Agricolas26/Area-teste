@@ -2358,6 +2358,23 @@
             } else if (tab === 'users') {
             }
         }
+      function popularDropdownsDeSafra(listaDeSafras) {
+    const camposSafra = ['sel-safra-a', 'sel-safra-b', 'sel-quad-safra-a', 'sel-quad-safra-b'];
+    
+    camposSafra.forEach(id => {
+        const campo = document.getElementById(id);
+        if (!campo) return;
+        
+        campo.innerHTML = ''; 
+        
+        listaDeSafras.forEach(safra => {
+            const option = document.createElement('option');
+            option.value = safra;
+            option.textContent = safra;
+            campo.appendChild(option);
+        });
+    });
+}
 
         function toggleViewMode() {
     const mode = document.getElementById('sel-mode').value;
@@ -2393,7 +2410,7 @@
             if(rightPane) {
                 rightPane.classList.remove('hidden'); // Limpa sujeiras do CSS
                 rightPane.style.display = 'block'; // Liga a direita na marra
-                rightPane.style.width = '100%'; // Garante a proporção
+                rightPane.style.width = '100%'; // Garante a proporção da divisão
             }
         }
     }
@@ -2467,9 +2484,9 @@
         container.innerHTML = '<span class="text-slate-400 italic">Sem safras salvas</span>';
         renderSavedPrescriptionsList();
         renderExtraExcelList();
+        popularDropdownsDeSafra([]);
         return;
     }
-
     const currentGeoJSON = farmsDatabase[selectedFarmKey].geojson || { "type": "FeatureCollection", "features": [] };
     const safrasSet = new Set();
 
@@ -2509,7 +2526,7 @@
         renderExtraExcelList();
         return;
     }
-
+    popularDropdownsDeSafra(sortedSafras);
     // Renderiza as caixas de seleção de safra para comparação no Visualizador GIS
     container.innerHTML = sortedSafras.map((s, idx) => `
         <label class="flex items-center gap-2 cursor-pointer font-semibold text-slate-700">
