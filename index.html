@@ -25,6 +25,9 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Turf.js para cálculos geográficos (Área exata de Talhões) -->
+    <!-- GeoRaster: Leitura e Renderização de arquivos .tif (Mapas de Produtividade) -->
+    <script src="https://unpkg.com/georaster"></script>
+    <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>  
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <!-- JSZip, Shapefile Parser & XLSX Reader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -287,6 +290,30 @@
                                     <input type="file" id="file-excel-20-40" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
                                 </div>
                                 <button onclick="processUploadedFiles()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs shadow">Processar & Salvar na Nuvem</button>
+                              <div class="mt-4 pt-3 border-t border-amber-300 space-y-3">
+    <span class="text-[11px] font-extrabold text-amber-900 uppercase block mb-1">Importar Mapas de Produtividade (.tif)</span>
+    <div class="grid grid-cols-2 gap-2">
+        <div>
+            <label class="block text-[10px] font-bold text-slate-600 mb-1">Cultura</label>
+            <select id="upload-tif-cultura" class="w-full bg-white border border-amber-300 rounded p-1.5 font-bold text-xs text-slate-900">
+                <option value="soja">Soja</option>
+                <option value="milho">Milho</option>
+                <option value="algodao">Algodão</option>
+                <option value="sorgo">Sorgo</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-[10px] font-bold text-slate-600 mb-1">Ano Safra</label>
+            <input type="text" id="upload-tif-safra" placeholder="Ex: 2024" class="w-full bg-white border border-amber-300 rounded p-1.5 font-bold text-xs text-slate-900">
+        </div>
+    </div>
+    <div>
+        <label class="block text-[10px] font-bold text-slate-600 mb-1">Arquivos .tif por Talhão (Múltiplos)</label>
+        <span class="block text-[9px] text-slate-500 italic mb-1">Nomeie os arquivos com o número do talhão (ex: T01.tif, T02.tif)</span>
+        <input type="file" id="upload-tif-files" accept=".tif,.tiff" multiple class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
+    </div>
+    <button onclick="uploadProdutividadeTIFs()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-xs shadow">Salvar Mapas na Nuvem</button>
+</div>
                             </div>
 
                             <!-- SUBSTITUA DESDE AQUI -->
@@ -372,6 +399,12 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Parâmetro de Solo</label>
                                 <select id="sel-param" onchange="updateGISMap()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800">
+                                    <optgroup label="Mapas de Colheita">
+                                        <option value="Produtividade_Soja">Produtividade - Soja (sc/ha)</option>
+                                        <option value="Produtividade_Milho">Produtividade - Milho (sc/ha)</option>
+                                        <option value="Produtividade_Algodao">Produtividade - Algodão (@/ha)</option>
+                                        <option value="Produtividade_Sorgo">Produtividade - Sorgo (sc/ha)</option>
+                                    </optgroup>
                                     <optgroup label="Físicos & Acidez">
                                         <option value="Argila">Argila (g/kg)</option>
                                         <option value="MO">Matéria Orgânica (MO)</option>
@@ -1472,6 +1505,57 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
+
+      // Paleta master baseada nas imagens (do menor para o maior valor)
+const PROD_COLORS = [
+    '#4b4537', '#737059', '#b5b597', '#420000', '#a30000', '#ff0000', '#ff5a4d', 
+    '#ffbaba', '#ff9914', '#fbff00', '#ffff99', '#00ff00', '#009900', '#004200', 
+    '#c2f0ff', '#5cbaba', '#1475c2', '#1400c2', '#00005c', '#000000'
+];
+
+const PRODUTIVIDADE_RULES = {
+    'soja': { start: 20, step: 5, unit: 'sc/ha' },
+    'sorgo': { start: 20, step: 5, unit: 'sc/ha' },
+    'milho': { start: 20, step: 10, unit: 'sc/ha' },
+    'algodao': { start: 80, step: 20, unit: '@/ha' }
+};
+
+function getProdutividadeColor(value, cultura) {
+    if (value === 0 || value === -9999 || value === null) return null; // Pixels vazios (bordas transparentes)
+    
+    const rule = PRODUTIVIDADE_RULES[cultura];
+    if (!rule) return null;
+
+    let idx = Math.floor((value - rule.start) / rule.step) + 1;
+    if (value <= rule.start) idx = 0;
+    if (idx >= PROD_COLORS.length) idx = PROD_COLORS.length - 1;
+    
+    return PROD_COLORS[idx];
+}
+
+function renderProdutividadeLegend(cultura) {
+    const rule = PRODUTIVIDADE_RULES[cultura];
+    const legendItems = document.getElementById('legend-items');
+    document.getElementById('legend-title').innerText = `Produtividade ${cultura.toUpperCase()}`;
+    
+    let html = `<div class="mb-2"><button onclick="abrirEditorLegenda('${cultura}')" class="text-[10px] w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 py-1 rounded shadow-sm font-bold"><i class="fa-solid fa-gear mr-1"></i>Personalizar Legenda</button></div>`;
+    
+    // Escala menor ou igual
+    html += `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${PROD_COLORS[0]}"></div><span><= ${rule.start} ${rule.unit}</span></div>`;
+    
+    // Escalas intermediárias
+    for (let i = 1; i < PROD_COLORS.length - 1; i++) {
+        let val1 = rule.start + ((i - 1) * rule.step);
+        let val2 = val1 + rule.step;
+        html += `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${PROD_COLORS[i]}"></div><span>${val1} - ${val2} ${rule.unit}</span></div>`;
+    }
+    
+    // Escala maior
+    let maxVal = rule.start + ((PROD_COLORS.length - 2) * rule.step);
+    html += `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${PROD_COLORS[PROD_COLORS.length - 1]}"></div><span>> ${maxVal} ${rule.unit}</span></div>`;
+    
+    legendItems.innerHTML = html;
+}
 
         // ==========================================
         // COLE O TEXTO GIGANTE (BASE64) DA LOGO DENTRO DAS ASPAS ABAIXO:
@@ -3496,7 +3580,38 @@ async function generateBatchPDFs() {
             const str = String(rawVal).trim().toLowerCase();
             return rules.find(r => r.label.toLowerCase().includes(str) || str.includes(r.label.toLowerCase())) || null;
         }
+        // Função assíncrona para buscar e pintar TIFs individualmente por talhão
+async function renderTIFLayer(targetMap, safra, cultura) {
+    const farmKey = document.getElementById('sel-farm').value;
+    const farmProd = farmsDatabase[farmKey].produtividade;
+    if (!farmProd || !farmProd[safra] || !farmProd[safra][cultura]) return; 
+    
+    const urlsDosTalhoes = farmProd[safra][cultura]; 
+    const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
 
+    for (const [talhaoNum, url] of Object.entries(urlsDosTalhoes)) {
+        if (selectedTalhoes.length > 0 && !selectedTalhoes.includes(talhaoNum)) continue;
+
+        try {
+            const response = await fetch(url);
+            const arrayBuffer = await response.arrayBuffer();
+            const georaster = await parseGeoraster(arrayBuffer);
+            
+            const tifLayer = new GeoRasterLayer({
+                georaster: georaster,
+                opacity: 0.9,
+                pixelValuesToColorFn: values => getProdutividadeColor(values[0], cultura),
+                resolution: 256 
+            });
+            
+            tifLayer.addTo(targetMap);
+            if (!targetMap.tifLayers) targetMap.tifLayers = [];
+            targetMap.tifLayers.push(tifLayer);
+        } catch (e) {
+            console.error(`Erro ao renderizar TIF do Talhão ${talhaoNum}`, e);
+        }
+    }
+}
         function updateGISMap() {
     if (!mapLeft) return;
     populateTalhaoSelector();      
@@ -3511,7 +3626,13 @@ async function generateBatchPDFs() {
     if (typeof geojsonLayerQuadTR !== 'undefined' && geojsonLayerQuadTR) mapQuadTR.removeLayer(geojsonLayerQuadTR);
     if (typeof geojsonLayerQuadBL !== 'undefined' && geojsonLayerQuadBL) mapQuadBL.removeLayer(geojsonLayerQuadBL);
     if (typeof geojsonLayerQuadBR !== 'undefined' && geojsonLayerQuadBR) mapQuadBR.removeLayer(geojsonLayerQuadBR);
-
+    // Limpa também as camadas de produtividade (.tif)
+    [mapLeft, mapRight, mapQuadTL, mapQuadTR, mapQuadBL, mapQuadBR].forEach(m => {
+        if (m && m.tifLayers) {
+            m.tifLayers.forEach(l => m.removeLayer(l));
+            m.tifLayers = [];
+        }
+    });
     const legendTitle = document.getElementById('legend-title');
     const legendItems = document.getElementById('legend-items');
 
@@ -3587,37 +3708,53 @@ async function generateBatchPDFs() {
 
     // 3. ROTEAMENTO: Manda o mapa certo para a tela certa
     const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
+    const isProd = param.startsWith('Produtividade_');
+    const culturaProd = isProd ? param.split('_')[1].toLowerCase() : null;
 
     if (mode === 'sidebyside') {
         const depthA = document.getElementById('sel-depth-a').value;
         const depthB = document.getElementById('sel-depth-b').value;
-        geojsonLayerLeft = buildLayer(depthA, globalSafras).addTo(mapLeft);
-        geojsonLayerRight = buildLayer(depthB, globalSafras).addTo(mapRight);
-
+        if (isProd) {
+            renderTIFLayer(mapLeft, globalSafras[0], culturaProd);
+            renderTIFLayer(mapRight, globalSafras[0], culturaProd);
+        } else {
+            geojsonLayerLeft = buildLayer(depthA, globalSafras).addTo(mapLeft);
+            geojsonLayerRight = buildLayer(depthB, globalSafras).addTo(mapRight);
+        }
     } else if (mode === 'sidebyside_safra') {
-        // Comparar Safras (Mesma profundidade, safras diferentes)
         const depthFixed = document.getElementById('sel-depth-fixed').value;
         const safraA = document.getElementById('sel-safra-a').value;
         const safraB = document.getElementById('sel-safra-b').value;
-        geojsonLayerLeft = buildLayer(depthFixed, [safraA]).addTo(mapLeft);
-        geojsonLayerRight = buildLayer(depthFixed, [safraB]).addTo(mapRight);
-
+        if (isProd) {
+            renderTIFLayer(mapLeft, safraA, culturaProd);
+            renderTIFLayer(mapRight, safraB, culturaProd);
+        } else {
+            geojsonLayerLeft = buildLayer(depthFixed, [safraA]).addTo(mapLeft);
+            geojsonLayerRight = buildLayer(depthFixed, [safraB]).addTo(mapRight);
+        }
     } else if (mode === 'quad_split') {
-        // Visão Quádrupla (2 Safras x 2 Profundidades)
         const safraA = document.getElementById('sel-quad-safra-a').value;
         const safraB = document.getElementById('sel-quad-safra-b').value;
         const depthA = document.getElementById('sel-quad-depth-a').value;
         const depthB = document.getElementById('sel-quad-depth-b').value;
-
-        geojsonLayerQuadTL = buildLayer(depthA, [safraA]).addTo(mapQuadTL);
-        geojsonLayerQuadTR = buildLayer(depthA, [safraB]).addTo(mapQuadTR);
-        geojsonLayerQuadBL = buildLayer(depthB, [safraA]).addTo(mapQuadBL);
-        geojsonLayerQuadBR = buildLayer(depthB, [safraB]).addTo(mapQuadBR);
-
+        if (isProd) {
+            renderTIFLayer(mapQuadTL, safraA, culturaProd);
+            renderTIFLayer(mapQuadTR, safraB, culturaProd);
+            renderTIFLayer(mapQuadBL, safraA, culturaProd);
+            renderTIFLayer(mapQuadBR, safraB, culturaProd);
+        } else {
+            geojsonLayerQuadTL = buildLayer(depthA, [safraA]).addTo(mapQuadTL);
+            geojsonLayerQuadTR = buildLayer(depthA, [safraB]).addTo(mapQuadTR);
+            geojsonLayerQuadBL = buildLayer(depthB, [safraA]).addTo(mapQuadBL);
+            geojsonLayerQuadBR = buildLayer(depthB, [safraB]).addTo(mapQuadBR);
+        }
     } else {
-        // Camada Individual
         const depth = document.getElementById('sel-depth').value;
-        geojsonLayerLeft = buildLayer(depth, globalSafras).addTo(mapLeft);
+        if (isProd) {
+            renderTIFLayer(mapLeft, globalSafras[0], culturaProd);
+        } else {
+            geojsonLayerLeft = buildLayer(depth, globalSafras).addTo(mapLeft);
+        }
     }
 
     /// 4. Ajuste automático da câmera
@@ -3656,25 +3793,28 @@ async function generateBatchPDFs() {
         }
     }, 150);
     // 5. Configuração da Legenda
-    const depthSingle = document.getElementById('sel-depth').value;
-    const hasValidData = currentGeoJSON.features.some(f => {
-        const val = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthSingle, globalSafras)[param] : null;
-        return val !== null && val !== undefined && val !== '';
-    });
-
-    legendTitle.innerText = `${param}`;
-
-    if (!hasValidData) {
-        legendItems.innerHTML = `
-            <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
-                <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
-                <span>A planilha desta safra não possui valores para este parâmetro. Tente selecionar: <b>CTC, MO, Fósforo (P), Potássio (K), pH CaCl2, V% ou Classes de MO</b>.</span>
-            </div>
-        `;
+    if (isProd) {
+        renderProdutividadeLegend(culturaProd);
     } else {
-        legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
+        const depthSingle = document.getElementById('sel-depth').value;
+        const hasValidData = currentGeoJSON.features.some(f => {
+            const val = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthSingle, globalSafras)[param] : null;
+            return val !== null && val !== undefined && val !== '';
+        });
+
+        legendTitle.innerText = `${param}`;
+
+        if (!hasValidData) {
+            legendItems.innerHTML = `
+                <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
+                    <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
+                    <span>A planilha desta safra não possui valores para este parâmetro. Tente selecionar: <b>CTC, MO, Fósforo (P), Potássio (K), pH CaCl2, V% ou Classes de MO</b>.</span>
+                </div>
+            `;
+        } else {
+            legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
+        }
     }
-}
 
         // =========================================================================
         // MÓDULO DE TAXA VARIÁVEL DE FERTILIZANTES
@@ -7920,6 +8060,54 @@ async function generateBatchPDFs() {
                 if (typeof renderEvoCharts === 'function') renderEvoCharts();
             }
         };
+      async function uploadProdutividadeTIFs() {
+    const files = document.getElementById('upload-tif-files').files;
+    const cultura = document.getElementById('upload-tif-cultura').value;
+    const safra = document.getElementById('upload-tif-safra').value.trim();
+    const farmKey = document.getElementById('sel-farm').value;
+
+    if (!files.length || !safra || !farmKey) {
+        alert("Preencha a safra e selecione os arquivos .tif.");
+        return;
+    }
+
+    // Criamos a estrutura no Firebase caso não exista
+    if (!farmsDatabase[farmKey].produtividade) farmsDatabase[farmKey].produtividade = {};
+    if (!farmsDatabase[farmKey].produtividade[safra]) farmsDatabase[farmKey].produtividade[safra] = {};
+    if (!farmsDatabase[farmKey].produtividade[safra][cultura]) farmsDatabase[farmKey].produtividade[safra][cultura] = {};
+
+    let uploadsCompletos = 0;
+    
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Extrai o número do talhão do nome do arquivo usando Regex (pega os primeiros números que encontrar)
+        const match = file.name.match(/\d+/);
+        if (!match) continue; 
+        const talhaoStr = String(parseInt(match[0], 10)); // Ex: "T05.tif" vira "5"
+
+        const storageRef = firebase.storage().ref(`produtividade/${farmKey}/${safra}/${cultura}/T${talhaoStr}_${file.name}`);
+        
+        try {
+            const snapshot = await storageRef.put(file);
+            const downloadURL = await snapshot.ref.getDownloadURL();
+            
+            // Salva a URL gerada no banco de dados da Fazenda
+            farmsDatabase[farmKey].produtividade[safra][cultura][talhaoStr] = downloadURL;
+            uploadsCompletos++;
+        } catch (error) {
+            console.error("Erro no upload:", error);
+        }
+    }
+
+    // Atualiza o banco via Firestore (adapte para a sua função de salvar do admin)
+    await db.collection("farms").doc(farmKey).update({
+        produtividade: farmsDatabase[farmKey].produtividade
+    });
+
+    alert(`${uploadsCompletos} Mapas de Produtividade salvos com sucesso!`);
+    updateGISMap(); // Atualiza a tela imediatamente
+}
     </script>
 </body>
 </html>
