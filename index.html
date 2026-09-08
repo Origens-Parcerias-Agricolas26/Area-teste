@@ -3815,6 +3815,12 @@ async function renderTIFLayer(targetMap, safra, cultura) {
             legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
         }
     }
+} // <--- ESTA É A CHAVE QUE PROVAVELMENTE FALTOU. ELA FECHA A FUNÇÃO updateGISMap()
+
+// =========================================================================
+// MÓDULO DE TAXA VARIÁVEL DE FERTILIZANTES
+// =========================================================================
+function initVRateMap() {
 
         // =========================================================================
         // MÓDULO DE TAXA VARIÁVEL DE FERTILIZANTES
