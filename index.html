@@ -8069,7 +8069,7 @@ async function generateBatchPDFs() {
     const farmKey = document.getElementById('sel-farm').value;
 
     if (!files.length || !safra || !farmKey) {
-        alert("Preencha a safra e selecione os arquivos .tif.");
+        alert("Preencha a safra e selecione os arquivos .zip.");
         return;
     }
 
@@ -8080,35 +8080,69 @@ async function generateBatchPDFs() {
 
     let uploadsCompletos = 0;
     
+    // Altera o texto do botão para dar feedback visual durante o processamento
+    const btnSalvar = document.querySelector('button[onclick="uploadProdutividadeTIFs()"]');
+    const txtOriginal = btnSalvar ? btnSalvar.innerText : "Salvar";
+    if (btnSalvar) {
+        btnSalvar.innerText = "Processando e Salvando...";
+        btnSalvar.disabled = true;
+    }
+
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
         
-        // Extrai o número do talhão do nome do arquivo usando Regex (pega os primeiros números que encontrar)
+        // Extrai o número do talhão do nome do arquivo usando Regex
         const match = file.name.match(/\d+/);
         if (!match) continue; 
-        const talhaoStr = String(parseInt(match[0], 10)); // Ex: "T05.tif" vira "5"
+        const talhaoStr = String(parseInt(match[0], 10));
 
-        const storageRef = firebase.storage().ref(`produtividade/${farmKey}/${safra}/${cultura}/T${talhaoStr}_${file.name}`);
-        
         try {
-            const snapshot = await storageRef.put(file);
-            const downloadURL = await snapshot.ref.getDownloadURL();
+            // 1. Processa o ZIP e gera o GeoJSON localmente usando a função que criamos
+            const geojson = await processarShapefileProdutividade(file);
             
-            // Salva a URL gerada no banco de dados da Fazenda
-            farmsDatabase[farmKey].produtividade[safra][cultura][talhaoStr] = downloadURL;
-            uploadsCompletos++;
+            if (geojson) {
+                // 2. Transforma em texto (String) para salvar no Firestore
+                const geojsonString = JSON.stringify(geojson);
+
+                // 3. Trava de Segurança: Verifica o tamanho do arquivo (Limite do Firestore é 1MB por documento)
+                const tamanhoMB = new Blob([geojsonString]).size / (1024 * 1024);
+                
+                if (tamanhoMB > 0.95) {
+                    alert(`Atenção: O mapa do talhão ${talhaoStr} está muito pesado (${tamanhoMB.toFixed(2)} MB). Faça o "Dissolver" por classes no QGIS para reduzir as feições antes de importar.`);
+                    continue; // Pula este talhão e vai para o próximo
+                }
+
+                // 4. Salva a string do mapa direto no banco de dados da Fazenda
+                farmsDatabase[farmKey].produtividade[safra][cultura][talhaoStr] = geojsonString;
+                uploadsCompletos++;
+            }
         } catch (error) {
-            console.error("Erro no upload:", error);
+            console.error(`Erro ao processar talhão ${talhaoStr}:`, error);
         }
     }
 
-    // Atualiza o banco via Firestore (adapte para a sua função de salvar do admin)
-    await db.collection("farms").doc(farmKey).update({
-        produtividade: farmsDatabase[farmKey].produtividade
-    });
+    // 5. Atualiza o banco via Firestore de uma só vez
+    if (uploadsCompletos > 0) {
+        try {
+            await db.collection("farms").doc(farmKey).update({
+                produtividade: farmsDatabase[farmKey].produtividade
+            });
+            alert(`${uploadsCompletos} Mapas de Produtividade salvos com sucesso!`);
+        } catch (erroBanco) {
+            console.error("Erro ao salvar no Firebase:", erroBanco);
+            alert("Erro ao sincronizar com o banco de dados. O arquivo final ficou muito grande.");
+        }
+    } else {
+        alert("Nenhum mapa foi salvo. Verifique os arquivos.");
+    }
 
-    alert(`${uploadsCompletos} Mapas de Produtividade salvos com sucesso!`);
-    updateGISMap(); // Atualiza a tela imediatamente
+    // Restaura o botão e atualiza o mapa
+    if (btnSalvar) {
+        btnSalvar.innerText = txtOriginal;
+        btnSalvar.disabled = false;
+    }
+    
+    if (typeof updateGISMap === 'function') updateGISMap();
 }
       // Função para testar a leitura do ZIP com Shapefile
 async function testarShapefile(file) {
