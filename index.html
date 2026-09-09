@@ -33,6 +33,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
     <script src="https://unpkg.com/@mapbox/shp-write@latest/shpwrite.js"></script>
+    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- jsPDF para Geração Direta de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -310,7 +311,7 @@
     <div>
         <label class="block text-[10px] font-bold text-slate-600 mb-1">Arquivos .tif por Talhão (Múltiplos)</label>
         <span class="block text-[9px] text-slate-500 italic mb-1">Nomeie os arquivos com o número do talhão (ex: T01.tif, T02.tif)</span>
-        <input type="file" id="upload-tif-files" accept=".tif,.tiff" multiple class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
+        <input type="file" id="upload-tif-files" accept=".zip" multiple onchange="processarShapefileProdutividade(this.files[0])" class="...">
     </div>
     <button onclick="uploadProdutividadeTIFs()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-xs shadow">Salvar Mapas na Nuvem</button>
 </div>
@@ -8108,6 +8109,59 @@ async function generateBatchPDFs() {
 
     alert(`${uploadsCompletos} Mapas de Produtividade salvos com sucesso!`);
     updateGISMap(); // Atualiza a tela imediatamente
+}
+      // Função para testar a leitura do ZIP com Shapefile
+async function testarShapefile(file) {
+    try {
+        console.log("Descompactando e lendo o arquivo: ", file.name);
+        
+        // Transforma o arquivo em um buffer de memória
+        const buffer = await file.arrayBuffer();
+        
+        // O shpjs faz a mágica de ler o .zip e converter o .shp/.dbf em GeoJSON
+        const geojson = await shp(buffer);
+        
+        console.log("SUCESSO! O Shapefile foi lido.");
+        console.log("Quantidade de polígonos/pontos:", geojson.features.length);
+        
+        // Mostra as propriedades do primeiro polígono para sabermos o nome da coluna de Produtividade
+        if (geojson.features.length > 0) {
+            console.log("Colunas disponíveis na tabela (.dbf):", Object.keys(geojson.features[0].properties));
+        }
+        
+    } catch (erro) {
+        console.error("Erro ao ler o Shapefile:", erro);
+    }
+}
+      // Função que lê o ZIP do Shapefile e prepara o GeoJSON
+async function processarShapefileProdutividade(file) {
+    try {
+        const buffer = await file.arrayBuffer();
+        
+        // Converte o Shapefile (.zip) para GeoJSON em milissegundos
+        const geojson = await shp(buffer);
+        
+        // Varre todas as feições para arredondar a coluna PROD
+        geojson.features.forEach(feature => {
+            if (feature.properties && feature.properties.PROD !== undefined) {
+                // Pega o valor, converte para número e arredonda para 2 casas decimais
+                let valorBruto = parseFloat(feature.properties.PROD);
+                feature.properties.PROD = parseFloat(valorBruto.toFixed(2));
+                
+                // Limpa outras colunas desnecessárias para economizar espaço no banco de dados
+                const propSalvar = { PROD: feature.properties.PROD };
+                feature.properties = propSalvar; 
+            }
+        });
+
+        console.log(`Sucesso! ${geojson.features.length} feições processadas.`);
+        return geojson;
+
+    } catch (erro) {
+        console.error("Erro ao processar o Shapefile:", erro);
+        alert("Erro ao ler o arquivo. Certifique-se de que é um .zip contendo .shp, .dbf e .shx");
+        return null;
+    }
 }
     </script>
 </body>
