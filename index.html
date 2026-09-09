@@ -8136,30 +8136,39 @@ async function testarShapefile(file) {
       // Função que lê o ZIP do Shapefile e prepara o GeoJSON
 async function processarShapefileProdutividade(file) {
     try {
+        console.log("Iniciando leitura do arquivo:", file.name);
         const buffer = await file.arrayBuffer();
         
-        // Converte o Shapefile (.zip) para GeoJSON em milissegundos
-        const geojson = await shp(buffer);
+        // O shpjs converte o zip. Vamos guardar o resultado bruto.
+        let geojsonBruto = await shp(buffer);
         
+        // Se o ZIP tiver pastas, ele retorna uma lista. Aqui pegamos o primeiro item válido.
+        let geojson = Array.isArray(geojsonBruto) ? geojsonBruto[0] : geojsonBruto;
+        
+        if (!geojson || !geojson.features) {
+            throw new Error("Formato de GeoJSON não reconhecido dentro do ZIP.");
+        }
+
         // Varre todas as feições para arredondar a coluna PROD
         geojson.features.forEach(feature => {
             if (feature.properties && feature.properties.PROD !== undefined) {
-                // Pega o valor, converte para número e arredonda para 2 casas decimais
                 let valorBruto = parseFloat(feature.properties.PROD);
                 feature.properties.PROD = parseFloat(valorBruto.toFixed(2));
                 
-                // Limpa outras colunas desnecessárias para economizar espaço no banco de dados
+                // Limpa outras colunas desnecessárias
                 const propSalvar = { PROD: feature.properties.PROD };
                 feature.properties = propSalvar; 
             }
         });
 
-        console.log(`Sucesso! ${geojson.features.length} feições processadas.`);
+        console.log(`Sucesso absoluto! ${geojson.features.length} feições processadas.`);
+        console.log("Exemplo do dado limpo:", geojson.features[0].properties);
+        
         return geojson;
 
     } catch (erro) {
         console.error("Erro ao processar o Shapefile:", erro);
-        alert("Erro ao ler o arquivo. Certifique-se de que é um .zip contendo .shp, .dbf e .shx");
+        alert("Erro ao ler o arquivo. Verifique o console.");
         return null;
     }
 }
