@@ -25,15 +25,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <!-- Turf.js para cálculos geográficos (Área exata de Talhões) -->
-    <!-- GeoRaster: Leitura e Renderização de arquivos .tif (Mapas de Produtividade) -->
-    <script src="https://unpkg.com/georaster"></script>
-    <script src="https://unpkg.com/georaster-layer-for-leaflet"></script>  
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
     <!-- JSZip, Shapefile Parser & XLSX Reader -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
     <script src="https://unpkg.com/@mapbox/shp-write@latest/shpwrite.js"></script>
-    <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- jsPDF para Geração Direta de PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -51,7 +47,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+
     <!-- Bibliotecas necessárias para exportar o Laudo em PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -102,7 +98,7 @@
 <body class="bg-slate-50 font-sans text-slate-800 antialiased">
 
     <!-- BARRA DE NAVEGAÇÃO -->
-    <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+   <nav class="hidden bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-20">
                 <div class="flex items-center space-x-3 cursor-pointer" onclick="showSection('landing')">
@@ -140,9 +136,12 @@
 
     <!-- PLATAFORMA SAAS -->
     <div id="saas-section" class="hidden">
-        <div class="flex h-[calc(100vh-80px)] overflow-hidden">
+        <div class="flex h-screen overflow-hidden">
             <!-- Sidebar -->
-            <aside class="w-64 bg-slate-900 text-white flex flex-col justify-between p-4 border-r border-slate-800">
+            <button onclick="toggleSidebar()" class="absolute top-4 left-4 z-[9999] bg-slate-900 text-white w-10 h-10 rounded-xl shadow-lg border border-slate-700 flex items-center justify-center hover:bg-slate-800 transition-colors">
+    <i class="fa-solid fa-bars"></i>
+</button>
+            <aside id="main-sidebar" class="w-64 shrink-0 transition-all duration-300 overflow-hidden bg-slate-900 text-white flex flex-col justify-between p-4 border-r border-slate-800">
                 <div class="space-y-6">
                     <div class="px-3 py-2 bg-slate-800/80 rounded-xl border border-slate-700/50">
                         <span class="text-xs font-semibold text-emerald-400 uppercase block mb-1">Usuário Conectado</span>
@@ -291,30 +290,6 @@
                                     <input type="file" id="file-excel-20-40" accept=".xlsx" class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-100 file:text-amber-800">
                                 </div>
                                 <button onclick="processUploadedFiles()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs shadow">Processar & Salvar na Nuvem</button>
-                              <div class="mt-4 pt-3 border-t border-amber-300 space-y-3">
-    <span class="text-[11px] font-extrabold text-amber-900 uppercase block mb-1">Importar Mapas de Produtividade (.tif)</span>
-    <div class="grid grid-cols-2 gap-2">
-        <div>
-            <label class="block text-[10px] font-bold text-slate-600 mb-1">Cultura</label>
-            <select id="upload-tif-cultura" class="w-full bg-white border border-amber-300 rounded p-1.5 font-bold text-xs text-slate-900">
-                <option value="soja">Soja</option>
-                <option value="milho">Milho</option>
-                <option value="algodao">Algodão</option>
-                <option value="sorgo">Sorgo</option>
-            </select>
-        </div>
-        <div>
-            <label class="block text-[10px] font-bold text-slate-600 mb-1">Ano Safra</label>
-            <input type="text" id="upload-tif-safra" placeholder="Ex: 2024" class="w-full bg-white border border-amber-300 rounded p-1.5 font-bold text-xs text-slate-900">
-        </div>
-    </div>
-    <div>
-        <label class="block text-[10px] font-bold text-slate-600 mb-1">Arquivos .tif por Talhão (Múltiplos)</label>
-        <span class="block text-[9px] text-slate-500 italic mb-1">Nomeie os arquivos com o número do talhão (ex: T01.tif, T02.tif)</span>
-        <input type="file" id="upload-tif-files" accept=".zip" multiple onchange="processarShapefileProdutividade(this.files[0])" class="...">
-    </div>
-    <button onclick="uploadProdutividadeTIFs()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded-lg text-xs shadow">Salvar Mapas na Nuvem</button>
-</div>
                             </div>
 
                             <!-- SUBSTITUA DESDE AQUI -->
@@ -335,6 +310,7 @@
         <select id="sel-depth" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-2 font-bold text-xs text-slate-800">
             <option value="d0_10">Camada 0 - 10 cm</option>
             <option value="d10_20">Camada 10 - 20 cm</option>
+            <option value="d0_20">Camada 0 - 20 cm</option>
             <option value="d20_40">Camada 20 - 40 cm</option>
         </select>
     </div>
@@ -347,12 +323,14 @@
                 <select id="sel-depth-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
                     <option value="d0_10">Camada 0 - 10 cm</option>
                     <option value="d10_20">Camada 10 - 20 cm</option>
+                    <option value="d0_20">Camada 0 - 20 cm</option>
                 </select>
             </div>
             <div class="w-1/2">
                 <label class="block text-[10px] font-bold text-blue-700 mb-0.5"><i class="fa-solid fa-arrow-right mr-1"></i>Lado Direito</label>
                 <select id="sel-depth-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
                     <option value="d10_20" selected>Camada 10 - 20 cm</option>
+                    <option value="d0_20">Camada 0 - 20 cm</option>
                     <option value="d20_40">Camada 20 - 40 cm</option>
                 </select>
             </div>
@@ -366,6 +344,7 @@
             <select id="sel-depth-fixed" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded-lg p-1.5 font-bold text-[11px] text-slate-800">
                 <option value="d0_10">Camada 0 - 10 cm</option>
                 <option value="d10_20">Camada 10 - 20 cm</option>
+                <option value="d0_20">Camada 0 - 20 cm</option>
                 <option value="d20_40">Camada 20 - 40 cm</option>
             </select>
         </div>
@@ -389,8 +368,8 @@
             <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Safra Evolução</label><select id="sel-quad-safra-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"></select></div>
         </div>
         <div class="flex gap-2">
-            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Sup.</label><select id="sel-quad-depth-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"><option value="d0_10">0 - 10 cm</option><option value="d10_20">10 - 20 cm</option></select></div>
-            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Prof.</label><select id="sel-quad-depth-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"><option value="d10_20" selected>10 - 20 cm</option><option value="d20_40">20 - 40 cm</option></select></div>
+            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Sup.</label><select id="sel-quad-depth-a" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"><option value="d0_10">0 - 10 cm</option><option value="d10_20">10 - 20 cm</option><option value="d0_20">0 - 20 cm</option></select></div>
+            <div class="w-1/2"><label class="block text-[10px] font-bold text-slate-600 mb-0.5">Camada Prof.</label><select id="sel-quad-depth-b" onchange="updateGISMap()" class="w-full bg-white border border-slate-300 rounded p-1 font-bold text-[10px]"><option value="d10_20" selected>10 - 20 cm</option><option value="d0_20">0 - 20 cm</option><option value="d20_40">20 - 40 cm</option></select></div>
         </div>
     </div>
 </div>
@@ -400,12 +379,6 @@
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Parâmetro de Solo</label>
                                 <select id="sel-param" onchange="updateGISMap()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800">
-                                    <optgroup label="Mapas de Colheita">
-                                        <option value="Produtividade_Soja">Produtividade - Soja (sc/ha)</option>
-                                        <option value="Produtividade_Milho">Produtividade - Milho (sc/ha)</option>
-                                        <option value="Produtividade_Algodao">Produtividade - Algodão (@/ha)</option>
-                                        <option value="Produtividade_Sorgo">Produtividade - Sorgo (sc/ha)</option>
-                                    </optgroup>
                                     <optgroup label="Físicos & Acidez">
                                         <option value="Argila">Argila (g/kg)</option>
                                         <option value="MO">Matéria Orgânica (MO)</option>
@@ -443,6 +416,13 @@
                                     </optgroup>
                                 </select>
                             </div>
+                            <div class="mt-4">
+                                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Sistema de Classificação</label>
+                                <select id="sel-classificacao" onchange="updateGISMap()" class="w-full bg-slate-50 border border-slate-300 rounded-xl p-2.5 font-bold text-sm text-slate-800">
+                                    <option value="1">Classificação 1 (Padrão)</option>
+                                    <option value="2">Classificação 2 (Alternativa)</option>
+                                </select>
+                              </div>
 
                             <div class="space-y-2 pt-2 border-t border-slate-200">
                                 <label class="flex items-center space-x-3 cursor-pointer">
@@ -497,10 +477,34 @@
         <div class="relative w-full h-full bg-white"><div id="map-quad-br" class="w-full h-full"></div></div>
     </div>
 
-    <div class="absolute bottom-6 right-6 bg-white/95 backdrop-blur p-4 rounded-xl shadow-xl border border-slate-200 z-50 min-w-[240px] max-h-[300px] overflow-y-auto">
-        <span id="legend-title" class="text-xs font-black text-slate-900 uppercase block mb-2 border-b pb-1">Legenda QGIS</span>
-        <div id="legend-items" class="space-y-1.5 text-xs font-semibold text-slate-700"></div>
+    <div class="absolute bottom-6 right-6 bg-white/50 backdrop-blur p-4 rounded-xl shadow-2xl border border-slate-200 z-[9999] min-w-[320px] max-h-[400px] overflow-y-auto transition-all">
+    <div class="flex justify-between items-center">
+        <span id="legend-title" class="text-sm font-black text-slate-900 block leading-tight">Níveis de Parâmetro<br><span class="text-[10px] font-bold text-slate-500 uppercase">Unidade</span></span>
+        <button onclick="const tbl = document.getElementById('legend-table'); tbl.classList.toggle('hidden'); this.innerHTML = tbl.classList.contains('hidden') ? '<i class=\'fa-solid fa-caret-up mr-1\'></i>Abrir' : '<i class=\'fa-solid fa-caret-down mr-1\'></i>Fechar';" class="text-[10px] font-bold bg-white/60 px-2 py-1 rounded border border-slate-200 hover:bg-white transition-colors">
+            <i class="fa-solid fa-caret-down mr-1"></i>Fechar
+        </button>
     </div>
+    
+    <table id="legend-table" class="w-full text-xs text-left mt-3 transition-all">
+        <thead>
+            <tr class="text-[10px] text-slate-500 uppercase border-b border-slate-200">
+                <th class="pb-1.5 font-bold">Classe</th>
+                <th class="pb-1.5 font-bold text-right">Área</th>
+                <th class="pb-1.5 font-bold text-right">%</th>
+            </tr>
+        </thead>
+        <tbody id="legend-items" class="divide-y divide-slate-100/50">
+            <!-- Os itens serão injetados aqui pelo JavaScript -->
+        </tbody>
+        <tfoot>
+            <tr class="border-t border-slate-300 font-bold text-slate-900">
+                <td class="pt-2">Total</td>
+                <td id="legend-total-area" class="pt-2 text-right">0.00 ha</td>
+                <td class="pt-2 text-right">100%</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
 </div>
 <!-- ATÉ AQUI -->               
                 </div> <!-- ESSA É A DIV FALTANTE QUE FECHA O MÓDULO GIS INTEIRO! -->
@@ -1506,57 +1510,6 @@
         if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const auth = firebase.auth();
         const db = firebase.firestore();
-
-      // Paleta master baseada nas imagens (do menor para o maior valor)
-const PROD_COLORS = [
-    '#4b4537', '#737059', '#b5b597', '#420000', '#a30000', '#ff0000', '#ff5a4d', 
-    '#ffbaba', '#ff9914', '#fbff00', '#ffff99', '#00ff00', '#009900', '#004200', 
-    '#c2f0ff', '#5cbaba', '#1475c2', '#1400c2', '#00005c', '#000000'
-];
-
-const PRODUTIVIDADE_RULES = {
-    'soja': { start: 20, step: 5, unit: 'sc/ha' },
-    'sorgo': { start: 20, step: 5, unit: 'sc/ha' },
-    'milho': { start: 20, step: 10, unit: 'sc/ha' },
-    'algodao': { start: 80, step: 20, unit: '@/ha' }
-};
-
-function getProdutividadeColor(value, cultura) {
-    if (value === 0 || value === -9999 || value === null) return null; // Pixels vazios (bordas transparentes)
-    
-    const rule = PRODUTIVIDADE_RULES[cultura];
-    if (!rule) return null;
-
-    let idx = Math.floor((value - rule.start) / rule.step) + 1;
-    if (value <= rule.start) idx = 0;
-    if (idx >= PROD_COLORS.length) idx = PROD_COLORS.length - 1;
-    
-    return PROD_COLORS[idx];
-}
-
-function renderProdutividadeLegend(cultura) {
-    const rule = PRODUTIVIDADE_RULES[cultura];
-    const legendItems = document.getElementById('legend-items');
-    document.getElementById('legend-title').innerText = `Produtividade ${cultura.toUpperCase()}`;
-    
-    let html = `<div class="mb-2"><button onclick="abrirEditorLegenda('${cultura}')" class="text-[10px] w-full bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-700 py-1 rounded shadow-sm font-bold"><i class="fa-solid fa-gear mr-1"></i>Personalizar Legenda</button></div>`;
-    
-    // Escala menor ou igual
-    html += `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${PROD_COLORS[0]}"></div><span><= ${rule.start} ${rule.unit}</span></div>`;
-    
-    // Escalas intermediárias
-    for (let i = 1; i < PROD_COLORS.length - 1; i++) {
-        let val1 = rule.start + ((i - 1) * rule.step);
-        let val2 = val1 + rule.step;
-        html += `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${PROD_COLORS[i]}"></div><span>${val1} - ${val2} ${rule.unit}</span></div>`;
-    }
-    
-    // Escala maior
-    let maxVal = rule.start + ((PROD_COLORS.length - 2) * rule.step);
-    html += `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${PROD_COLORS[PROD_COLORS.length - 1]}"></div><span>> ${maxVal} ${rule.unit}</span></div>`;
-    
-    legendItems.innerHTML = html;
-}
 
         // ==========================================
         // COLE O TEXTO GIGANTE (BASE64) DA LOGO DENTRO DAS ASPAS ABAIXO:
@@ -3387,189 +3340,497 @@ async function generateBatchPDFs() {
 }
 
         function getQGISRules(param) {
-            if (param === 'S') {
-                return [
-                    { min: 21.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 21,0' },
-                    { min: 18.1, max: 21.0, color: '#265922', label: 'Nível 2 - 18,1 a 21,0' },
-                    { min: 15.1, max: 18.0, color: '#32D827', label: 'Nível 3 - 15,1 a 18,0' },
-                    { min: 12.1, max: 15.0, color: '#DCF5AA', label: 'Nível 4 - 12,1 a 15,0' },
-                    { min: 9.1, max: 12.0, color: '#FFFF00', label: 'Nível 5 - 9,1 a 12,0' },
-                    { min: 6.1, max: 9.0, color: '#FF961F', label: 'Nível 6 - 6,1 a 9,0' },
-                    { min: 3.1, max: 6.0, color: '#E0482B', label: 'Nível 7 - 3,1 a 6,0' },
-                    { min: 0, max: 3.09, color: '#801A1A', label: 'Nível 8 - < 3,1' }
-                ];
-            } else if (param === 'Ca') {
-                return [
-                    { min: 4.01, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - >4.0' },
-                    { min: 3.1, max: 4.0, color: '#FFF5AA', label: 'Nível 2 - 3.1 a 4.0' },
-                    { min: 2.6, max: 3.0, color: '#FFE16B', label: 'Nível 3 - 2.6 a 3.0' },
-                    { min: 2.1, max: 2.5, color: '#FFC83B', label: 'Nível 4 - 2.1 a 2.5' },
-                    { min: 1.6, max: 2.0, color: '#FF961F', label: 'Nível 5 - 1.6 a 2.0' },
-                    { min: 1.1, max: 1.5, color: '#E65D0F', label: 'Nível 6 - 1.1 a 1.5' },
-                    { min: 0.6, max: 1.0, color: '#C83700', label: 'Nível 7 - 0.6 a 1.0' },
-                    { min: 0, max: 0.59, color: '#802000', label: 'Nível 8 - <0.6' }
-                ];
-            } else if (param === 'Ca%') {
-                return [
-                    { min: 0, max: 20, color: '#802000', label: 'Nível 1 - <20' },
-                    { min: 21, max: 30, color: '#E65D0F', label: 'Nível 2 - 21 a 30' },
-                    { min: 31, max: 40, color: '#FF961F', label: 'Nível 3 - 31 a 40' },
-                    { min: 41, max: 50, color: '#FFC83B', label: 'Nível 4 - 41 a 50' },
-                    { min: 51, max: 60, color: '#FFF5AA', label: 'Nível 5 - 51 a 60' },
-                    { min: 60.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >60' }
-                ];
-            } else if (param === 'Mg') {
-                return [
-                    { min: 1.51, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - >1.5' },
-                    { min: 1.1, max: 1.5, color: '#FFE16B', label: 'Nível 2 - 1.1 a 1.5' },
-                    { min: 0.8, max: 1.0, color: '#FF961F', label: 'Nível 3 - 0.8 a 1.0' },
-                    { min: 0.5, max: 0.7, color: '#E65D0F', label: 'Nível 4 - 0.5 a 0.7' },
-                    { min: 0, max: 0.49, color: '#802000', label: 'Nível 5 - <0.5' }
-                ];
-            } else if (param === 'Mg%') {
-                return [
-                    { min: 0, max: 5, color: '#802000', label: 'Nível 1 - <5' },
-                    { min: 5.1, max: 10, color: '#E65D0F', label: 'Nível 2 - 5,1 a 10' },
-                    { min: 10.1, max: 15, color: '#FF961F', label: 'Nível 3 - 10,1 a 15' },
-                    { min: 15.1, max: 20, color: '#FFC83B', label: 'Nível 4 - 15,1 a 20' },
-                    { min: 20.1, max: 25, color: '#FFF5AA', label: 'Nível 5 - 20,1 a 25' },
-                    { min: 25.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >25' }
-                ];
-            } else if (param === 'K') {
-                return [
-                    { min: 100.1, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - >100' },
-                    { min: 81, max: 100, color: '#FFF5AA', label: 'Nível 2 - 81 a 100' },
-                    { min: 61, max: 80, color: '#FFC83B', label: 'Nível 3 - 61 a 80' },
-                    { min: 41, max: 60, color: '#FF961F', label: 'Nível 4 - 41 a 60' },
-                    { min: 20, max: 40, color: '#E65D0F', label: 'Nível 5 - 20 a 40' },
-                    { min: 0, max: 19.9, color: '#802000', label: 'Nível 6 - <20' }
-                ];
-            } else if (param === 'K%') {
-                return [
-                    { min: 0, max: 1, color: '#802000', label: 'Nível 1 - <1' },
-                    { min: 1.1, max: 2, color: '#E65D0F', label: 'Nível 2 - 1,1 a 2' },
-                    { min: 2.1, max: 3, color: '#FF961F', label: 'Nível 3 - 2,1 a 3' },
-                    { min: 3.1, max: 4, color: '#FFC83B', label: 'Nível 4 - 3,1 a 4' },
-                    { min: 4.1, max: 5, color: '#FFF5AA', label: 'Nível 5 - 4,1 a 5' },
-                    { min: 5.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >6' }
-                ];
-            } else if (param === 'Argila') {
-                return [
-                    { min: 600, max: Infinity, color: '#102A83', label: '> 600 - Argilosa' },
-                    { min: 551, max: 600, color: '#2B75E2', label: '551 a 600 - Argilosa' },
-                    { min: 501, max: 550, color: '#00FFFF', label: '501 a 550 - Argilosa' },
-                    { min: 451, max: 500, color: '#265922', label: '451 a 500 - Argilosa' },
-                    { min: 401, max: 450, color: '#66A13B', label: '401 a 450 - Argilosa' },
-                    { min: 351, max: 400.99, color: '#BDE38B', label: '351 a 401 - Argilosa' },
-                    { min: 301, max: 350.99, color: '#FFF3B3', label: '301 a 350 - Média' },
-                    { min: 251, max: 300.99, color: '#FFFF00', label: '251 a 300 - Média' },
-                    { min: 201, max: 250.99, color: '#FF9999', label: '201 a 250 - Média' },
-                    { min: 151, max: 200.99, color: '#FF8811', label: '151 a 200 - Média' },
-                    { min: 101, max: 150.99, color: '#E0482B', label: '101 a 151 - Arenosa' },
-                    { min: 50, max: 100.99, color: '#B83227', label: '50 a 100 - Arenosa' },
-                    { min: 0, max: 49.99, color: '#5C1D1D', label: '< 50 - Arenosa' }
-                ];
-            } else if (param === 'MO' || param === 'MO (%)') {
-                return [
-                    { min: 45, max: Infinity, color: '#102A83', label: 'Nível 1 - > 45' },
-                    { min: 40, max: 45, color: '#265922', label: 'Nível 2 - 40 - 45' },
-                    { min: 35, max: 39.9, color: '#32D827', label: 'Nível 3 - 35 - 40' },
-                    { min: 30, max: 34.9, color: '#DCF5AA', label: 'Nível 4 - 30 - 35' },
-                    { min: 25, max: 29.9, color: '#FFF3B3', label: 'Nível 5 - 25 - 30' },
-                    { min: 20, max: 24.9, color: '#FFFF00', label: 'Nível 6 - 20 - 25' },
-                    { min: 15, max: 19.9, color: '#FF8811', label: 'Nível 7 - 15 - 20' },
-                    { min: 10, max: 14.9, color: '#E0482B', label: 'Nível 8 - 10 - 15' },
-                    { min: 0, max: 9.9, color: '#801A1A', label: 'Nível 9 - < 10' }
-                ];
-            } else if (param === 'Classes de MO') {
-                return [
-                    { min: 1, max: 1, color: '#102A83', label: 'Alta' },
-                    { min: 2, max: 2, color: '#265922', label: 'Adequada' },
-                    { min: 3, max: 3, color: '#FF8811', label: 'Média' },
-                    { min: 4, max: 4, color: '#801A1A', label: 'Baixa' }
-                ];
-            } else if (param === 'Classes de P') {
-                return [
-                    { min: 1, max: 1, color: '#2B75E2', label: 'Classe 1 - Alto' },
-                    { min: 2, max: 2, color: '#265922', label: 'Classe 2 - Adequado' },
-                    { min: 3, max: 3, color: '#FFFF00', label: 'Classe 3 - Médio' },
-                    { min: 4, max: 4, color: '#FF8811', label: 'Classe 4 - Baixo' },
-                    { min: 5, max: 5, color: '#801A1A', label: 'Classe 5 - Muito Baixo' }
-                ];
-            } else if (param === 'pH_água') {
-                return [
-                    { min: 6.6, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - > 6.6' },
-                    { min: 6.3, max: 6.6, color: '#FFF0AA', label: 'Nível 2 - 6.3 - 6.6' },
-                    { min: 6.1, max: 6.29, color: '#FFE16B', label: 'Nível 3 - 6.1 - 6.3' },
-                    { min: 5.8, max: 6.09, color: '#FFC83B', label: 'Nível 4 - 5.8 - 6.0' },
-                    { min: 5.5, max: 5.79, color: '#FF961F', label: 'Nível 5 - 5.5 - 5.7' },
-                    { min: 5.2, max: 5.49, color: '#E65D0F', label: 'Nível 6 - 5.2 - 5.4' },
-                    { min: 5.0, max: 5.19, color: '#C83700', label: 'Nível 7 - 5.0 a 5.1' },
-                    { min: 0, max: 4.99, color: '#802000', label: 'Nível 8 - < 4.9' }
-                ];
-            } else if (param === 'pH_CaCl2') {
-                return [
-                    { min: 6.0, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - > 6.0' },
-                    { min: 5.7, max: 6.0, color: '#FFF5AA', label: 'Nível 2 - 5.7 - 6.0' },
-                    { min: 5.4, max: 5.69, color: '#FFE16B', label: 'Nível 3 - 5.4 - 5.6' },
-                    { min: 5.1, max: 5.39, color: '#FFC83B', label: 'Nível 4 - 5.1 - 5.3' },
-                    { min: 4.8, max: 5.09, color: '#FF961F', label: 'Nível 5 - 4.8 - 5.0' },
-                    { min: 4.5, max: 4.79, color: '#E65D0F', label: 'Nível 6 - 4.5 - 4.7' },
-                    { min: 4.2, max: 4.49, color: '#C83700', label: 'Nível 7 - 4.2 - 4.4' },
-                    { min: 0, max: 4.19, color: '#802000', label: 'Nível 8 - < 4.2' }
-                ];
-            } else if (param === 'CTC') {
-                return [
-                    { min: 9.0, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 9' },
-                    { min: 7.6, max: 9.0, color: '#265922', label: 'Nível 2 - 7.6 a 9' },
-                    { min: 6.1, max: 7.59, color: '#32D827', label: 'Nível 3 - 6.1 a 7.5' },
-                    { min: 4.6, max: 6.09, color: '#FF961F', label: 'Nível 4 - 4.6 a 6' },
-                    { min: 3.0, max: 4.59, color: '#E0482B', label: 'Nível 5 - 3 a 4.5' },
-                    { min: 0, max: 2.99, color: '#802000', label: 'Nível 6 - < 3' }
-                ];
-            } else if (param === 'V%') {
-                return [
-                    { min: 74, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - > 74' },
-                    { min: 64, max: 74, color: '#FFF5AA', label: 'Nível 2 - 64 a 74' },
-                    { min: 54, max: 63.9, color: '#FFE16B', label: 'Nível 3 - 54 a 64' },
-                    { min: 44, max: 53.9, color: '#FFC83B', label: 'Nível 4 - 44 a 54' },
-                    { min: 34, max: 43.9, color: '#FF961F', label: 'Nível 5 - 34 a 44' },
-                    { min: 24, max: 33.9, color: '#E65D0F', label: 'Nível 6 - 24 a 34' },
-                    { min: 15, max: 23.9, color: '#C83700', label: 'Nível 7 - 15 a 24' },
-                    { min: 0, max: 14.9, color: '#802000', label: 'Nível 8 - < 15' }
-                ];
-            } else if (param === 'Al') {
-                return [
-                    { min: 0.41, max: Infinity, color: '#802000', label: 'Nível 4 - >0.4' },
-                    { min: 0.31, max: 0.40, color: '#FF961F', label: 'Nível 3 - 0.3 a 0.4' },
-                    { min: 0.10, max: 0.30, color: '#265922', label: 'Nível 2 - 0.1 a 0.3' },
-                    { min: 0.00, max: 0.09, color: '#2B75E2', label: 'Nível 1 - <0.1' }
-                ];
-            } else if (param === 'Sat. Al') {
-                return [
-                    { min: 40.1, max: Infinity, color: '#802000', label: 'Nível 6 - > 41%' },
-                    { min: 30.1, max: 40.0, color: '#E65D0F', label: 'Nível 5 - 31 a 40 %' },
-                    { min: 20.1, max: 30.0, color: '#FF961F', label: 'Nível 4 - 21 a 30 %' },
-                    { min: 10.1, max: 20.0, color: '#FFC83B', label: 'Nível 3 - 11 a 20 %' },
-                    { min: 0.1, max: 10.0, color: '#FFE16B', label: 'Nível 2 - 01 a 10 %' },
-                    { min: 0.0, max: 0.0, color: '#FFFFE0', label: 'Nível 1 - 0' }
-                ];
-            } else if (param === 'P') {
-                return [
-                    { min: 18.1, max: Infinity, color: '#2B75E2', label: 'Alto' },
-                    { min: 12.1, max: 18.0, color: '#265922', label: 'Adequado' },
-                    { min: 8.1, max: 12.0, color: '#FFFF00', label: 'Médio' },
-                    { min: 3.1, max: 8.0, color: '#FF8811', label: 'Baixo' },
-                    { min: 0, max: 3.0, color: '#801A1A', label: 'Muito Baixo' }
-                ];
-            } else {
-                return [
-                    { min: 3.0, max: Infinity, color: '#265922', label: 'Nível Adequado' },
-                    { min: 1.5, max: 2.99, color: '#FFFF00', label: 'Nível Médio' },
-                    { min: 0, max: 1.49, color: '#E0482B', label: 'Nível Baixo' }
-                ];
-            }
+    // Lê qual classificação está selecionada no HTML (se não achar, usa a "1" por padrão)
+    const classificacao = document.getElementById('sel-classificacao') ? document.getElementById('sel-classificacao').value : "1";
+
+    if (param === 'S') {
+        if (classificacao === "1") {
+            return [
+                { min: 21.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 21,0' },
+                { min: 18.1, max: 21.0, color: '#265922', label: 'Nível 2 - 18,1 a 21,0' },
+                { min: 15.1, max: 18.0, color: '#32D827', label: 'Nível 3 - 15,1 a 18,0' },
+                { min: 12.1, max: 15.0, color: '#DCF5AA', label: 'Nível 4 - 12,1 a 15,0' },
+                { min: 9.1, max: 12.0, color: '#FFFF00', label: 'Nível 5 - 9,1 a 12,0' },
+                { min: 6.1, max: 9.0, color: '#FF961F', label: 'Nível 6 - 6,1 a 9,0' },
+                { min: 3.1, max: 6.0, color: '#E0482B', label: 'Nível 7 - 3,1 a 6,0' },
+                { min: 0, max: 3.09, color: '#801A1A', label: 'Nível 8 - < 3,1' }
+             ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                { min: 21.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 21,0' },
+                { min: 18.1, max: 21.0, color: '#265922', label: 'Nível 2 - 18,1 a 21,0' },
+                { min: 15.1, max: 18.0, color: '#32D827', label: 'Nível 3 - 15,1 a 18,0' },
+                { min: 12.1, max: 15.0, color: '#DCF5AA', label: 'Nível 4 - 12,1 a 15,0' },
+                { min: 9.1, max: 12.0, color: '#FFFF00', label: 'Nível 5 - 9,1 a 12,0' },
+                { min: 6.1, max: 9.0, color: '#FF961F', label: 'Nível 6 - 6,1 a 9,0' },
+                { min: 3.1, max: 6.0, color: '#E0482B', label: 'Nível 7 - 3,1 a 6,0' },
+                { min: 0, max: 3.09, color: '#801A1A', label: 'Nível 8 - < 3,1' }
+            ];
         }
+    } else if (param === 'Ca') {
+        if (classificacao === "1") {
+            // Cores antigas (Amarelo ao Vermelho escuro)
+            return [
+                { min: 4.01, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - >4.0' },
+                { min: 3.1, max: 4.0, color: '#FFF5AA', label: 'Nível 2 - 3.1 a 4.0' },
+                { min: 2.6, max: 3.0, color: '#FFE16B', label: 'Nível 3 - 2.6 a 3.0' },
+                { min: 2.1, max: 2.5, color: '#FFC83B', label: 'Nível 4 - 2.1 a 2.5' },
+                { min: 1.6, max: 2.0, color: '#FF961F', label: 'Nível 5 - 1.6 a 2.0' },
+                { min: 1.1, max: 1.5, color: '#E65D0F', label: 'Nível 6 - 1.1 a 1.5' },
+                { min: 0.6, max: 1.0, color: '#C83700', label: 'Nível 7 - 0.6 a 1.0' },
+                { min: 0, max: 0.59, color: '#802000', label: 'Nível 8 - <0.6' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                { min: 4.01, max: Infinity, color: '#102A83', label: 'Nível 1 - > 4.0' },
+                { min: 3.1, max: 4.0, color: '#265922', label: 'Nível 2 - 3.1 a 4.0' },
+                { min: 2.6, max: 3.0, color: '#32D827', label: 'Nível 3 - 2.6 a 3.0' },
+                { min: 2.1, max: 2.5, color: '#DCF5AA', label: 'Nível 4 - 2.1 a 2.5' },
+                { min: 1.6, max: 2.0, color: '#FFFF00', label: 'Nível 5 - 1.6 a 2.0' },
+                { min: 1.1, max: 1.5, color: '#FF961F', label: 'Nível 6 - 1.1 a 1.5' },
+                { min: 0.6, max: 1.0, color: '#E0482B', label: 'Nível 7 - 0.6 a 1.0' },
+                { min: 0, max: 0.59, color: '#801A1A', label: 'Nível 8 - < 0.6' }
+            ];
+        }
+    } else if (param === 'Ca%') {
+        if (classificacao === "1") {
+            return [
+                { min: 0, max: 20, color: '#802000', label: 'Nível 1 - <20' },
+                { min: 21, max: 30, color: '#E65D0F', label: 'Nível 2 - 21 a 30' },
+                { min: 31, max: 40, color: '#FF961F', label: 'Nível 3 - 31 a 40' },
+                { min: 41, max: 50, color: '#FFC83B', label: 'Nível 4 - 41 a 50' },
+                { min: 51, max: 60, color: '#FFF5AA', label: 'Nível 5 - 51 a 60' },
+                { min: 60.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >60' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                 { min: 0, max: 20, color: '#802000', label: 'Nível 1 - <20' },
+                { min: 21, max: 30, color: '#E65D0F', label: 'Nível 2 - 21 a 30' },
+                { min: 31, max: 40, color: '#FF961F', label: 'Nível 3 - 31 a 40' },
+                { min: 41, max: 50, color: '#FFC83B', label: 'Nível 4 - 41 a 50' },
+                { min: 51, max: 60, color: '#FFF5AA', label: 'Nível 5 - 51 a 60' },
+                { min: 60.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >60' }
+            ];
+        }
+    } else if (param === 'Mg') {
+        if (classificacao === "1") {
+            return [
+                { min: 1.51, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - >1.5' },
+                { min: 1.1, max: 1.5, color: '#FFE16B', label: 'Nível 2 - 1.1 a 1.5' },
+                { min: 0.8, max: 1.0, color: '#FF961F', label: 'Nível 3 - 0.8 a 1.0' },
+                { min: 0.5, max: 0.7, color: '#E65D0F', label: 'Nível 4 - 0.5 a 0.7' },
+                { min: 0, max: 0.49, color: '#802000', label: 'Nível 5 - <0.5' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                 { min: 1.51, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 1.5' },
+                { min: 1.1, max: 1.5, color: '#265922', label: 'Nível 2 - 1.1 a 1.5' },
+                { min: 0.8, max: 1.0, color: '#FFFF00', label: 'Nível 3 - 0.8 a 1.0' },
+                { min: 0.5, max: 0.7, color: '#FF961F', label: 'Nível 4 - 0.5 a 0.7' },
+                { min: 0, max: 0.49, color: '#801A1A', label: 'Nível 5 - < 0.5' }
+            ];
+        }
+    } else if (param === 'Mg%') {
+        if (classificacao === "1") {
+            return [
+                { min: 0, max: 5, color: '#802000', label: 'Nível 1 - <5' },
+                { min: 5.1, max: 10, color: '#E65D0F', label: 'Nível 2 - 5,1 a 10' },
+                { min: 10.1, max: 15, color: '#FF961F', label: 'Nível 3 - 10,1 a 15' },
+                { min: 15.1, max: 20, color: '#FFC83B', label: 'Nível 4 - 15,1 a 20' },
+                { min: 20.1, max: 25, color: '#FFF5AA', label: 'Nível 5 - 20,1 a 25' },
+                { min: 25.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >25' }
+            ];
+        } else {
+            return [
+                // PREENCHA AQUI AS REGRAS DA CLASSIFICAÇÃO 2 PARA Mg%
+            ];
+        }
+    } else if (param === 'K') {
+        if (classificacao === "1") {
+            return [
+                { min: 100.01, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - > 100' },
+                { min: 80.01, max: 100.00, color: '#FFF5AA', label: 'Nível 2 - 81 a 100' },
+                { min: 60.01, max: 80.00, color: '#FFC83B', label: 'Nível 3 - 61 a 80' },
+                { min: 40.01, max: 60.00, color: '#FF961F', label: 'Nível 4 - 41 a 60' },
+                { min: 20.00, max: 40.00, color: '#E65D0F', label: 'Nível 5 - 20 a 40' },
+                { min: 0, max: 19.99, color: '#802000', label: 'Nível 6 - < 20' }
+            ];
+        } else {
+            return [
+                { min: 100.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 100' },
+                { min: 80.01, max: 100.00, color: '#265922', label: 'Nível 2 - 81 a 100' },
+                { min: 60.01, max: 80.00, color: '#FFFF00', label: 'Nível 3 - 61 a 80' },
+                { min: 40.01, max: 60.00, color: '#FF961F', label: 'Nível 4 - 41 a 60' },
+                { min: 20.00, max: 40.00, color: '#E0482B', label: 'Nível 5 - 20 a 40' },
+                { min: 0, max: 19.99, color: '#801A1A', label: 'Nível 6 - < 20' }
+            ];
+        }
+    } else if (param === 'K%') {
+        if (classificacao === "1") {
+            return [
+                { min: 0, max: 1, color: '#802000', label: 'Nível 1 - <1' },
+                { min: 1.1, max: 2, color: '#E65D0F', label: 'Nível 2 - 1,1 a 2' },
+                { min: 2.1, max: 3, color: '#FF961F', label: 'Nível 3 - 2,1 a 3' },
+                { min: 3.1, max: 4, color: '#FFC83B', label: 'Nível 4 - 3,1 a 4' },
+                { min: 4.1, max: 5, color: '#FFF5AA', label: 'Nível 5 - 4,1 a 5' },
+                { min: 5.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >6' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                 { min: 0, max: 1, color: '#802000', label: 'Nível 1 - <1' },
+                { min: 1.1, max: 2, color: '#E65D0F', label: 'Nível 2 - 1,1 a 2' },
+                { min: 2.1, max: 3, color: '#FF961F', label: 'Nível 3 - 2,1 a 3' },
+                { min: 3.1, max: 4, color: '#FFC83B', label: 'Nível 4 - 3,1 a 4' },
+                { min: 4.1, max: 5, color: '#FFF5AA', label: 'Nível 5 - 4,1 a 5' },
+                { min: 5.1, max: Infinity, color: '#FFFFE0', label: 'Nível 6 - >6' }
+            ];
+        }
+    } else if (param === 'Argila') {
+        if (classificacao === "1") {
+            return [
+                { min: 600, max: Infinity, color: '#102A83', label: '> 600 - Argilosa' },
+                { min: 551, max: 600, color: '#2B75E2', label: '551 a 600 - Argilosa' },
+                { min: 501, max: 550, color: '#00FFFF', label: '501 a 550 - Argilosa' },
+                { min: 451, max: 500, color: '#265922', label: '451 a 500 - Argilosa' },
+                { min: 401, max: 450, color: '#66A13B', label: '401 a 450 - Argilosa' },
+                { min: 351, max: 400.99, color: '#BDE38B', label: '351 a 401 - Argilosa' },
+                { min: 301, max: 350.99, color: '#FFF3B3', label: '301 a 350 - Média' },
+                { min: 251, max: 300.99, color: '#FFFF00', label: '251 a 300 - Média' },
+                { min: 201, max: 250.99, color: '#FF9999', label: '201 a 250 - Média' },
+                { min: 151, max: 200.99, color: '#FF8811', label: '151 a 200 - Média' },
+                { min: 101, max: 150.99, color: '#E0482B', label: '101 a 151 - Arenosa' },
+                { min: 50, max: 100.99, color: '#B83227', label: '50 a 100 - Arenosa' },
+                { min: 0, max: 49.99, color: '#5C1D1D', label: '< 50 - Arenosa' }
+             ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                 { min: 600, max: Infinity, color: '#102A83', label: '> 600 - Argilosa' },
+                { min: 551, max: 600, color: '#2B75E2', label: '551 a 600 - Argilosa' },
+                { min: 501, max: 550, color: '#00FFFF', label: '501 a 550 - Argilosa' },
+                { min: 451, max: 500, color: '#265922', label: '451 a 500 - Argilosa' },
+                { min: 401, max: 450, color: '#66A13B', label: '401 a 450 - Argilosa' },
+                { min: 351, max: 400.99, color: '#BDE38B', label: '351 a 401 - Argilosa' },
+                { min: 301, max: 350.99, color: '#FFF3B3', label: '301 a 350 - Média' },
+                { min: 251, max: 300.99, color: '#FFFF00', label: '251 a 300 - Média' },
+                { min: 201, max: 250.99, color: '#FF9999', label: '201 a 250 - Média' },
+                { min: 151, max: 200.99, color: '#FF8811', label: '151 a 200 - Média' },
+                { min: 101, max: 150.99, color: '#E0482B', label: '101 a 151 - Arenosa' },
+                { min: 50, max: 100.99, color: '#B83227', label: '50 a 100 - Arenosa' },
+                { min: 0, max: 49.99, color: '#5C1D1D', label: '< 50 - Arenosa' }
+            ];
+        }
+    } else if (param === 'MO' || param === 'MO (%)') {
+        if (classificacao === "1") {
+            return [
+                { min: 45, max: Infinity, color: '#102A83', label: 'Nível 1 - > 45' },
+                { min: 40, max: 45, color: '#265922', label: 'Nível 2 - 40 - 45' },
+                { min: 35, max: 39.9, color: '#32D827', label: 'Nível 3 - 35 - 40' },
+                { min: 30, max: 34.9, color: '#DCF5AA', label: 'Nível 4 - 30 - 35' },
+                { min: 25, max: 29.9, color: '#FFF3B3', label: 'Nível 5 - 25 - 30' },
+                { min: 20, max: 24.9, color: '#FFFF00', label: 'Nível 6 - 20 - 25' },
+                { min: 15, max: 19.9, color: '#FF8811', label: 'Nível 7 - 15 - 20' },
+                { min: 10, max: 14.9, color: '#E0482B', label: 'Nível 8 - 10 - 15' },
+                { min: 0, max: 9.9, color: '#801A1A', label: 'Nível 9 - < 10' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                { min: 45, max: Infinity, color: '#102A83', label: 'Nível 1 - > 45' },
+                { min: 40, max: 45, color: '#265922', label: 'Nível 2 - 40 - 45' },
+                { min: 35, max: 39.9, color: '#32D827', label: 'Nível 3 - 35 - 40' },
+                { min: 30, max: 34.9, color: '#DCF5AA', label: 'Nível 4 - 30 - 35' },
+                { min: 25, max: 29.9, color: '#FFF3B3', label: 'Nível 5 - 25 - 30' },
+                { min: 20, max: 24.9, color: '#FFFF00', label: 'Nível 6 - 20 - 25' },
+                { min: 15, max: 19.9, color: '#FF8811', label: 'Nível 7 - 15 - 20' },
+                { min: 10, max: 14.9, color: '#E0482B', label: 'Nível 8 - 10 - 15' },
+                { min: 0, max: 9.9, color: '#801A1A', label: 'Nível 9 - < 10' }
+            ];
+        }
+    } else if (param === 'Classes de MO') {
+        if (classificacao === "1") {
+            return [
+                { min: 1, max: 1, color: '#102A83', label: 'Alta' },
+                { min: 2, max: 2, color: '#265922', label: 'Adequada' },
+                { min: 3, max: 3, color: '#FF8811', label: 'Média' },
+                { min: 4, max: 4, color: '#801A1A', label: 'Baixa' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                  { min: 1, max: 1, color: '#102A83', label: 'Alta' },
+                { min: 2, max: 2, color: '#265922', label: 'Adequada' },
+                { min: 3, max: 3, color: '#FF8811', label: 'Média' },
+                { min: 4, max: 4, color: '#801A1A', label: 'Baixa' }
+            ];
+        }
+    } else if (param === 'Classes de P') {
+        if (classificacao === "1") {
+            return [
+                { min: 1, max: 1, color: '#2B75E2', label: 'Classe 1 - Alto' },
+                { min: 2, max: 2, color: '#265922', label: 'Classe 2 - Adequado' },
+                { min: 3, max: 3, color: '#FFFF00', label: 'Classe 3 - Médio' },
+                { min: 4, max: 4, color: '#FF8811', label: 'Classe 4 - Baixo' },
+                { min: 5, max: 5, color: '#801A1A', label: 'Classe 5 - Muito Baixo' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                 { min: 1, max: 1, color: '#2B75E2', label: 'Classe 1 - Alto' },
+                { min: 2, max: 2, color: '#265922', label: 'Classe 2 - Adequado' },
+                { min: 3, max: 3, color: '#FFFF00', label: 'Classe 3 - Médio' },
+                { min: 4, max: 4, color: '#FF8811', label: 'Classe 4 - Baixo' },
+                { min: 5, max: 5, color: '#801A1A', label: 'Classe 5 - Muito Baixo' }
+            ];
+        }
+    } else if (param === 'pH_água') {
+        if (classificacao === "1") {
+            return [
+                { min: 6.6, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - > 6.6' },
+                { min: 6.3, max: 6.6, color: '#FFF0AA', label: 'Nível 2 - 6.3 - 6.6' },
+                { min: 6.1, max: 6.29, color: '#FFE16B', label: 'Nível 3 - 6.1 - 6.3' },
+                { min: 5.8, max: 6.09, color: '#FFC83B', label: 'Nível 4 - 5.8 - 6.0' },
+                { min: 5.5, max: 5.79, color: '#FF961F', label: 'Nível 5 - 5.5 - 5.7' },
+                { min: 5.2, max: 5.49, color: '#E65D0F', label: 'Nível 6 - 5.2 - 5.4' },
+                { min: 5.0, max: 5.19, color: '#C83700', label: 'Nível 7 - 5.0 a 5.1' },
+                { min: 0, max: 4.99, color: '#802000', label: 'Nível 8 - < 4.9' }
+            ];
+        } else {
+            // Novas cores da Classificação 2 (Azul ao Vermelho)
+            return [
+                 { min: 6.41, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 6.4' },
+                { min: 6.10, max: 6.40, color: '#265922', label: 'Nível 2 - 6.1 a 6.3' },
+                { min: 5.80, max: 6.09, color: '#32D827', label: 'Nível 3 - 5.8 a 6.0' },
+                { min: 5.50, max: 5.79, color: '#FF961F', label: 'Nível 4 - 5.5 a 5.7' },
+                { min: 5.20, max: 5.49, color: '#E0482B', label: 'Nível 5 - 5.2 a 5.4' },
+                { min: 0, max: 5.19, color: '#801A1A', label: 'Nível 6 - < 5.1' }
+            ];
+        }
+    } else if (param === 'pH_CaCl2') {
+        if (classificacao === "1") {
+            return [
+                { min: 6.0, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - > 6.0' },
+                { min: 5.7, max: 6.0, color: '#FFF5AA', label: 'Nível 2 - 5.7 - 6.0' },
+                { min: 5.4, max: 5.69, color: '#FFE16B', label: 'Nível 3 - 5.4 - 5.6' },
+                { min: 5.1, max: 5.39, color: '#FFC83B', label: 'Nível 4 - 5.1 - 5.3' },
+                { min: 4.8, max: 5.09, color: '#FF961F', label: 'Nível 5 - 4.8 - 5.0' },
+                { min: 4.5, max: 4.79, color: '#E65D0F', label: 'Nível 6 - 4.5 - 4.7' },
+                { min: 4.2, max: 4.49, color: '#C83700', label: 'Nível 7 - 4.2 - 4.4' },
+                { min: 0, max: 4.19, color: '#802000', label: 'Nível 8 - < 4.2' }
+            ];
+        } else {
+            // NOVAS CORES (Azul ao Vermelho Escuro - 6 níveis baseados na imagem)
+            return [
+                { min: 5.71, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 5.7' },
+                { min: 5.40, max: 5.70, color: '#265922', label: 'Nível 2 - 5.4 a 5.6' },
+                { min: 5.10, max: 5.39, color: '#32D827', label: 'Nível 3 - 5.1 a 5.3' },
+                { min: 4.80, max: 5.09, color: '#FF961F', label: 'Nível 4 - 4.8 a 5.0' },
+                { min: 4.50, max: 4.79, color: '#E0482B', label: 'Nível 5 - 4.5 a 4.7' },
+                { min: 0, max: 4.49, color: '#801A1A', label: 'Nível 6 - <= 4.4' }
+            ];
+        }
+    } else if (param === 'CTC') {
+        if (classificacao === "1") {
+            return [
+                { min: 9.0, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 9' },
+                { min: 7.6, max: 9.0, color: '#265922', label: 'Nível 2 - 7.6 a 9' },
+                { min: 6.1, max: 7.59, color: '#32D827', label: 'Nível 3 - 6.1 a 7.5' },
+                { min: 4.6, max: 6.09, color: '#FF961F', label: 'Nível 4 - 4.6 a 6' },
+                { min: 3.0, max: 4.59, color: '#E0482B', label: 'Nível 5 - 3 a 4.5' },
+                { min: 0, max: 2.99, color: '#802000', label: 'Nível 6 - < 3' }
+            ];
+        } else {
+            // NOVAS CORES (Azul ao Vermelho Escuro - 6 níveis baseados na imagem)
+            return [
+                { min: 9.0, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 9' },
+                { min: 7.6, max: 9.0, color: '#265922', label: 'Nível 2 - 7.6 a 9' },
+                { min: 6.1, max: 7.59, color: '#32D827', label: 'Nível 3 - 6.1 a 7.5' },
+                { min: 4.6, max: 6.09, color: '#FF961F', label: 'Nível 4 - 4.6 a 6' },
+                { min: 3.0, max: 4.59, color: '#E0482B', label: 'Nível 5 - 3 a 4.5' },
+                { min: 0, max: 2.99, color: '#802000', label: 'Nível 6 - < 3' }
+            ];
+        }
+    } else if (param === 'V%') {
+        if (classificacao === "1") {
+            return [
+                { min: 74, max: Infinity, color: '#FFFFE0', label: 'Nível 1 - > 74' },
+                { min: 64, max: 74, color: '#FFF5AA', label: 'Nível 2 - 64 a 74' },
+                { min: 54, max: 63.9, color: '#FFE16B', label: 'Nível 3 - 54 a 64' },
+                { min: 44, max: 53.9, color: '#FFC83B', label: 'Nível 4 - 44 a 54' },
+                { min: 34, max: 43.9, color: '#FF961F', label: 'Nível 5 - 34 a 44' },
+                { min: 24, max: 33.9, color: '#E65D0F', label: 'Nível 6 - 24 a 34' },
+                { min: 15, max: 23.9, color: '#C83700', label: 'Nível 7 - 15 a 24' },
+                { min: 0, max: 14.9, color: '#802000', label: 'Nível 8 - < 15' }
+            ];
+        } else {
+            // NOVAS CORES (Azul ao Vermelho Escuro - 8 níveis baseados na imagem)
+            return [
+                { min: 74.1, max: Infinity, color: '#102A83', label: 'Nível 1 - > 74' },
+                { min: 64.1, max: 74.0, color: '#265922', label: 'Nível 2 - 64 a 74' },
+                { min: 54.1, max: 64.0, color: '#32D827', label: 'Nível 3 - 54 a 64' },
+                { min: 44.1, max: 54.0, color: '#DCF5AA', label: 'Nível 4 - 44 a 54' },
+                { min: 34.1, max: 44.0, color: '#FFFF00', label: 'Nível 5 - 34 a 44' },
+                { min: 24.1, max: 34.0, color: '#FF961F', label: 'Nível 6 - 24 a 34' },
+                { min: 15.0, max: 24.0, color: '#E0482B', label: 'Nível 7 - 15 a 24' },
+                { min: 0, max: 14.9, color: '#801A1A', label: 'Nível 8 - < 15' }
+            ];
+        }
+    } else if (param === 'Al') {
+        if (classificacao === "1") {
+            return [
+                { min: 0.41, max: Infinity, color: '#802000', label: 'Nível 4 - >0.4' },
+                { min: 0.31, max: 0.40, color: '#FF961F', label: 'Nível 3 - 0.3 a 0.4' },
+                { min: 0.10, max: 0.30, color: '#265922', label: 'Nível 2 - 0.1 a 0.3' },
+                { min: 0.00, max: 0.09, color: '#2B75E2', label: 'Nível 1 - <0.1' }
+            ];
+        } else {
+            // NOVAS CORES (Azul ao Vermelho Escuro - 6 níveis baseados na imagem)
+            return [
+                { min: 0.41, max: Infinity, color: '#802000', label: 'Nível 4 - >0.4' },
+                { min: 0.31, max: 0.40, color: '#FF961F', label: 'Nível 3 - 0.3 a 0.4' },
+                { min: 0.10, max: 0.30, color: '#265922', label: 'Nível 2 - 0.1 a 0.3' },
+                { min: 0.00, max: 0.09, color: '#2B75E2', label: 'Nível 1 - <0.1' }
+            ];
+        }
+    } else if (param === 'Sat. Al') {
+        if (classificacao === "1") {
+            return [
+                { min: 40.1, max: Infinity, color: '#802000', label: 'Nível 6 - > 41%' },
+                { min: 30.1, max: 40.0, color: '#E65D0F', label: 'Nível 5 - 31 a 40 %' },
+                { min: 20.1, max: 30.0, color: '#FF961F', label: 'Nível 4 - 21 a 30 %' },
+                { min: 10.1, max: 20.0, color: '#FFC83B', label: 'Nível 3 - 11 a 20 %' },
+                { min: 0.1, max: 10.0, color: '#FFE16B', label: 'Nível 2 - 01 a 10 %' },
+                { min: 0.0, max: 0.0, color: '#FFFFE0', label: 'Nível 1 - 0' }
+            ];
+        } else {
+            // NOVAS CORES (Azul para 0, Vermelho Escuro para valores altos)
+            return [
+                { min: 40.1, max: Infinity, color: '#801A1A', label: 'Nível 6 - > 41%' },
+                { min: 30.1, max: 40.0, color: '#E0482B', label: 'Nível 5 - 31 a 40 %' },
+                { min: 20.1, max: 30.0, color: '#FF961F', label: 'Nível 4 - 21 a 30 %' },
+                { min: 10.1, max: 20.0, color: '#FFFF00', label: 'Nível 3 - 11 a 20 %' },
+                { min: 0.1, max: 10.0, color: '#265922', label: 'Nível 2 - 01 a 10 %' },
+                { min: 0.0, max: 0.0, color: '#2B75E2', label: 'Nível 1 - 0' }
+            ];
+        }
+    } else if (param === 'P') {
+        if (classificacao === "1") {
+            return [
+                { min: 18.1, max: Infinity, color: '#2B75E2', label: 'Alto' },
+                { min: 12.1, max: 18.0, color: '#265922', label: 'Adequado' },
+                { min: 8.1, max: 12.0, color: '#FFFF00', label: 'Médio' },
+                { min: 3.1, max: 8.0, color: '#FF8811', label: 'Baixo' },
+                { min: 0, max: 3.0, color: '#801A1A', label: 'Muito Baixo' }
+            ];
+        } else {
+            // NOVAS CORES (Azul para 0, Vermelho Escuro para valores altos)
+            return [
+                { min: 18.1, max: Infinity, color: '#2B75E2', label: 'Alto' },
+                { min: 12.1, max: 18.0, color: '#265922', label: 'Adequado' },
+                { min: 8.1, max: 12.0, color: '#FFFF00', label: 'Médio' },
+                { min: 3.1, max: 8.0, color: '#FF8811', label: 'Baixo' },
+                { min: 0, max: 3.0, color: '#801A1A', label: 'Muito Baixo' }
+            ];
+        }
+    } else if (param === 'Zn') {
+        if (classificacao === "1") {
+            return [
+                { min: 5.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 5.0' },
+                { min: 2.60, max: 5.00, color: '#265922', label: 'Nível 2 - 2.6 a 5.0' },
+                { min: 1.70, max: 2.59, color: '#32D827', label: 'Nível 3 - 1.7 a 2.5' },
+                { min: 1.10, max: 1.69, color: '#FFFF00', label: 'Nível 5 - 1.1 a 1.6' },
+                { min: 0.00, max: 1.09, color: '#E0482B', label: 'Nível 6 - < 1.0' }
+            ];
+        } else {
+            // NOVAS CORES (Azul para 0, Vermelho Escuro para valores altos)
+            return [
+                { min: 5.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 5.0' },
+                { min: 2.60, max: 5.00, color: '#265922', label: 'Nível 2 - 2.6 a 5.0' },
+                { min: 1.70, max: 2.59, color: '#32D827', label: 'Nível 3 - 1.7 a 2.5' },
+                { min: 1.10, max: 1.69, color: '#FFFF00', label: 'Nível 5 - 1.1 a 1.6' },
+                { min: 0.00, max: 1.09, color: '#E0482B', label: 'Nível 6 - < 1.0' }
+            ];
+        }
+    } else if (param === 'Mn') {
+        if (classificacao === "1") {
+            return [
+                { min: 25.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 25.0' },
+                { min: 10.10, max: 25.00, color: '#265922', label: 'Nível 2 - 10.1 a 25.0' },
+                { min: 5.01, max: 10.09, color: '#32D827', label: 'Nível 3 - 5.01 a 10.0' },
+                { min: 2.01, max: 5.00, color: '#FFFF00', label: 'Nível 4 - 2.01 a 5.0' },
+                { min: 0.00, max: 2.00, color: '#E0482B', label: 'Nível 5 - < 2.0' }
+            ];
+        } else {
+            // NOVAS CORES (Azul para 0, Vermelho Escuro para valores altos)
+            return [
+                { min: 25.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 25.0' },
+                { min: 10.10, max: 25.00, color: '#265922', label: 'Nível 2 - 10.1 a 25.0' },
+                { min: 5.01, max: 10.09, color: '#32D827', label: 'Nível 3 - 5.01 a 10.0' },
+                { min: 2.01, max: 5.00, color: '#FFFF00', label: 'Nível 4 - 2.01 a 5.0' },
+                { min: 0.00, max: 2.00, color: '#E0482B', label: 'Nível 5 - < 2.0' }
+            ];
+        }
+    } else if (param === 'Cu') {
+        if (classificacao === "1") {
+            return [
+                { min: 2.51, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 2.5' },
+                { min: 1.20, max: 2.50, color: '#265922', label: 'Nível 2 - 1.2 a 2.5' },
+                { min: 0.80, max: 1.19, color: '#32D827', label: 'Nível 3 - 0.8 a 1.2' },
+                { min: 0.50, max: 0.79, color: '#FFFF00', label: 'Nível 4 - 0.5 a 0.8' },
+                { min: 0.00, max: 0.49, color: '#E0482B', label: 'Nível 5 - < 0.5' }
+            ];
+        } else {
+            // NOVAS CORES (Azul para 0, Vermelho Escuro para valores altos)
+            return [
+                { min: 2.51, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 2.5' },
+                { min: 1.20, max: 2.50, color: '#265922', label: 'Nível 2 - 1.2 a 2.5' },
+                { min: 0.80, max: 1.19, color: '#32D827', label: 'Nível 3 - 0.8 a 1.2' },
+                { min: 0.50, max: 0.79, color: '#FFFF00', label: 'Nível 4 - 0.5 a 0.8' },
+                { min: 0.00, max: 0.49, color: '#E0482B', label: 'Nível 5 - < 0.5' }
+            ];
+        }
+    } else if (param === 'B') {
+        if (classificacao === "1") {
+            return [
+                { min: 1.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 1.0' },
+                { min: 0.80, max: 1.00, color: '#265922', label: 'Nível 2 - 0.8 a 1.0' },
+                { min: 0.50, max: 0.79, color: '#32D827', label: 'Nível 3 - 0.5 a 0.8' },
+                { min: 0.30, max: 0.49, color: '#FFFF00', label: 'Nível 4 - 0.3 a 0.5' },
+                { min: 0.00, max: 0.29, color: '#E0482B', label: 'Nível 5 - < 0.2' }
+            ];
+        } else {
+            // NOVAS CORES (Azul para 0, Vermelho Escuro para valores altos)
+            return [
+                { min: 1.01, max: Infinity, color: '#2B75E2', label: 'Nível 1 - > 1.0' },
+                { min: 0.80, max: 1.00, color: '#265922', label: 'Nível 2 - 0.8 a 1.0' },
+                { min: 0.50, max: 0.79, color: '#32D827', label: 'Nível 3 - 0.5 a 0.8' },
+                { min: 0.30, max: 0.49, color: '#FFFF00', label: 'Nível 4 - 0.3 a 0.5' },
+                { min: 0.00, max: 0.29, color: '#E0482B', label: 'Nível 5 - < 0.2' }
+            ];
+        }
+    } else {
+        // Regra geral de fallback
+        if (classificacao === "1") {
+            return [
+                { min: 3.0, max: Infinity, color: '#265922', label: 'Nível Adequado' },
+                { min: 1.5, max: 2.99, color: '#FFFF00', label: 'Nível Médio' },
+                { min: 0, max: 1.49, color: '#E0482B', label: 'Nível Baixo' }
+            ];
+        } else {
+            // NOVAS CORES (Azul para 0, Vermelho Escuro para valores altos)
+            return [
+                { min: 3.0, max: Infinity, color: '#265922', label: 'Nível Adequado' },
+                { min: 1.5, max: 2.99, color: '#FFFF00', label: 'Nível Médio' },
+                { min: 0, max: 1.49, color: '#E0482B', label: 'Nível Baixo' }
+            ];        
+        }
+    }
+}
 
         function getMatchedRule(rawVal, rules) {
             if (rawVal === null || rawVal === undefined || rawVal === '') return null;
@@ -3581,38 +3842,7 @@ async function generateBatchPDFs() {
             const str = String(rawVal).trim().toLowerCase();
             return rules.find(r => r.label.toLowerCase().includes(str) || str.includes(r.label.toLowerCase())) || null;
         }
-        // Função assíncrona para buscar e pintar TIFs individualmente por talhão
-async function renderTIFLayer(targetMap, safra, cultura) {
-    const farmKey = document.getElementById('sel-farm').value;
-    const farmProd = farmsDatabase[farmKey].produtividade;
-    if (!farmProd || !farmProd[safra] || !farmProd[safra][cultura]) return; 
-    
-    const urlsDosTalhoes = farmProd[safra][cultura]; 
-    const selectedTalhoes = typeof getSelectedTalhoes === 'function' ? getSelectedTalhoes() : [];
 
-    for (const [talhaoNum, url] of Object.entries(urlsDosTalhoes)) {
-        if (selectedTalhoes.length > 0 && !selectedTalhoes.includes(talhaoNum)) continue;
-
-        try {
-            const response = await fetch(url);
-            const arrayBuffer = await response.arrayBuffer();
-            const georaster = await parseGeoraster(arrayBuffer);
-            
-            const tifLayer = new GeoRasterLayer({
-                georaster: georaster,
-                opacity: 0.9,
-                pixelValuesToColorFn: values => getProdutividadeColor(values[0], cultura),
-                resolution: 256 
-            });
-            
-            tifLayer.addTo(targetMap);
-            if (!targetMap.tifLayers) targetMap.tifLayers = [];
-            targetMap.tifLayers.push(tifLayer);
-        } catch (e) {
-            console.error(`Erro ao renderizar TIF do Talhão ${talhaoNum}`, e);
-        }
-    }
-}
         function updateGISMap() {
     if (!mapLeft) return;
     populateTalhaoSelector();      
@@ -3627,13 +3857,7 @@ async function renderTIFLayer(targetMap, safra, cultura) {
     if (typeof geojsonLayerQuadTR !== 'undefined' && geojsonLayerQuadTR) mapQuadTR.removeLayer(geojsonLayerQuadTR);
     if (typeof geojsonLayerQuadBL !== 'undefined' && geojsonLayerQuadBL) mapQuadBL.removeLayer(geojsonLayerQuadBL);
     if (typeof geojsonLayerQuadBR !== 'undefined' && geojsonLayerQuadBR) mapQuadBR.removeLayer(geojsonLayerQuadBR);
-    // Limpa também as camadas de produtividade (.tif)
-    [mapLeft, mapRight, mapQuadTL, mapQuadTR, mapQuadBL, mapQuadBR].forEach(m => {
-        if (m && m.tifLayers) {
-            m.tifLayers.forEach(l => m.removeLayer(l));
-            m.tifLayers = [];
-        }
-    });
+
     const legendTitle = document.getElementById('legend-title');
     const legendItems = document.getElementById('legend-items');
 
@@ -3669,7 +3893,13 @@ async function renderTIFLayer(targetMap, safra, cultura) {
             return true;
         },
         style: f => {
-            const rawVal = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthKey, safrasArray)[param] : null;
+            let rawVal = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthKey, safrasArray)[param] : null;
+            
+            // 1. FORÇA O ARREDONDAMENTO PARA A COR
+            if (rawVal !== null && rawVal !== undefined && rawVal !== '') {
+                rawVal = parseFloat(parseFloat(rawVal).toFixed(1));
+            }
+
             const matched = typeof getMatchedRule === 'function' ? getMatchedRule(rawVal, rules) : null;
             let color = matched ? matched.color : '#94a3b8';
 
@@ -3682,7 +3912,13 @@ async function renderTIFLayer(targetMap, safra, cultura) {
         },
         onEachFeature: (f, layer) => {
             const depthData = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthKey, safrasArray) : {};
-            const rawVal = depthData[param];
+            let rawVal = depthData[param];
+            
+            // 2. FORÇA O ARREDONDAMENTO PARA O TEXTO
+            if (rawVal !== null && rawVal !== undefined && rawVal !== '') {
+                rawVal = parseFloat(parseFloat(rawVal).toFixed(1));
+            }
+
             const displayVal = typeof formatDisplayValue === 'function' ? formatDisplayValue(rawVal) : rawVal;
             const subName = f.properties.Subs || f.properties.Subdivisao || f.properties.Talhao || 'Gleba';
 
@@ -3709,53 +3945,37 @@ async function renderTIFLayer(targetMap, safra, cultura) {
 
     // 3. ROTEAMENTO: Manda o mapa certo para a tela certa
     const globalSafras = typeof getSelectedSafras === 'function' ? getSelectedSafras() : [];
-    const isProd = param.startsWith('Produtividade_');
-    const culturaProd = isProd ? param.split('_')[1].toLowerCase() : null;
 
     if (mode === 'sidebyside') {
         const depthA = document.getElementById('sel-depth-a').value;
         const depthB = document.getElementById('sel-depth-b').value;
-        if (isProd) {
-            renderTIFLayer(mapLeft, globalSafras[0], culturaProd);
-            renderTIFLayer(mapRight, globalSafras[0], culturaProd);
-        } else {
-            geojsonLayerLeft = buildLayer(depthA, globalSafras).addTo(mapLeft);
-            geojsonLayerRight = buildLayer(depthB, globalSafras).addTo(mapRight);
-        }
+        geojsonLayerLeft = buildLayer(depthA, globalSafras).addTo(mapLeft);
+        geojsonLayerRight = buildLayer(depthB, globalSafras).addTo(mapRight);
+
     } else if (mode === 'sidebyside_safra') {
+        // Comparar Safras (Mesma profundidade, safras diferentes)
         const depthFixed = document.getElementById('sel-depth-fixed').value;
         const safraA = document.getElementById('sel-safra-a').value;
         const safraB = document.getElementById('sel-safra-b').value;
-        if (isProd) {
-            renderTIFLayer(mapLeft, safraA, culturaProd);
-            renderTIFLayer(mapRight, safraB, culturaProd);
-        } else {
-            geojsonLayerLeft = buildLayer(depthFixed, [safraA]).addTo(mapLeft);
-            geojsonLayerRight = buildLayer(depthFixed, [safraB]).addTo(mapRight);
-        }
+        geojsonLayerLeft = buildLayer(depthFixed, [safraA]).addTo(mapLeft);
+        geojsonLayerRight = buildLayer(depthFixed, [safraB]).addTo(mapRight);
+
     } else if (mode === 'quad_split') {
+        // Visão Quádrupla (2 Safras x 2 Profundidades)
         const safraA = document.getElementById('sel-quad-safra-a').value;
         const safraB = document.getElementById('sel-quad-safra-b').value;
         const depthA = document.getElementById('sel-quad-depth-a').value;
         const depthB = document.getElementById('sel-quad-depth-b').value;
-        if (isProd) {
-            renderTIFLayer(mapQuadTL, safraA, culturaProd);
-            renderTIFLayer(mapQuadTR, safraB, culturaProd);
-            renderTIFLayer(mapQuadBL, safraA, culturaProd);
-            renderTIFLayer(mapQuadBR, safraB, culturaProd);
-        } else {
-            geojsonLayerQuadTL = buildLayer(depthA, [safraA]).addTo(mapQuadTL);
-            geojsonLayerQuadTR = buildLayer(depthA, [safraB]).addTo(mapQuadTR);
-            geojsonLayerQuadBL = buildLayer(depthB, [safraA]).addTo(mapQuadBL);
-            geojsonLayerQuadBR = buildLayer(depthB, [safraB]).addTo(mapQuadBR);
-        }
+
+        geojsonLayerQuadTL = buildLayer(depthA, [safraA]).addTo(mapQuadTL);
+        geojsonLayerQuadTR = buildLayer(depthA, [safraB]).addTo(mapQuadTR);
+        geojsonLayerQuadBL = buildLayer(depthB, [safraA]).addTo(mapQuadBL);
+        geojsonLayerQuadBR = buildLayer(depthB, [safraB]).addTo(mapQuadBR);
+
     } else {
+        // Camada Individual
         const depth = document.getElementById('sel-depth').value;
-        if (isProd) {
-            renderTIFLayer(mapLeft, globalSafras[0], culturaProd);
-        } else {
-            geojsonLayerLeft = buildLayer(depth, globalSafras).addTo(mapLeft);
-        }
+        geojsonLayerLeft = buildLayer(depth, globalSafras).addTo(mapLeft);
     }
 
     /// 4. Ajuste automático da câmera
@@ -3793,30 +4013,103 @@ async function renderTIFLayer(targetMap, safra, cultura) {
             setTimeout(() => { window.isSyncing = false; }, 100);
         }
     }, 150);
-    // 5. Configuração da Legenda
-    if (isProd) {
-        renderProdutividadeLegend(culturaProd);
+    // 5. Configuração da Legenda Analítica (Tabela de Áreas)
+    const depthSingle = document.getElementById('sel-depth').value;
+    const hasValidData = currentGeoJSON.features.some(f => {
+        const val = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthSingle, globalSafras)[param] : null;
+        return val !== null && val !== undefined && val !== '';
+    });
+
+    // Pega os elementos da nova tabela HTML que criámos
+    const legendTotal = document.getElementById('legend-total-area');
+
+    if (!hasValidData) {
+        if (legendTitle) legendTitle.innerHTML = `<span class="text-amber-600"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Sem Dados</span>`;
+        if (legendItems) {
+            legendItems.innerHTML = `
+                <tr>
+                    <td colspan="3" class="p-3 text-center text-amber-700 text-[11px] bg-amber-50 font-bold border-b border-amber-100">
+                        A planilha não possui dados de ${param} para a safra atual.
+                    </td>
+                </tr>`;
+        }
+        if (legendTotal) legendTotal.innerText = "0.00 ha";
+        
     } else {
-        const depthSingle = document.getElementById('sel-depth').value;
-        const hasValidData = currentGeoJSON.features.some(f => {
-            const val = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthSingle, globalSafras)[param] : null;
-            return val !== null && val !== undefined && val !== '';
+        // Atualiza o título com o nome do parâmetro atual
+        if (legendTitle) legendTitle.innerHTML = `Níveis de ${param}<br><span class="text-[10px] font-bold text-slate-500 uppercase">Unidade base</span>`;
+
+        // Array para somar a área de cada classe
+        let ruleAreas = new Array(rules.length).fill(0);
+        let totalArea = 0;
+
+        // Percorre todos os talhões para calcular os hectares
+        currentGeoJSON.features.forEach(f => {
+            // Se houver filtro de talhão ativo, ignora os que estão fora
+            if (selectedTalhoes.length && !selectedTalhoes.includes(String(f.properties.Talhao))) return;
+            
+            // Se houver filtro de safra ativo, ignora os que não pertencem
+            if (globalSafras && globalSafras.length) {
+                const featureSafra = f.properties.safra_origem || (typeof extractSafra === 'function' ? extractSafra(f.properties) : null);
+                const hasHistorico = f.properties && f.properties.safras_historico && globalSafras.some(s => f.properties.safras_historico[s] && f.properties.safras_historico[s][depthSingle]);
+                const hasDirectSafra = featureSafra && globalSafras.includes(featureSafra);
+                if (!hasHistorico && !hasDirectSafra) return;
+            }
+
+            // Pega o valor do parâmetro
+            let rawVal = typeof getFeatureDepthData === 'function' ? getFeatureDepthData(f, depthSingle, globalSafras)[param] : null;
+            if (rawVal !== null && rawVal !== undefined && rawVal !== '') {
+                rawVal = parseFloat(parseFloat(rawVal).toFixed(1));
+            }
+
+            // Verifica em qual Classe (regra) o valor se encaixa
+            const matchedRule = typeof getMatchedRule === 'function' ? getMatchedRule(rawVal, rules) : null;
+            
+            if (matchedRule) {
+                const ruleIndex = rules.indexOf(matchedRule);
+                
+                // Tenta puxar a área do arquivo GeoJSON (tenta vários nomes padrão do QGIS/Métrica)
+                // Se o seu GeoJSON tiver um nome diferente para a coluna da área, basta adicionar aqui!
+                const areaHectares = parseFloat(f.properties.Area_ha || f.properties.area_ha || f.properties.AREA_HA || f.properties.Area || f.properties.area || f.properties.AREA || f.properties.hectares || 0);
+                
+                ruleAreas[ruleIndex] += areaHectares;
+                totalArea += areaHectares;
+            }
         });
 
-        legendTitle.innerText = `${param}`;
+        // Monta as linhas da tabela
+        let rowsHTML = '';
+        rules.forEach((r, idx) => {
+            const area = ruleAreas[idx];
+            
+            // Calcula a percentagem. Se for menor que 1% (mas maior que 0), exibe "<1%" como na sua imagem
+            let percDisplay = "0%";
+            if (totalArea > 0) {
+                const percValue = (area / totalArea) * 100;
+                if (percValue > 0 && percValue < 1) {
+                    percDisplay = "<1%";
+                } else {
+                    percDisplay = percValue.toFixed(0) + "%";
+                }
+            }
 
-        if (!hasValidData) {
-            legendItems.innerHTML = `
-                <div class="p-2 bg-amber-50 border border-amber-200 rounded text-amber-800 text-[11px] font-semibold space-y-1">
-                    <span class="font-bold block"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Sem dados para "${param}"</span>
-                    <span>A planilha desta safra não possui valores para este parâmetro. Tente selecionar: <b>CTC, MO, Fósforo (P), Potássio (K), pH CaCl2, V% ou Classes de MO</b>.</span>
-                </div>
+            rowsHTML += `
+                <tr>
+                    <td class="py-1.5 flex items-center gap-2 pr-2">
+                        <div class="w-4 h-4 rounded-sm border border-slate-300 shrink-0" style="background-color: ${r.color}"></div>
+                        <span class="font-medium whitespace-nowrap">${r.label}</span>
+                    </td>
+                    <td class="py-1.5 text-right font-medium text-slate-600 px-2">${area.toFixed(2)} ha</td>
+                    <td class="py-1.5 text-right font-bold text-slate-500 pl-2">${percDisplay}</td>
+                </tr>
             `;
-        } else {
-            legendItems.innerHTML = rules.map(r => `<div class="flex items-center gap-2"><div class="w-3.5 h-3.5 rounded" style="background:${r.color}"></div><span>${r.label}</span></div>`).join('');
-        }
-    }
-} 
+        });
+
+        // Injeta tudo no HTML
+        if (legendItems) legendItems.innerHTML = rowsHTML;
+        if (legendTotal) legendTotal.innerText = `${totalArea.toFixed(2)} ha`;
+    } 
+} // <- FIM DA FUNÇÃO UPDATEGISMAP
 
         // =========================================================================
         // MÓDULO DE TAXA VARIÁVEL DE FERTILIZANTES
@@ -8062,149 +8355,22 @@ async function generateBatchPDFs() {
                 if (typeof renderEvoCharts === 'function') renderEvoCharts();
             }
         };
-      async function uploadProdutividadeTIFs() {
-    const files = document.getElementById('upload-tif-files').files;
-    const cultura = document.getElementById('upload-tif-cultura').value;
-    const safra = document.getElementById('upload-tif-safra').value.trim();
-    const farmKey = document.getElementById('sel-farm').value;
-
-    if (!files.length || !safra || !farmKey) {
-        alert("Preencha a safra e selecione os arquivos .zip.");
-        return;
-    }
-
-    // Criamos a estrutura no Firebase caso não exista
-    if (!farmsDatabase[farmKey].produtividade) farmsDatabase[farmKey].produtividade = {};
-    if (!farmsDatabase[farmKey].produtividade[safra]) farmsDatabase[farmKey].produtividade[safra] = {};
-    if (!farmsDatabase[farmKey].produtividade[safra][cultura]) farmsDatabase[farmKey].produtividade[safra][cultura] = {};
-
-    let uploadsCompletos = 0;
+      function toggleSidebar() {
+    const sidebar = document.getElementById('main-sidebar');
     
-    // Altera o texto do botão para dar feedback visual durante o processamento
-    const btnSalvar = document.querySelector('button[onclick="uploadProdutividadeTIFs()"]');
-    const txtOriginal = btnSalvar ? btnSalvar.innerText : "Salvar";
-    if (btnSalvar) {
-        btnSalvar.innerText = "Processando e Salvando...";
-        btnSalvar.disabled = true;
-    }
-
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        
-        // Extrai o número do talhão do nome do arquivo usando Regex
-        const match = file.name.match(/\d+/);
-        if (!match) continue; 
-        const talhaoStr = String(parseInt(match[0], 10));
-
-        try {
-            // 1. Processa o ZIP e gera o GeoJSON localmente usando a função que criamos
-            const geojson = await processarShapefileProdutividade(file);
-            
-            if (geojson) {
-                // 2. Transforma em texto (String) para salvar no Firestore
-                const geojsonString = JSON.stringify(geojson);
-
-                // 3. Trava de Segurança: Verifica o tamanho do arquivo (Limite do Firestore é 1MB por documento)
-                const tamanhoMB = new Blob([geojsonString]).size / (1024 * 1024);
-                
-                if (tamanhoMB > 0.95) {
-                    alert(`Atenção: O mapa do talhão ${talhaoStr} está muito pesado (${tamanhoMB.toFixed(2)} MB). Faça o "Dissolver" por classes no QGIS para reduzir as feições antes de importar.`);
-                    continue; // Pula este talhão e vai para o próximo
-                }
-
-                // 4. Salva a string do mapa direto no banco de dados da Fazenda
-                farmsDatabase[farmKey].produtividade[safra][cultura][talhaoStr] = geojsonString;
-                uploadsCompletos++;
-            }
-        } catch (error) {
-            console.error(`Erro ao processar talhão ${talhaoStr}:`, error);
-        }
-    }
-
-    // 5. Atualiza o banco via Firestore de uma só vez
-    if (uploadsCompletos > 0) {
-        try {
-            await db.collection("farms").doc(farmKey).update({
-                produtividade: farmsDatabase[farmKey].produtividade
-            });
-            alert(`${uploadsCompletos} Mapas de Produtividade salvos com sucesso!`);
-        } catch (erroBanco) {
-            console.error("Erro ao salvar no Firebase:", erroBanco);
-            alert("Erro ao sincronizar com o banco de dados. O arquivo final ficou muito grande.");
-        }
+    // Troca entre ter 64 de largura e padding 4, para 0 de largura e padding 0
+    if (sidebar.classList.contains('w-64')) {
+        sidebar.classList.remove('w-64', 'p-4', 'border-r');
+        sidebar.classList.add('w-0', 'p-0', 'border-none');
     } else {
-        alert("Nenhum mapa foi salvo. Verifique os arquivos.");
+        sidebar.classList.remove('w-0', 'p-0', 'border-none');
+        sidebar.classList.add('w-64', 'p-4', 'border-r');
     }
 
-    // Restaura o botão e atualiza o mapa
-    if (btnSalvar) {
-        btnSalvar.innerText = txtOriginal;
-        btnSalvar.disabled = false;
-    }
-    
-    if (typeof updateGISMap === 'function') updateGISMap();
-}
-      // Função para testar a leitura do ZIP com Shapefile
-async function testarShapefile(file) {
-    try {
-        console.log("Descompactando e lendo o arquivo: ", file.name);
-        
-        // Transforma o arquivo em um buffer de memória
-        const buffer = await file.arrayBuffer();
-        
-        // O shpjs faz a mágica de ler o .zip e converter o .shp/.dbf em GeoJSON
-        const geojson = await shp(buffer);
-        
-        console.log("SUCESSO! O Shapefile foi lido.");
-        console.log("Quantidade de polígonos/pontos:", geojson.features.length);
-        
-        // Mostra as propriedades do primeiro polígono para sabermos o nome da coluna de Produtividade
-        if (geojson.features.length > 0) {
-            console.log("Colunas disponíveis na tabela (.dbf):", Object.keys(geojson.features[0].properties));
-        }
-        
-    } catch (erro) {
-        console.error("Erro ao ler o Shapefile:", erro);
-    }
-}
-      // Função que lê o ZIP do Shapefile e prepara o GeoJSON
-async function processarShapefileProdutividade(file) {
-    try {
-        console.log("Iniciando leitura do arquivo:", file.name);
-        const buffer = await file.arrayBuffer();
-        
-        // O shpjs converte o zip. Vamos guardar o resultado bruto.
-        let geojsonBruto = await shp(buffer);
-        
-        // Se o ZIP tiver pastas, ele retorna uma lista. Aqui pegamos o primeiro item válido.
-        let geojson = Array.isArray(geojsonBruto) ? geojsonBruto[0] : geojsonBruto;
-        
-        if (!geojson || !geojson.features) {
-            throw new Error("Formato de GeoJSON não reconhecido dentro do ZIP.");
-        }
-
-        // Varre todas as feições para arredondar a coluna PROD
-        geojson.features.forEach(feature => {
-            if (feature.properties && feature.properties.PROD !== undefined) {
-                let valorBruto = parseFloat(feature.properties.PROD);
-                feature.properties.PROD = parseFloat(valorBruto.toFixed(2));
-                
-                // Limpa outras colunas desnecessárias
-                const propSalvar = { PROD: feature.properties.PROD };
-                feature.properties = propSalvar; 
-            }
-        });
-
-        console.log(`Sucesso absoluto! ${geojson.features.length} feições processadas.`);
-        console.log("Exemplo do dado limpo:", geojson.features[0].properties);
-        
-        return geojson;
-
-    } catch (erro) {
-        console.error("Erro ao processar o Shapefile:", erro);
-        alert("Erro ao ler o arquivo. Verifique o console.");
-        return null;
-    }
+    // Espera a animação (300ms) terminar e avisa o mapa do Leaflet para reajustar os blocos cinzentos
+    setTimeout(() => {
+        window.dispatchEvent(new Event('resize'));
+    }, 300);
 }
     </script>
 </body>
