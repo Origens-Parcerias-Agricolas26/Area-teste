@@ -173,32 +173,29 @@
                         <i class="fa-solid fa-vial-circle-check text-blue-500"></i><span>Amostragem de Solo</span>
                     </button>
                     
-                        <!-- MÓDULO: AMOSTRAGEM DE SOLO -->
-                        <button onclick="switchTab('sampling')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800 hidden" id="tab-sampling">
-                            <i class="fa-solid fa-vial-circle-check text-blue-400"></i><span>Amostragem de Solo</span>
+                        <button onclick="switchTab('evolucao')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-200 hover:text-slate-900 font-bold text-xs transition-colors" id="tab-evolucao">
+                        <i class="fa-solid fa-chart-line text-pink-500"></i><span>Evolução Nutricional do Solo</span>
+                    </button>
+
+                    <button onclick="switchTab('recommendation')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-200 hover:text-slate-900 font-bold text-xs transition-colors" id="tab-recommendation">
+                        <i class="fa-solid fa-clipboard-list text-purple-500"></i><span>Recomendação Agronômica</span>
+                    </button>
+
+                    <button onclick="switchTab('visit')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-200 hover:text-slate-900 font-bold text-xs transition-colors" id="tab-visit">
+                        <i class="fa-solid fa-clipboard-user text-cyan-500"></i><span>Relatório de Visita</span>
+                    </button>
+
+                    <div id="admin-only-menu" class="pt-4 border-t border-slate-200 mt-4 hidden">
+                        <span class="text-[10px] text-slate-400 font-extrabold px-4 uppercase tracking-wider block mb-2">Administração</span>
+                        <button onclick="switchTab('users')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 hover:bg-slate-200 hover:text-slate-900 font-bold text-xs transition-colors mb-2" id="tab-users">
+                            <i class="fa-solid fa-users-gear text-orange-500"></i><span>Gestão de Acessos & Fazendas</span>
                         </button>
-                        <!-- MÓDULO: EVOLUÇÃO DE SOLO -->
-                        <button onclick="switchTab('evolucao')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800" id="tab-evolucao">
-                            <i class="fa-solid fa-chart-line text-pink-400"></i><span>Evolução Nutricional do Solo</span>
-                        </button>
-                        </button>
-                        <button onclick="switchTab('recommendation')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800" id="tab-recommendation">
-                            <i class="fa-solid fa-clipboard-list text-purple-400"></i><span>Recomendação Agronômica</span>
-                        </button>
-                        <!-- MÓDULO: RELATÓRIO DE VISITA -->
-                        <button onclick="switchTab('visit')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800" id="tab-visit">
-                            <i class="fa-solid fa-clipboard-user text-cyan-400"></i><span>Relatório de Visita</span>
-                        </button>
-                        <div id="admin-only-menu" class="pt-4 border-t border-slate-800 mt-4 hidden">
-                            <span class="text-xs text-slate-500 font-bold px-4 uppercase block mb-2">Administração</span>
-                            <button onclick="switchTab('users')" class="tab-btn w-full flex items-center gap-3 px-4 py-3 rounded-xl text-slate-300 hover:bg-slate-800" id="tab-users">
-                                <i class="fa-solid fa-users-gear text-origens-accent"></i><span>Gestão de Acessos & Fazendas</span>
-                            </button>
-                        </div>
-                    </nav>
+                    </div>
+                </nav>
                 </div>
-                <button onclick="logout()" class="w-full bg-slate-800 text-slate-400 py-3 rounded-xl hover:bg-red-500/20 hover:text-red-400 font-semibold text-sm flex items-center justify-center gap-2">
-                    <i class="fa-solid fa-power-off"></i><span>Sair da Conta</span>
+                <button onclick="logout()" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-white border border-slate-200 text-slate-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 rounded-xl font-bold text-sm transition-all shadow-sm">
+    <i class="fa-solid fa-power-off"></i><span>Sair da Conta</span>
+</button>
                 </button>
             </aside>
 
