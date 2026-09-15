@@ -6267,6 +6267,7 @@ async function generateBatchPDFs() {
     const shpInput = document.getElementById('file-shp');
     const excel010 = document.getElementById('file-excel-0-10');
     const excel1020 = document.getElementById('file-excel-10-20');
+    const excel020 = document.getElementById('file-excel-0-20'); // NOVA CAMADA 0-20 AQUI
     const excel2040 = document.getElementById('file-excel-20-40');
 
     if (!farmKey || !farmsDatabase[farmKey]) { alert("Selecione uma fazenda!"); return; }
@@ -6312,6 +6313,7 @@ async function generateBatchPDFs() {
 
             await parseExcel(excel010, 'd0_10');
             await parseExcel(excel1020, 'd10_20');
+            await parseExcel(excel020, 'd0_20');  // A NOSSA NOVA CAMADA AQUI!
             await parseExcel(excel2040, 'd20_40');
 
             let combinedFeatures = [];
