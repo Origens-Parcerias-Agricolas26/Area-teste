@@ -303,7 +303,25 @@
     </div>
     
     <button onclick="processUploadedFiles()" class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 rounded-lg text-xs shadow">Processar & Salvar na Nuvem</button>
-</div>
+
+    <div class="mt-4 pt-4 border-t border-amber-300/50 border-dashed space-y-2">
+        <span class="text-[11px] font-extrabold text-red-700 uppercase block"><i class="fa-solid fa-eraser mr-1"></i> Corrigir Erro (Excluir Dados)</span>
+        <div>
+            <select id="delete-depth" class="w-full bg-white border border-red-300 rounded-lg p-1.5 font-bold text-[11px] text-red-900 outline-none">
+                <option value="d0_10">Apagar dados de 0-10 cm</option>
+                <option value="d10_20">Apagar dados de 10-20 cm</option>
+                <option value="d0_20">Apagar dados de 0-20 cm</option>
+                <option value="d20_40">Apagar dados de 20-40 cm</option>
+            </select>
+        </div>
+        <button onclick="deleteDepthLayer()" class="w-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold py-1.5 rounded-lg text-[11px] shadow-sm transition-colors flex justify-center items-center gap-1.5">
+            <i class="fa-solid fa-trash-can"></i> Excluir da Safra Selecionada
+        </button>
+        <span class="text-[9px] text-amber-700 italic leading-tight block text-center">Atenção: A exclusão será aplicada na Safra selecionada no menu no topo deste painel.</span>
+    </div>
+</div> ```
+
+Depois de colar essa parte no HTML, lembre-se apenas de colar também a função JavaScript `deleteDepthLayer()` lá no final do seu ficheiro `.js` (ou dentro das tags `<script>` no final do HTML).
 
                             <!-- SUBSTITUA DESDE AQUI -->
 <div class="space-y-3 bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -6399,6 +6417,63 @@ async function generateBatchPDFs() {
     } else {
         alert("Envie pelo menos o arquivo Shapefile (.zip) da fazenda!");
      }
+}
+  function deleteDepthLayer() {
+    // 1. Pega os valores selecionados na interface
+    const farmKey = document.getElementById('sel-farm').value;
+    const depthKey = document.getElementById('delete-depth').value;
+    const safraTarget = document.getElementById('upload-safra-year').value; 
+
+    // Validações de segurança
+    if (!farmKey || typeof farmsDatabase === 'undefined' || !farmsDatabase[farmKey]) {
+        alert("Selecione uma fazenda primeiro!");
+        return;
+    }
+
+    if (safraTarget === 'auto') {
+        alert("Por favor, selecione um Ano Safra específico (ex: Safra 2026) no topo do painel antes de excluir.");
+        return;
+    }
+
+    // 2. Confirmação em formato de Pop-up
+    const nomeCamada = depthKey.replace('d', '').replace('_', '-');
+    const confirmMsg = `⚠️ ALERTA DE EXCLUSÃO ⚠️\n\nIsto vai apagar TODOS os dados da camada ${nomeCamada} cm pertencentes à ${safraTarget}.\n\nEsta ação não pode ser desfeita. Tem a certeza que deseja continuar?`;
+    
+    if (!confirm(confirmMsg)) return; // Se o utilizador clicar em "Cancelar", a função para aqui
+
+    // 3. Executa a limpeza varrendo os talhões
+    let apagados = 0;
+    const currentFarm = farmsDatabase[farmKey];
+    
+    if (currentFarm.geojson && currentFarm.geojson.features) {
+        currentFarm.geojson.features.forEach(f => {
+            // Navega até ao histórico da safra
+            if (f.properties && f.properties.safras_historico && f.properties.safras_historico[safraTarget]) {
+                // Se existir a camada que queremos apagar, remove-a do objeto
+                if (f.properties.safras_historico[safraTarget][depthKey]) {
+                    delete f.properties.safras_historico[safraTarget][depthKey];
+                    apagados++;
+                }
+            }
+        });
+    }
+
+    // 4. Feedback e atualização do ecrã
+    if (apagados > 0) {
+        alert(`✅ Sucesso! Os dados da camada ${nomeCamada} cm foram removidos de ${apagados} talhões.`);
+        
+        // Atualiza o mapa visualmente para refletir a exclusão
+        if (typeof updateGISMap === 'function') {
+            updateGISMap();
+        }
+
+        // NOTA: Se você tiver uma função que salva os dados na nuvem (ex: saveToCloud() ou saveToFirebase()),
+        // deve chamá-la aqui para garantir que a exclusão é salva permanentemente na base de dados!
+        // saveToCloud(); 
+        
+    } else {
+        alert(`ℹ️ Nenhum dado encontrado na camada ${nomeCamada} cm para a ${safraTarget}.`);
+    }
 }
         // =========================================================================
         // CORREÇÃO DOS FILTROS DE PRODUTOR E FAZENDA (ATUALIZADO PARA RECOMENDAÇÃO)
